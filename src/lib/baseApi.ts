@@ -4,7 +4,18 @@ import type { RootState } from '@/app/store';
 import { authTokensUpdated, loggedOut, type AuthTokens } from '@/features/auth/authSlice';
 import type { ApiOk } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+/**
+ * Acepta VITE_API_URL con o sin el sufijo /api/v1 (algunas plataformas de hosting solo
+ * permiten configurar el origen pelado del backend) y siempre termina apuntando a /api/v1,
+ * sin duplicarlo si ya viene incluido.
+ */
+function resolveApiUrl(): string {
+  const raw = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+  const trimmed = raw.replace(/\/+$/, '');
+  return trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+}
+
+const API_URL = resolveApiUrl();
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
