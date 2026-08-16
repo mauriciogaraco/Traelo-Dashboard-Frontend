@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +8,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import { OrderStatus } from '@/lib/types';
+import { OrderStatus, type OrderDTO } from '@/lib/types';
+import { EditOrderModal } from './EditOrderModal';
 import { useListOrdersQuery } from './ordersApi';
 
 const PAGE_SIZE = 15;
@@ -38,6 +39,7 @@ export function OrdersPage() {
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [editingOrder, setEditingOrder] = useState<OrderDTO | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -130,19 +132,20 @@ export function OrdersPage() {
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Fecha</th>
+              {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && (data?.data.length ?? 0) === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   No hay pedidos que coincidan con los filtros.
                 </td>
               </tr>
@@ -167,6 +170,16 @@ export function OrdersPage() {
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900">{order.total} CUP</td>
                 <td className="px-4 py-3 text-slate-500">{formatDateTime(order.orderDate)}</td>
+                {canManage && (
+                  <td className="px-4 py-3">
+                    {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                      <Button type="button" variant="ghost" onClick={() => setEditingOrder(order)}>
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -174,6 +187,10 @@ export function OrdersPage() {
         {data && <Pagination meta={data.meta} onPageChange={setPage} />}
       </div>
       {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
+
+      {editingOrder && (
+        <EditOrderModal order={editingOrder} onClose={() => setEditingOrder(null)} />
+      )}
     </div>
   );
 }
