@@ -24,21 +24,37 @@ export interface ParsedOrderDraft {
   unmatchedLines: string[];
 }
 
-const LABEL_PATTERNS: { key: keyof ParsedOrderDraft; regex: RegExp }[] = [
+// Campos que se llenan directo, uno por línea (la última línea etiquetada gana).
+const SIMPLE_LABEL_PATTERNS: { key: 'customerName' | 'customerPhone' | 'customerAddress'; regex: RegExp }[] = [
   { key: 'customerName', regex: /^(?:cliente|nombre)\s*:\s*(.+)$/i },
   { key: 'customerPhone', regex: /^(?:tel[eé]fono|tel|cel(?:ular)?|contacto)\s*:\s*(.+)$/i },
   { key: 'customerAddress', regex: /^(?:direcci[oó]n|dir)\s*:\s*(.+)$/i },
-  { key: 'addressReference', regex: /^(?:referencia|ref)\s*:\s*(.+)$/i },
-  { key: 'deliveryFee', regex: /^(?:mensajer[ií]a|env[ií]o|delivery|flete)\s*:?\s*\$?\s*([\d.,]+)/i },
+];
+
+// Campos que se acumulan (puede haber referencia + nota de entrega, por ejemplo) y se
+// combinan en addressReference.
+const NOTE_LABEL_PATTERNS: { prefix: string; regex: RegExp }[] = [
+  { prefix: '', regex: /^(?:referencia|ref)\s*:\s*(.+)$/i },
+  { prefix: 'Entrega: ', regex: /^entrega\s*:?\s*(.+)$/i },
+];
+
+const DELIVERY_FEE_REGEX = /^(?:mensajer[ií]a|env[ií]o|delivery|flete)\s*:?\s*\$?\s*([\d.,]+)/i;
+
+// Líneas informativas que nunca deben interpretarse como producto ni mostrarse como "sin
+// interpretar": el subtotal/total/Servicio Tráelo los calcula siempre el backend.
+const IGNORE_LINE_PATTERNS = [
+  /^subtotal\b/i,
+  /^total\b/i,
+  /^servicio\s+tr[aá]elo\b/i,
+  /^pedido\s*#?\s*\d/i,
 ];
 
 const PHONE_REGEX = /(?:\+?53[\s-]?)?5\d{2}[\s-]?\d{4,5}\b/;
 
+// La coma es separador de miles en este contexto (1,300 -> 1300), no decimal.
 function parseMoney(raw: string): number {
-  const cleaned = raw.replace(/[^\d.,]/g, '').replace(/,/g, '.');
-  const parts = cleaned.split('.');
-  const normalized = parts.length > 1 ? `${parts.slice(0, -1).join('')}.${parts.at(-1)}` : cleaned;
-  const value = Number.parseFloat(normalized);
+  const cleaned = raw.replace(/[^\d.,]/g, '').replace(/,/g, '');
+  const value = Number.parseFloat(cleaned);
   return Number.isFinite(value) ? value : 0;
 }
 
@@ -50,24 +66,30 @@ function normalize(text: string): string {
     .trim();
 }
 
+// Quita emojis, viñetas (•) y símbolos sueltos al inicio de la línea ("🏪 Los Macus" -> "Los
+// Macus"), que son muy comunes en pedidos pegados de WhatsApp y rompían todo el matching.
+function stripLeadingDecoration(line: string): string {
+  return line.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+}
+
 function parseItemLine(line: string): ParsedOrderItem | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
 
-  // "2x Pizza familiar - 500" / "2 x Pizza familiar 500"
-  let m = trimmed.match(/^(\d+)\s*[xX]\s*(.+?)\s*[-–]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
+  // "2x Pizza familiar - 500" / "2 × Pizza familiar — 500"
+  let m = trimmed.match(/^(\d+)\s*[x×]\s*(.+?)\s*[-–—]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
   if (m?.[1] && m[2] && m[3]) {
     return { quantity: Number(m[1]), productName: m[2].trim(), unitPrice: parseMoney(m[3]) };
   }
 
-  // "Pizza familiar x2 - 500"
-  m = trimmed.match(/^(.+?)\s*[xX]\s*(\d+)\s*[-–]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
+  // "Pizza familiar x2 - 500" / "Jamón y Queso Especial × 1 — 550 CUP"
+  m = trimmed.match(/^(.+?)\s*[x×]\s*(\d+)\s*[-–—]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
   if (m?.[1] && m[2] && m[3]) {
     return { quantity: Number(m[2]), productName: m[1].trim(), unitPrice: parseMoney(m[3]) };
   }
 
   // "Pizza familiar - 500" / "Pizza familiar 500" (sin cantidad explícita -> 1)
-  m = trimmed.match(/^(.+?)\s*[-–]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
+  m = trimmed.match(/^(.+?)\s*[-–—]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
   if (m?.[1] && m[2] && m[1].length > 1) {
     return { quantity: 1, productName: m[1].trim(), unitPrice: parseMoney(m[2]) };
   }
@@ -91,33 +113,48 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     unmatchedLines: [],
   };
 
+  const notes: string[] = [];
   const businessByNormalizedName = new Map(businesses.map((b) => [normalize(b.name), b]));
 
-  const lines = text
+  const rawLines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
   let currentGroup: ParsedOrderBusinessGroup | null = null;
 
-  for (const line of lines) {
-    // 1. Campos etiquetados ("Cliente: ...", "Dirección: ...", etc.)
-    let matchedLabel = false;
-    for (const { key, regex } of LABEL_PATTERNS) {
-      const match = line.match(regex);
-      if (match?.[1]) {
-        if (key === 'deliveryFee') {
-          draft.deliveryFee = parseMoney(match[1]);
-        } else {
-          (draft as unknown as Record<string, string | null>)[key] = match[1].trim();
-        }
-        matchedLabel = true;
-        break;
-      }
-    }
-    if (matchedLabel) continue;
+  for (const rawLine of rawLines) {
+    const line = stripLeadingDecoration(rawLine);
+    if (!line) continue;
 
-    // 2. ¿La línea es el nombre de un negocio activo? -> abre un grupo nuevo.
+    if (IGNORE_LINE_PATTERNS.some((regex) => regex.test(line))) {
+      continue;
+    }
+
+    // 1. Campos simples etiquetados ("Cliente: ...", "Dirección: ...", "Teléfono: ...").
+    const simpleMatch = SIMPLE_LABEL_PATTERNS.find(({ regex }) => regex.test(line));
+    if (simpleMatch) {
+      const value = line.match(simpleMatch.regex)?.[1]?.trim();
+      if (value) draft[simpleMatch.key] = value;
+      continue;
+    }
+
+    // 2. Mensajería.
+    const feeMatch = line.match(DELIVERY_FEE_REGEX);
+    if (feeMatch?.[1]) {
+      draft.deliveryFee = parseMoney(feeMatch[1]);
+      continue;
+    }
+
+    // 3. Notas que se combinan en addressReference (Referencia, Entrega).
+    const noteMatch = NOTE_LABEL_PATTERNS.find(({ regex }) => regex.test(line));
+    if (noteMatch) {
+      const value = line.match(noteMatch.regex)?.[1]?.trim();
+      if (value) notes.push(`${noteMatch.prefix}${value}`);
+      continue;
+    }
+
+    // 4. ¿La línea es el nombre de un negocio activo? -> abre un grupo nuevo.
     const business = businessByNormalizedName.get(normalize(line));
     if (business) {
       currentGroup = { businessId: business.id, businessNameGuess: business.name, items: [] };
@@ -125,13 +162,13 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
       continue;
     }
 
-    // 3. Teléfono suelto, sin etiqueta.
+    // 5. Teléfono suelto, sin etiqueta.
     if (!draft.customerPhone && PHONE_REGEX.test(line) && line.replace(/\D/g, '').length <= 12) {
-      draft.customerPhone = line.match(PHONE_REGEX)?.[0]?.trim() ?? line.trim();
+      draft.customerPhone = line.match(PHONE_REGEX)?.[0]?.trim() ?? line;
       continue;
     }
 
-    // 4. Línea de producto ("2x Pizza - 500").
+    // 6. Línea de producto ("2x Pizza - 500", "Jamón × 1 — 550 CUP").
     const item = parseItemLine(line);
     if (item) {
       if (!currentGroup) {
@@ -148,7 +185,11 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
       continue;
     }
 
-    draft.unmatchedLines.push(line);
+    draft.unmatchedLines.push(rawLine);
+  }
+
+  if (notes.length > 0) {
+    draft.addressReference = notes.join(' · ');
   }
 
   return draft;
