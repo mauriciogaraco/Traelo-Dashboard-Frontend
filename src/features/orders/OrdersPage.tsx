@@ -8,8 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import { OrderStatus, type OrderDTO } from '@/lib/types';
-import { EditOrderModal } from './EditOrderModal';
+import { OrderStatus } from '@/lib/types';
 import { useListOrdersQuery } from './ordersApi';
 
 const PAGE_SIZE = 15;
@@ -39,7 +38,6 @@ export function OrdersPage() {
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [editingOrder, setEditingOrder] = useState<OrderDTO | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -173,10 +171,12 @@ export function OrdersPage() {
                 {canManage && (
                   <td className="px-4 py-3">
                     {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
-                      <Button type="button" variant="ghost" onClick={() => setEditingOrder(order)}>
-                        <Pencil className="h-4 w-4" />
-                        Editar
-                      </Button>
+                      <Link to={`/orders/${order.id}/edit`}>
+                        <Button type="button" variant="ghost">
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      </Link>
                     )}
                   </td>
                 )}
@@ -187,10 +187,6 @@ export function OrdersPage() {
         {data && <Pagination meta={data.meta} onPageChange={setPage} />}
       </div>
       {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
-
-      {editingOrder && (
-        <EditOrderModal order={editingOrder} onClose={() => setEditingOrder(null)} />
-      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { BusinessDetailPage } from '@/features/businesses/BusinessDetailPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
+import { EditOrderPage } from '@/features/orders/EditOrderPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGate } from './RoleGate';
 
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
             element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE']} />,
             children: [
               { path: 'orders/new', element: <CreateOrderPage /> },
+              { path: 'orders/:id/edit', element: <EditOrderPage /> },
               { path: 'businesses', element: <BusinessesPage /> },
               { path: 'businesses/:id', element: <BusinessDetailPage /> },
               { path: 'deliverers', element: <DeliverersPage /> },

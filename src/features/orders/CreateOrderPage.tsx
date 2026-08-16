@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
@@ -7,33 +7,10 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
 import { parseOrderText } from './orderTextParser';
-
-interface ItemDraft {
-  key: string;
-  productName: string;
-  quantity: string;
-  unitPrice: string;
-}
-
-interface GroupDraft {
-  key: string;
-  businessId: string | null;
-  items: ItemDraft[];
-}
-
-function makeId(): string {
-  return Math.random().toString(36).slice(2);
-}
-
-function emptyItem(): ItemDraft {
-  return { key: makeId(), productName: '', quantity: '1', unitPrice: '' };
-}
-
-function emptyGroup(): GroupDraft {
-  return { key: makeId(), businessId: null, items: [emptyItem()] };
-}
 
 export function CreateOrderPage() {
   const navigate = useNavigate();
@@ -318,109 +295,16 @@ export function CreateOrderPage() {
             />
           </div>
 
-          <div className="flex flex-col gap-4">
-            {groups.map((group) => {
-              const usedElsewhere = groups
-                .filter((g) => g.key !== group.key)
-                .map((g) => g.businessId)
-                .filter(Boolean);
-              const businessOptions = businesses
-                .filter((b) => !usedElsewhere.includes(b.id))
-                .map((b) => ({ value: b.id, label: b.name }));
-              const groupSubtotal = group.items.reduce(
-                (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
-                0,
-              );
-
-              return (
-                <div
-                  key={group.key}
-                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="mb-3 flex items-end justify-between gap-3">
-                    <div className="w-64">
-                      <SearchableSelect
-                        label="Negocio"
-                        value={group.businessId}
-                        onChange={(value) => updateGroup(group.key, { businessId: value })}
-                        options={businessOptions}
-                        placeholder="Elegir negocio…"
-                      />
-                    </div>
-                    {groups.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeGroup(group.key)}
-                        className="flex items-center gap-1 text-sm text-red-600 hover:underline"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Quitar negocio
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    {group.items.map((item) => (
-                      <div key={item.key} className="flex items-center gap-2">
-                        <input
-                          value={item.productName}
-                          onChange={(e) =>
-                            updateItem(group.key, item.key, { productName: e.target.value })
-                          }
-                          placeholder="Producto"
-                          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        />
-                        <input
-                          type="number"
-                          min={1}
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(group.key, item.key, { quantity: e.target.value })
-                          }
-                          placeholder="Cant."
-                          className="w-20 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        />
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={item.unitPrice}
-                          onChange={(e) =>
-                            updateItem(group.key, item.key, { unitPrice: e.target.value })
-                          }
-                          placeholder="Precio"
-                          className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeItem(group.key, item.key)}
-                          disabled={group.items.length <= 1}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <Button type="button" variant="ghost" onClick={() => addItem(group.key)}>
-                      <Plus className="h-4 w-4" />
-                      Agregar producto
-                    </Button>
-                    <p className="text-sm text-slate-500">
-                      Subtotal: <span className="font-medium text-slate-900">{groupSubtotal} CUP</span>
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-
-            <Button type="button" variant="secondary" onClick={addGroup} className="self-start">
-              <Plus className="h-4 w-4" />
-              Agregar negocio
-            </Button>
-          </div>
+          <BusinessGroupsEditor
+            groups={groups}
+            businesses={businesses}
+            updateGroup={updateGroup}
+            updateItem={updateItem}
+            addGroup={addGroup}
+            removeGroup={removeGroup}
+            addItem={addItem}
+            removeItem={removeItem}
+          />
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:max-w-sm sm:self-end">
             <dl className="space-y-2 text-sm">

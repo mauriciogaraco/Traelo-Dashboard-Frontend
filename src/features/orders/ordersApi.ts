@@ -42,6 +42,8 @@ export interface UpdateOrderInput {
   customerPhone?: string;
   deliveryFee?: number;
   platformFeeOverride?: number;
+  // Reemplaza por completo los negocios/productos del pedido. Si se omite, no se tocan.
+  businesses?: CreateOrderBusinessInput[];
 }
 
 export const ordersApi = baseApi.injectEndpoints({

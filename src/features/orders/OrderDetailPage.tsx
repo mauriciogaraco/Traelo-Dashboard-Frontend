@@ -9,7 +9,6 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import type { OrderStatus } from '@/lib/types';
-import { EditOrderModal } from './EditOrderModal';
 import {
   useAssignOrderMutation,
   useGetOrderQuery,
@@ -39,7 +38,6 @@ export function OrderDetailPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role !== 'DELIVERER';
 
-  const [editOpen, setEditOpen] = useState(false);
   const [assigningDelivererId, setAssigningDelivererId] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -111,9 +109,11 @@ export function OrderDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
-            <Button type="button" variant="secondary" onClick={() => setEditOpen(true)}>
-              Editar
-            </Button>
+            <Link to={`/orders/${order.id}/edit`}>
+              <Button type="button" variant="secondary">
+                Editar
+              </Button>
+            </Link>
           )}
           {canComplete && (
             <Button type="button" onClick={() => setCompleteOpen(true)}>
@@ -251,7 +251,6 @@ export function OrderDetailPage() {
         </dl>
       </div>
 
-      {editOpen && <EditOrderModal order={order} onClose={() => setEditOpen(false)} />}
       {completeOpen && (
         <ConfirmDialog
           title="Completar pedido"
