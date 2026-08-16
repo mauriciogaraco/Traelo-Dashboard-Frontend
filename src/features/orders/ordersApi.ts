@@ -29,6 +29,9 @@ export interface CreateOrderInput {
   addressReference?: string;
   customerPhone: string;
   deliveryFee: number;
+  // Anula el Servicio Tráelo calculado automáticamente (p.ej. 0 si no se cobró en este pedido).
+  // Si se omite, el backend lo calcula solo a partir de la comisión de cada negocio.
+  platformFeeOverride?: number;
   businesses: CreateOrderBusinessInput[];
 }
 
@@ -38,6 +41,7 @@ export interface UpdateOrderInput {
   addressReference?: string;
   customerPhone?: string;
   deliveryFee?: number;
+  platformFeeOverride?: number;
 }
 
 export const ordersApi = baseApi.injectEndpoints({

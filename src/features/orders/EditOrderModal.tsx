@@ -14,6 +14,10 @@ const schema = z.object({
   customerAddress: z.string().min(3, 'Mínimo 3 caracteres').max(300),
   addressReference: z.string().max(200).optional(),
   deliveryFee: z.string().min(1, 'Requerido').refine((v) => Number(v) >= 0, 'Debe ser mayor o igual a 0'),
+  platformFeeOverride: z
+    .string()
+    .min(1, 'Requerido')
+    .refine((v) => Number(v) >= 0, 'Debe ser mayor o igual a 0'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -38,6 +42,7 @@ export function EditOrderModal({ order, onClose }: EditOrderModalProps) {
       customerAddress: order.customerAddress,
       addressReference: order.addressReference ?? '',
       deliveryFee: order.deliveryFee.toString(),
+      platformFeeOverride: order.platformFee.toString(),
     },
   });
 
@@ -50,6 +55,7 @@ export function EditOrderModal({ order, onClose }: EditOrderModalProps) {
         customerAddress: values.customerAddress,
         addressReference: values.addressReference || undefined,
         deliveryFee: Number(values.deliveryFee),
+        platformFeeOverride: Number(values.platformFeeOverride),
       },
     }).unwrap();
     onClose();
@@ -85,6 +91,14 @@ export function EditOrderModal({ order, onClose }: EditOrderModalProps) {
           step="0.01"
           error={errors.deliveryFee?.message}
           {...register('deliveryFee')}
+        />
+        <FormField
+          label="Servicio Tráelo (CUP)"
+          type="number"
+          min={0}
+          step="0.01"
+          error={errors.platformFeeOverride?.message}
+          {...register('platformFeeOverride')}
         />
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">

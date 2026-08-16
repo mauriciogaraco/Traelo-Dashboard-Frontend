@@ -46,6 +46,7 @@ export function CreateOrderPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [addressReference, setAddressReference] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export function CreateOrderPage() {
     if (draft.customerAddress) setCustomerAddress(draft.customerAddress);
     if (draft.addressReference) setAddressReference(draft.addressReference);
     if (draft.deliveryFee !== null) setDeliveryFee(String(draft.deliveryFee));
+    if (draft.platformFeeOverride !== null) setPlatformFeeOverride(String(draft.platformFeeOverride));
     if (draft.businessGroups.length > 0) {
       setGroups(
         draft.businessGroups.map((g) => ({
@@ -148,6 +150,15 @@ export function CreateOrderPage() {
       setFormError('La mensajería debe ser un número válido.');
       return;
     }
+    let platformFeeOverrideValue: number | undefined;
+    if (platformFeeOverride !== '') {
+      const parsed = Number(platformFeeOverride);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        setFormError('El Servicio Tráelo debe ser un número válido.');
+        return;
+      }
+      platformFeeOverrideValue = parsed;
+    }
 
     const cleanedGroups = groups
       .map((g) => ({
@@ -183,6 +194,7 @@ export function CreateOrderPage() {
         customerAddress: customerAddress.trim(),
         addressReference: addressReference.trim() || undefined,
         deliveryFee: feeNumber,
+        platformFeeOverride: platformFeeOverrideValue,
         businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
       }).unwrap();
 
@@ -420,10 +432,22 @@ export function CreateOrderPage() {
                 <dt className="text-slate-500">Mensajería</dt>
                 <dd className="font-medium text-slate-900">{feeNumber} CUP</dd>
               </div>
-              <p className="text-xs text-slate-400">
-                El Servicio Tráelo y el total final se calculan al guardar.
-              </p>
             </dl>
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <FormField
+                label="Servicio Tráelo (opcional)"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Se calcula automático"
+                value={platformFeeOverride}
+                onChange={(e) => setPlatformFeeOverride(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Dejalo vacío para que el sistema lo calcule solo. Poné 0 si no se cobró en este
+                pedido.
+              </p>
+            </div>
           </div>
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}

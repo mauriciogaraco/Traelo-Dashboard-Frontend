@@ -20,6 +20,10 @@ export interface ParsedOrderDraft {
   customerAddress: string | null;
   addressReference: string | null;
   deliveryFee: number | null;
+  // Lo que decía el vale pegado (puede ser 0 si no se cobró en ese pedido puntual). Se ofrece
+  // como sugerencia editable para el campo de anulación del Servicio Tráelo — nunca se envía
+  // solo, el staff siempre puede corregirlo antes de guardar.
+  platformFeeOverride: number | null;
   businessGroups: ParsedOrderBusinessGroup[];
   unmatchedLines: string[];
 }
@@ -39,15 +43,11 @@ const NOTE_LABEL_PATTERNS: { prefix: string; regex: RegExp }[] = [
 ];
 
 const DELIVERY_FEE_REGEX = /^(?:mensajer[ií]a|env[ií]o|delivery|flete)\s*:?\s*\$?\s*([\d.,]+)/i;
+const PLATFORM_FEE_REGEX = /^servicio\s+tr[aá]elo\s*:?\s*\$?\s*([\d.,]+)/i;
 
 // Líneas informativas que nunca deben interpretarse como producto ni mostrarse como "sin
-// interpretar": el subtotal/total/Servicio Tráelo los calcula siempre el backend.
-const IGNORE_LINE_PATTERNS = [
-  /^subtotal\b/i,
-  /^total\b/i,
-  /^servicio\s+tr[aá]elo\b/i,
-  /^pedido\s*#?\s*\d/i,
-];
+// interpretar": el subtotal/total los calcula siempre el backend, y el header no aporta nada.
+const IGNORE_LINE_PATTERNS = [/^subtotal\b/i, /^total\b/i, /^pedido\s*#?\s*\d/i];
 
 const PHONE_REGEX = /(?:\+?53[\s-]?)?5\d{2}[\s-]?\d{4,5}\b/;
 
@@ -72,20 +72,32 @@ function stripLeadingDecoration(line: string): string {
   return line.replace(/^[^\p{L}\p{N}]+/u, '').trim();
 }
 
+// Redondea a centavos para evitar arrastres de coma flotante al derivar el precio unitario.
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function parseItemLine(line: string): ParsedOrderItem | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
 
-  // "2x Pizza familiar - 500" / "2 × Pizza familiar — 500"
+  // "2x Pizza familiar - 500" / "2 × Pizza familiar — 500": el monto es el SUBTOTAL de la
+  // línea (ya multiplicado por la cantidad), no el precio unitario — así vienen los vales
+  // reales que pega el staff. El precio unitario se deriva dividiendo.
   let m = trimmed.match(/^(\d+)\s*[x×]\s*(.+?)\s*[-–—]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
   if (m?.[1] && m[2] && m[3]) {
-    return { quantity: Number(m[1]), productName: m[2].trim(), unitPrice: parseMoney(m[3]) };
+    const quantity = Math.max(1, Number(m[1]));
+    const lineTotal = parseMoney(m[3]);
+    return { quantity, productName: m[2].trim(), unitPrice: roundMoney(lineTotal / quantity) };
   }
 
-  // "Pizza familiar x2 - 500" / "Jamón y Queso Especial × 1 — 550 CUP"
+  // "Pizza familiar x2 - 500" / "Jamón y Queso Especial × 3 — 900 CUP" (mismo criterio: 500/900
+  // es el subtotal de la línea).
   m = trimmed.match(/^(.+?)\s*[x×]\s*(\d+)\s*[-–—]?\s*\$?\s*(\d[\d.,]*)\s*(?:cup)?$/i);
   if (m?.[1] && m[2] && m[3]) {
-    return { quantity: Number(m[2]), productName: m[1].trim(), unitPrice: parseMoney(m[3]) };
+    const quantity = Math.max(1, Number(m[2]));
+    const lineTotal = parseMoney(m[3]);
+    return { quantity, productName: m[1].trim(), unitPrice: roundMoney(lineTotal / quantity) };
   }
 
   // "Pizza familiar - 500" / "Pizza familiar 500" (sin cantidad explícita -> 1)
@@ -109,6 +121,7 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     customerAddress: null,
     addressReference: null,
     deliveryFee: null,
+    platformFeeOverride: null,
     businessGroups: [],
     unmatchedLines: [],
   };
@@ -143,6 +156,13 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     const feeMatch = line.match(DELIVERY_FEE_REGEX);
     if (feeMatch?.[1]) {
       draft.deliveryFee = parseMoney(feeMatch[1]);
+      continue;
+    }
+
+    // 2b. Servicio Tráelo: se ofrece como sugerencia editable, nunca se envía tal cual.
+    const platformFeeMatch = line.match(PLATFORM_FEE_REGEX);
+    if (platformFeeMatch?.[1]) {
+      draft.platformFeeOverride = parseMoney(platformFeeMatch[1]);
       continue;
     }
 
