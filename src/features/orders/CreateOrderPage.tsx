@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -23,6 +24,7 @@ export function CreateOrderPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [addressReference, setAddressReference] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
@@ -48,7 +50,11 @@ export function CreateOrderPage() {
     if (draft.customerAddress) setCustomerAddress(draft.customerAddress);
     if (draft.addressReference) setAddressReference(draft.addressReference);
     if (draft.deliveryFee !== null) setDeliveryFee(String(draft.deliveryFee));
-    if (draft.platformFeeOverride !== null) setPlatformFeeOverride(String(draft.platformFeeOverride));
+    if (draft.platformFeeOverride !== null) {
+      setPlatformFeeOverride(String(draft.platformFeeOverride));
+      // Si el vale trae "Servicio Tráelo: 0", asumimos que este pedido puntual no lo cobra.
+      if (draft.platformFeeOverride === 0) setChargePlatformFee(false);
+    }
     if (draft.businessGroups.length > 0) {
       setGroups(
         draft.businessGroups.map((g) => ({
@@ -128,7 +134,9 @@ export function CreateOrderPage() {
       return;
     }
     let platformFeeOverrideValue: number | undefined;
-    if (platformFeeOverride !== '') {
+    if (!chargePlatformFee) {
+      platformFeeOverrideValue = 0;
+    } else if (platformFeeOverride !== '') {
       const parsed = Number(platformFeeOverride);
       if (Number.isNaN(parsed) || parsed < 0) {
         setFormError('El Servicio Tráelo debe ser un número válido.');
@@ -317,20 +325,27 @@ export function CreateOrderPage() {
                 <dd className="font-medium text-slate-900">{feeNumber} CUP</dd>
               </div>
             </dl>
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              <FormField
-                label="Servicio Tráelo (opcional)"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Se calcula automático"
-                value={platformFeeOverride}
-                onChange={(e) => setPlatformFeeOverride(e.target.value)}
+            <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3">
+              <Switch
+                checked={chargePlatformFee}
+                onChange={setChargePlatformFee}
+                label="Cobrar Servicio Tráelo"
               />
-              <p className="mt-1 text-xs text-slate-400">
-                Dejalo vacío para que el sistema lo calcule solo. Poné 0 si no se cobró en este
-                pedido.
-              </p>
+              {chargePlatformFee ? (
+                <FormField
+                  label="Servicio Tráelo (opcional)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Se calcula automático"
+                  value={platformFeeOverride}
+                  onChange={(e) => setPlatformFeeOverride(e.target.value)}
+                />
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Este pedido no cobra Servicio Tráelo — se guarda en 0 CUP.
+                </p>
+              )}
             </div>
           </div>
 

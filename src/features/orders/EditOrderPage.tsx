@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -35,6 +36,7 @@ export function EditOrderPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [addressReference, setAddressReference] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
@@ -48,6 +50,7 @@ export function EditOrderPage() {
     setCustomerAddress(order.customerAddress);
     setAddressReference(order.addressReference ?? '');
     setDeliveryFee(String(order.deliveryFee));
+    setChargePlatformFee(order.platformFee > 0);
     setPlatformFeeOverride(String(order.platformFee));
     setDelivererId(order.delivererId);
     setGroups(
@@ -134,7 +137,9 @@ export function EditOrderPage() {
       return;
     }
     let platformFeeOverrideValue: number | undefined;
-    if (platformFeeOverride !== '') {
+    if (!chargePlatformFee) {
+      platformFeeOverrideValue = 0;
+    } else if (platformFeeOverride !== '') {
       const parsed = Number(platformFeeOverride);
       if (Number.isNaN(parsed) || parsed < 0) {
         setFormError('El Servicio Tráelo debe ser un número válido.');
@@ -282,15 +287,27 @@ export function EditOrderPage() {
               <dd className="font-medium text-slate-900">{feeNumber} CUP</dd>
             </div>
           </dl>
-          <div className="mt-3 border-t border-slate-100 pt-3">
-            <FormField
-              label="Servicio Tráelo (CUP)"
-              type="number"
-              min={0}
-              step="0.01"
-              value={platformFeeOverride}
-              onChange={(e) => setPlatformFeeOverride(e.target.value)}
+          <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3">
+            <Switch
+              checked={chargePlatformFee}
+              onChange={setChargePlatformFee}
+              label="Cobrar Servicio Tráelo"
             />
+            {chargePlatformFee ? (
+              <FormField
+                label="Servicio Tráelo (CUP)"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Se calcula automático"
+                value={platformFeeOverride}
+                onChange={(e) => setPlatformFeeOverride(e.target.value)}
+              />
+            ) : (
+              <p className="text-xs text-slate-500">
+                Este pedido no cobra Servicio Tráelo — se guarda en 0 CUP.
+              </p>
+            )}
           </div>
         </div>
 
