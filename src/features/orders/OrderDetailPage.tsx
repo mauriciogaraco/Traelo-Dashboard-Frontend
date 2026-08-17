@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,7 @@ import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import type { OrderStatus } from '@/lib/types';
 import {
   useAssignOrderMutation,
+  useDeleteOrderMutation,
   useGetOrderQuery,
   useUpdateOrderStatusMutation,
 } from './ordersApi';
@@ -35,12 +36,15 @@ function formatDateTime(iso: string | null): string {
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role !== 'DELIVERER';
+  const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [assigningDelivererId, setAssigningDelivererId] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data, isLoading, error } = useGetOrderQuery(id ?? '', { skip: !id });
   const { data: deliverersData } = useListDeliverersQuery(
@@ -49,6 +53,7 @@ export function OrderDetailPage() {
   );
   const [assignOrder, { isLoading: isAssigning }] = useAssignOrderMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
+  const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
 
   if (isLoading) {
     return <p className="text-slate-400">Cargando…</p>;
@@ -62,6 +67,7 @@ export function OrderDetailPage() {
   const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
   const canComplete = canManage && order.status === 'ASSIGNED';
   const canCancel = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
+  const canDeleteOrder = canDelete && order.status !== 'COMPLETED';
 
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
@@ -85,6 +91,12 @@ export function OrderDetailPage() {
     if (!id) return;
     await updateStatus({ id, status: 'CANCELLED' }).unwrap();
     setCancelOpen(false);
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    await deleteOrder(id).unwrap();
+    navigate('/orders', { replace: true });
   }
 
   return (
@@ -123,6 +135,11 @@ export function OrderDetailPage() {
           {canCancel && (
             <Button type="button" variant="danger" onClick={() => setCancelOpen(true)}>
               Cancelar
+            </Button>
+          )}
+          {canDeleteOrder && (
+            <Button type="button" variant="danger" onClick={() => setDeleteOpen(true)}>
+              Eliminar
             </Button>
           )}
         </div>
@@ -270,6 +287,16 @@ export function OrderDetailPage() {
           isLoading={isUpdatingStatus}
           onConfirm={handleCancel}
           onCancel={() => setCancelOpen(false)}
+        />
+      )}
+      {deleteOpen && (
+        <ConfirmDialog
+          title="Eliminar pedido"
+          description={`El pedido #${order.orderNumber} de ${order.customerName} se va a eliminar para siempre. ¿Confirmás?`}
+          confirmLabel="Eliminar"
+          isLoading={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteOpen(false)}
         />
       )}
     </div>

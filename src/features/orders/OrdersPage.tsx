@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import { OrderStatus } from '@/lib/types';
+import { OrderStatus, type OrderDTO } from '@/lib/types';
 import type { DateRangePreset } from './ordersApi';
-import { useListOrdersQuery } from './ordersApi';
+import { useDeleteOrderMutation, useListOrdersQuery } from './ordersApi';
 
 const PAGE_SIZE = 15;
 
@@ -45,12 +46,14 @@ function formatDateTime(iso: string): string {
 export function OrdersPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role !== 'DELIVERER';
+  const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
   const [rangeTab, setRangeTab] = useState<RangeTab>('today');
+  const [deletingOrder, setDeletingOrder] = useState<OrderDTO | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -72,6 +75,14 @@ export function OrdersPage() {
     delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
     range: rangeTab === 'all' ? undefined : rangeTab,
   });
+
+  const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
+
+  async function handleConfirmDelete() {
+    if (!deletingOrder) return;
+    await deleteOrder(deletingOrder.id).unwrap();
+    setDeletingOrder(null);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -182,14 +193,26 @@ export function OrdersPage() {
                 <td className="px-4 py-3 text-slate-500">{formatDateTime(order.orderDate)}</td>
                 {canManage && (
                   <td className="px-4 py-3">
-                    {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
-                      <Link to={`/orders/${order.id}/edit`}>
-                        <Button type="button" variant="ghost">
-                          <Pencil className="h-4 w-4" />
-                          Editar
+                    <div className="flex items-center gap-1">
+                      {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                        <Link to={`/orders/${order.id}/edit`}>
+                          <Button type="button" variant="ghost">
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </Button>
+                        </Link>
+                      )}
+                      {canDelete && order.status !== 'COMPLETED' && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setDeletingOrder(order)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
                         </Button>
-                      </Link>
-                    )}
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>
@@ -199,6 +222,17 @@ export function OrdersPage() {
         {data && <Pagination meta={data.meta} onPageChange={setPage} />}
       </div>
       {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
+
+      {deletingOrder && (
+        <ConfirmDialog
+          title="Eliminar pedido"
+          description={`El pedido #${deletingOrder.orderNumber} de ${deletingOrder.customerName} se va a eliminar para siempre. ¿Confirmás?`}
+          confirmLabel="Eliminar"
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingOrder(null)}
+        />
+      )}
     </div>
   );
 }
