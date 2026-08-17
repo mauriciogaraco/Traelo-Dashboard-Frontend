@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pencil, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +10,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import { OrderStatus } from '@/lib/types';
+import type { DateRangePreset } from './ordersApi';
 import { useListOrdersQuery } from './ordersApi';
 
 const PAGE_SIZE = 15;
@@ -19,6 +21,17 @@ const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = 
   COMPLETED: 'green',
   CANCELLED: 'slate',
 };
+
+type RangeTab = DateRangePreset | 'all';
+
+const RANGE_TABS: { value: RangeTab; label: string }[] = [
+  { value: 'today', label: 'Hoy' },
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: '6months', label: 'Semestre' },
+  { value: 'year', label: 'Año' },
+  { value: 'all', label: 'Todos' },
+];
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es', {
@@ -36,12 +49,12 @@ export function OrdersPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
+  const [rangeTab, setRangeTab] = useState<RangeTab>('today');
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, delivererFilter, from, to]);
+  }, [statusFilter, delivererFilter, rangeTab]);
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -57,8 +70,7 @@ export function OrdersPage() {
     pageSize: PAGE_SIZE,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
-    from: from || undefined,
-    to: to || undefined,
+    range: rangeTab === 'all' ? undefined : rangeTab,
   });
 
   return (
@@ -73,6 +85,24 @@ export function OrdersPage() {
             </Button>
           </Link>
         )}
+      </div>
+
+      <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        {RANGE_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setRangeTab(tab.value)}
+            className={clsx(
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              rangeTab === tab.value
+                ? 'bg-brand-600 text-white'
+                : 'text-slate-600 hover:bg-slate-100',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -99,24 +129,6 @@ export function OrdersPage() {
             />
           </div>
         )}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">Desde</label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">Hasta</label>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">

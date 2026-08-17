@@ -1,12 +1,16 @@
 import { baseApi } from '@/lib/baseApi';
 import type { ApiOk, ApiPaginated, OrderDTO, OrderStatus } from '@/lib/types';
 
+export type DateRangePreset = 'today' | 'week' | 'month' | '6months' | 'year' | 'custom';
+
 export interface ListOrdersParams {
   page?: number;
   pageSize?: number;
   status?: OrderStatus;
   delivererId?: string;
   businessId?: string;
+  // Atajo (hoy/semana/mes/semestre/año); omitilo junto con from/to para ver todos los pedidos.
+  range?: DateRangePreset;
   from?: string;
   to?: string;
 }
