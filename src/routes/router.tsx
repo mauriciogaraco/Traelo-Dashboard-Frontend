@@ -5,6 +5,7 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
 import { BusinessesPage } from '@/features/businesses/BusinessesPage';
@@ -13,6 +14,8 @@ import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
 import { EditOrderPage } from '@/features/orders/EditOrderPage';
+import { SettlementsPage } from '@/features/settlements/SettlementsPage';
+import { SettlementDetailPage } from '@/features/settlements/SettlementDetailPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGate } from './RoleGate';
 
@@ -26,10 +29,11 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <ModulePlaceholder title="Dashboard" /> },
+          { index: true, element: <DashboardPage /> },
           { path: 'orders', element: <OrdersPage /> },
           { path: 'orders/:id', element: <OrderDetailPage /> },
-          { path: 'settlements', element: <ModulePlaceholder title="Cuadres" /> },
+          { path: 'settlements', element: <SettlementsPage /> },
+          { path: 'settlements/:id', element: <SettlementDetailPage /> },
           { path: 'change-password', element: <ChangePasswordPage /> },
           {
             element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE']} />,

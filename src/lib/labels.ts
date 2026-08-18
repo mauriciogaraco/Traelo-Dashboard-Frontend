@@ -1,4 +1,12 @@
-import type { CommissionType, OrderStatus, Role, SubscriptionCycle, SubscriptionStatus } from './types';
+import type {
+  CommissionType,
+  OrderStatus,
+  Role,
+  SettlementStatus,
+  SettlementType,
+  SubscriptionCycle,
+  SubscriptionStatus,
+} from './types';
 
 export const ROLE_LABEL: Record<Role, string> = {
   OWNER: 'Dueño',
@@ -30,4 +38,14 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   ASSIGNED: 'Asignado',
   COMPLETED: 'Completado',
   CANCELLED: 'Cancelado',
+};
+
+export const SETTLEMENT_TYPE_LABEL: Record<SettlementType, string> = {
+  DAILY: 'Diario',
+  WEEKLY: 'Semanal',
+};
+
+export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = {
+  OPEN: 'Abierto',
+  CLOSED: 'Cerrado',
 };

@@ -234,6 +234,19 @@ export interface SettlementDTO {
   updatedAt: string;
 }
 
+export interface SettlementOrderDTO {
+  id: string;
+  orderNumber: number;
+  customerName: string;
+  businessNames: string[];
+  completedAt: string | null;
+  deliveryFee: number;
+  delivererEarning: number;
+  traeloDeliveryShare: number;
+  platformFee: number;
+  total: number;
+}
+
 export interface SalesReportDTO {
   totalOrders: number;
   completedOrders: number;
