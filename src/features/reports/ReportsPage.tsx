@@ -171,19 +171,20 @@ export function ReportsPage() {
                 <th className="px-4 py-3 font-medium">Mensajero</th>
                 <th className="px-4 py-3 font-medium">Entregas</th>
                 <th className="px-4 py-3 font-medium">Ganancias</th>
+                <th className="px-4 py-3 font-medium">Servicio Tráelo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isTopDeliverersLoading && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
                     Cargando…
                   </td>
                 </tr>
               )}
               {!isTopDeliverersLoading && topDeliverers.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
                     Sin datos en este periodo.
                   </td>
                 </tr>
@@ -193,6 +194,7 @@ export function ReportsPage() {
                   <td className="px-4 py-3 font-medium text-slate-900">{deliverer.delivererName}</td>
                   <td className="px-4 py-3">{deliverer.deliveryCount}</td>
                   <td className="px-4 py-3">{formatCUP(deliverer.totalEarnings)}</td>
+                  <td className="px-4 py-3">{formatCUP(deliverer.platformFeeCollected)}</td>
                 </tr>
               ))}
             </tbody>

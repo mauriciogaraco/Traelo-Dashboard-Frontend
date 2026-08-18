@@ -273,6 +273,7 @@ export interface TopDelivererDTO {
   delivererName: string;
   deliveryCount: number;
   totalEarnings: number;
+  platformFeeCollected: number;
 }
 
 export interface DashboardSummaryDTO {
