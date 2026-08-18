@@ -39,6 +39,11 @@ export interface CreateOrderInput {
   businesses: CreateOrderBusinessInput[];
 }
 
+export interface BulkCompleteOrdersResult {
+  completed: OrderDTO[];
+  skipped: { id: string; reason: string }[];
+}
+
 export interface UpdateOrderInput {
   customerName?: string;
   customerAddress?: string;
@@ -109,6 +114,16 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+    bulkCompleteOrders: builder.mutation<ApiOk<BulkCompleteOrdersResult>, string[]>({
+      query: (ids) => ({ url: '/orders/bulk/complete', method: 'PATCH', body: { ids } }),
+      invalidatesTags: (result) =>
+        result
+          ? [
+              ...result.data.completed.map((o) => ({ type: 'Order' as const, id: o.id })),
+              { type: 'Order' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Order' as const, id: 'LIST' }],
+    }),
   }),
 });
 
@@ -120,4 +135,5 @@ export const {
   useAssignOrderMutation,
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
+  useBulkCompleteOrdersMutation,
 } = ordersApi;

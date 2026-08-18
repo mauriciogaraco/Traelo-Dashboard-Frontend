@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCheck, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
@@ -12,7 +12,11 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import { OrderStatus, type OrderDTO } from '@/lib/types';
 import type { DateRangePreset } from './ordersApi';
-import { useDeleteOrderMutation, useListOrdersQuery } from './ordersApi';
+import {
+  useBulkCompleteOrdersMutation,
+  useDeleteOrderMutation,
+  useListOrdersQuery,
+} from './ordersApi';
 
 const PAGE_SIZE = 15;
 
@@ -54,9 +58,14 @@ export function OrdersPage() {
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
   const [rangeTab, setRangeTab] = useState<RangeTab>('today');
   const [deletingOrder, setDeletingOrder] = useState<OrderDTO | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setPage(1);
+    setSelectedIds(new Set());
+    setBulkMessage(null);
   }, [statusFilter, delivererFilter, rangeTab]);
 
   const { data: deliverersData } = useListDeliverersQuery(
@@ -77,6 +86,7 @@ export function OrdersPage() {
   });
 
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
+  const [bulkCompleteOrders, { isLoading: isBulkCompleting }] = useBulkCompleteOrdersMutation();
 
   async function handleConfirmDelete() {
     if (!deletingOrder) return;
@@ -84,19 +94,80 @@ export function OrdersPage() {
     setDeletingOrder(null);
   }
 
+  const rowsForBulk = data?.data ?? [];
+  // Solo los pedidos ASSIGNED pueden marcarse como completados, en bulto o individualmente.
+  const eligibleIds = rowsForBulk.filter((o) => o.status === 'ASSIGNED').map((o) => o.id);
+  const selectedEligibleCount = eligibleIds.filter((id) => selectedIds.has(id)).length;
+  const allEligibleSelected = eligibleIds.length > 0 && selectedEligibleCount === eligibleIds.length;
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allEligibleSelected) {
+        eligibleIds.forEach((id) => next.delete(id));
+      } else {
+        eligibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleConfirmBulkComplete() {
+    const ids = Array.from(selectedIds);
+    const { data: result } = await bulkCompleteOrders(ids).unwrap();
+    setSelectedIds(new Set());
+    setBulkConfirmOpen(false);
+    setBulkMessage(
+      result.skipped.length === 0
+        ? `${result.completed.length} pedido(s) completado(s).`
+        : `${result.completed.length} completado(s), ${result.skipped.length} no estaban en estado Asignado.`,
+    );
+  }
+
+  const columnCount = canManage ? 9 : 8;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">Pedidos</h1>
-        {canManage && (
-          <Link to="/orders/new">
-            <Button type="button">
-              <Plus className="h-4 w-4" />
-              Nuevo pedido
+        <div className="flex items-center gap-2">
+          {canManage && selectedIds.size > 0 && (
+            <Button type="button" variant="secondary" onClick={() => setBulkConfirmOpen(true)}>
+              <CheckCheck className="h-4 w-4" />
+              Completar seleccionados ({selectedIds.size})
             </Button>
-          </Link>
-        )}
+          )}
+          {canManage && (
+            <Link to="/orders/new">
+              <Button type="button">
+                <Plus className="h-4 w-4" />
+                Nuevo pedido
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
+
+      {bulkMessage && (
+        <div className="flex items-center justify-between rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-700">
+          <span>{bulkMessage}</span>
+          <button type="button" onClick={() => setBulkMessage(null)} className="text-brand-500 hover:text-brand-700">
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
         {RANGE_TABS.map((tab) => (
@@ -146,6 +217,18 @@ export function OrdersPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
+              {canManage && (
+                <th className="px-4 py-3 font-medium">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-600"
+                    checked={allEligibleSelected}
+                    disabled={eligibleIds.length === 0}
+                    onChange={toggleSelectAll}
+                    aria-label="Seleccionar todos los pedidos asignados de esta página"
+                  />
+                </th>
+              )}
               <th className="px-4 py-3 font-medium">#</th>
               <th className="px-4 py-3 font-medium">Cliente</th>
               <th className="px-4 py-3 font-medium">Dirección</th>
@@ -159,20 +242,33 @@ export function OrdersPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && (data?.data.length ?? 0) === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
                   No hay pedidos que coincidan con los filtros.
                 </td>
               </tr>
             )}
             {data?.data.map((order) => (
               <tr key={order.id} className="text-slate-700">
+                {canManage && (
+                  <td className="px-4 py-3">
+                    {order.status === 'ASSIGNED' && (
+                      <input
+                        type="checkbox"
+                        className="accent-brand-600"
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelectOne(order.id)}
+                        aria-label={`Seleccionar pedido #${order.orderNumber}`}
+                      />
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <Link
                     to={`/orders/${order.id}`}
@@ -231,6 +327,18 @@ export function OrdersPage() {
           isLoading={isDeleting}
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeletingOrder(null)}
+        />
+      )}
+
+      {bulkConfirmOpen && (
+        <ConfirmDialog
+          title="Completar pedidos"
+          description={`Se van a marcar ${selectedIds.size} pedido(s) como completados. ¿Confirmás?`}
+          confirmLabel="Completar"
+          variant="primary"
+          isLoading={isBulkCompleting}
+          onConfirm={handleConfirmBulkComplete}
+          onCancel={() => setBulkConfirmOpen(false)}
         />
       )}
     </div>

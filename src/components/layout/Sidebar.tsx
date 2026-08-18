@@ -2,14 +2,17 @@ import { NavLink } from 'react-router-dom';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
+import logo from '@/assets/logo.webp';
 import { navItems } from './nav';
 
 function BrandMark() {
   return (
     <div className="flex h-16 items-center gap-2.5 border-b border-slate-200 px-6">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 font-display text-sm font-bold text-white shadow-sm shadow-brand-600/30">
-        T
-      </span>
+      <img
+        src={logo}
+        alt="Tráelo"
+        className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm shadow-brand-600/30"
+      />
       <div className="leading-tight">
         <p className="font-display text-[15px] font-semibold text-slate-900">Tráelo</p>
         <p className="text-xs text-slate-400">Operaciones</p>
