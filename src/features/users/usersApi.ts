@@ -43,7 +43,19 @@ export const usersApi = baseApi.injectEndpoints({
         { type: 'User', id: 'LIST' },
       ],
     }),
+    resetUserPassword: builder.mutation<ApiOk<UserDTO>, { id: string; password: string }>({
+      query: ({ id, password }) => ({
+        url: `/users/${id}/password`,
+        method: 'PATCH',
+        body: { password },
+      }),
+    }),
   }),
 });
 
-export const { useListUsersQuery, useUpdateUserMutation, useDeactivateUserMutation } = usersApi;
+export const {
+  useListUsersQuery,
+  useUpdateUserMutation,
+  useDeactivateUserMutation,
+  useResetUserPasswordMutation,
+} = usersApi;
