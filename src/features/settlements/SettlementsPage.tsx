@@ -57,7 +57,7 @@ export function SettlementsPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta ?? null;
-  const columnCount = isDeliverer ? 6 : 7;
+  const columnCount = isDeliverer ? 7 : 8;
 
   return (
     <div className="flex flex-col gap-4">
@@ -112,6 +112,7 @@ export function SettlementsPage() {
               <th className="px-4 py-3 font-medium">Periodo</th>
               <th className="px-4 py-3 font-medium">Entregas</th>
               <th className="px-4 py-3 font-medium">Recaudado</th>
+              <th className="px-4 py-3 font-medium">Servicio Tráelo</th>
               <th className="px-4 py-3 font-medium">A entregar</th>
               <th className="px-4 py-3 font-medium">Estado</th>
             </tr>
@@ -144,6 +145,7 @@ export function SettlementsPage() {
                 <td className="px-4 py-3">{formatPeriod(settlement.periodStart, settlement.periodEnd)}</td>
                 <td className="px-4 py-3">{settlement.totalDeliveries}</td>
                 <td className="px-4 py-3">{settlement.totalCollected} CUP</td>
+                <td className="px-4 py-3">{settlement.platformFeeCollected} CUP</td>
                 <td className="px-4 py-3 font-medium text-slate-900">{settlement.totalToDeliver} CUP</td>
                 <td className="px-4 py-3">
                   <Badge tone={settlement.status === 'OPEN' ? 'amber' : 'green'}>
