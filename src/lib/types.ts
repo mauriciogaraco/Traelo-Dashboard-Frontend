@@ -276,6 +276,22 @@ export interface TopDelivererDTO {
   platformFeeCollected: number;
 }
 
+export interface BusinessSalesDetailDTO {
+  businessId: string;
+  businessName: string;
+  totalSales: number;
+  totalCommission: number;
+  orderCount: number;
+  averageSale: number;
+  maxSale: number;
+  topProducts: {
+    productId: string | null;
+    productName: string;
+    quantitySold: number;
+    totalSales: number;
+  }[];
+}
+
 export interface DashboardSummaryDTO {
   totalOrders: number;
   completedOrders: number;

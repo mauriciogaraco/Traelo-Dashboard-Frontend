@@ -9,6 +9,7 @@ export interface ListOrdersParams {
   status?: OrderStatus;
   delivererId?: string;
   businessId?: string;
+  search?: string;
   // Atajo (hoy/semana/mes/semestre/año); omitilo junto con from/to para ver todos los pedidos.
   range?: DateRangePreset;
   from?: string;

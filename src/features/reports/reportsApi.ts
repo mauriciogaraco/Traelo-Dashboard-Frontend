@@ -1,6 +1,8 @@
 import { baseApi } from '@/lib/baseApi';
 import type {
   ApiOk,
+  ApiPaginated,
+  BusinessSalesDetailDTO,
   DateRangePreset,
   SalesReportDTO,
   TopBusinessDTO,
@@ -15,6 +17,12 @@ export interface TopReportsParams extends ReportsRangeParams {
   limit?: number;
 }
 
+export interface ListReportsParams extends ReportsRangeParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
 export const reportsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getSalesReport: builder.query<ApiOk<SalesReportDTO>, ReportsRangeParams | void>({
@@ -26,8 +34,39 @@ export const reportsApi = baseApi.injectEndpoints({
     getTopDeliverers: builder.query<ApiOk<TopDelivererDTO[]>, TopReportsParams | void>({
       query: (params) => ({ url: '/reports/top-deliverers', params: params ?? undefined }),
     }),
+    listReportBusinesses: builder.query<ApiPaginated<TopBusinessDTO>, ListReportsParams | void>({
+      query: (params) => ({ url: '/reports/businesses', params: params ?? undefined }),
+    }),
+    getBusinessSalesDetail: builder.query<
+      ApiOk<BusinessSalesDetailDTO>,
+      { businessId: string; range?: ReportsRangeParams['range'] }
+    >({
+      query: ({ businessId, range }) => ({
+        url: `/reports/businesses/${businessId}`,
+        params: range ? { range } : undefined,
+      }),
+    }),
+    listReportDeliverers: builder.query<ApiPaginated<TopDelivererDTO>, ListReportsParams | void>({
+      query: (params) => ({ url: '/reports/deliverers', params: params ?? undefined }),
+    }),
+    getDelivererSalesDetail: builder.query<
+      ApiOk<TopDelivererDTO>,
+      { delivererId: string; range?: ReportsRangeParams['range'] }
+    >({
+      query: ({ delivererId, range }) => ({
+        url: `/reports/deliverers/${delivererId}`,
+        params: range ? { range } : undefined,
+      }),
+    }),
   }),
 });
 
-export const { useGetSalesReportQuery, useGetTopBusinessesQuery, useGetTopDeliverersQuery } =
-  reportsApi;
+export const {
+  useGetSalesReportQuery,
+  useGetTopBusinessesQuery,
+  useGetTopDeliverersQuery,
+  useListReportBusinessesQuery,
+  useGetBusinessSalesDetailQuery,
+  useListReportDeliverersQuery,
+  useGetDelivererSalesDetailQuery,
+} = reportsApi;
