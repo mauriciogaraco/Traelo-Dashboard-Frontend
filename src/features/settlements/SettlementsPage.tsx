@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
@@ -15,6 +16,12 @@ import { useListSettlementsQuery } from './settlementsApi';
 
 const PAGE_SIZE = 10;
 
+const RANGE_TABS: { value: 'today' | 'week' | 'all'; label: string }[] = [
+  { value: 'today', label: 'Hoy' },
+  { value: 'week', label: 'Semana' },
+  { value: 'all', label: 'Todos' },
+];
+
 function formatPeriod(periodStart: string, periodEnd: string): string {
   const start = formatDate(periodStart);
   const end = formatDate(periodEnd);
@@ -29,6 +36,7 @@ export function SettlementsPage() {
     currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' || currentUser?.role === 'EMPLOYEE';
 
   const [page, setPage] = useState(1);
+  const [rangeFilter, setRangeFilter] = useState<'today' | 'week' | 'all'>('today');
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'all' | SettlementType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | SettlementStatus>('all');
@@ -36,7 +44,7 @@ export function SettlementsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [delivererId, typeFilter, statusFilter]);
+  }, [rangeFilter, delivererId, typeFilter, statusFilter]);
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -47,6 +55,7 @@ export function SettlementsPage() {
   const { data, isLoading, isFetching } = useListSettlementsQuery({
     page,
     pageSize: PAGE_SIZE,
+    range: rangeFilter === 'all' ? undefined : rangeFilter,
     delivererId: isDeliverer ? undefined : delivererId ?? undefined,
     type: typeFilter === 'all' ? undefined : typeFilter,
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -66,6 +75,22 @@ export function SettlementsPage() {
             Generar cuadre
           </Button>
         )}
+      </div>
+
+      <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        {RANGE_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setRangeFilter(tab.value)}
+            className={clsx(
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              rangeFilter === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

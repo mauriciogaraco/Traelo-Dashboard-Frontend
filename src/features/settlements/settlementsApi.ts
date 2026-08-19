@@ -14,6 +14,8 @@ export interface ListSettlementsParams {
   delivererId?: string;
   type?: SettlementType;
   status?: SettlementStatus;
+  // Filtra por cuadres cuyo periodo cae en "hoy" o "esta semana" (hora de La Habana).
+  range?: 'today' | 'week';
 }
 
 export interface GenerateSettlementInput {
