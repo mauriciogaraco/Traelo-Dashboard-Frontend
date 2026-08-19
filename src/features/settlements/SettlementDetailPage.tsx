@@ -6,24 +6,10 @@ import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { formatDate, formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { SETTLEMENT_STATUS_LABEL, SETTLEMENT_TYPE_LABEL } from '@/lib/labels';
 import { useCloseSettlementMutation, useGetSettlementOrdersQuery, useGetSettlementQuery } from './settlementsApi';
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('es', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function SummaryCard({
   label,

@@ -7,16 +7,13 @@ import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
+import { formatDate } from '@/lib/formatDate';
 import { SETTLEMENT_STATUS_LABEL, SETTLEMENT_TYPE_LABEL } from '@/lib/labels';
 import type { SettlementStatus, SettlementType } from '@/lib/types';
 import { GenerateSettlementModal } from './GenerateSettlementModal';
 import { useListSettlementsQuery } from './settlementsApi';
 
 const PAGE_SIZE = 10;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' });
-}
 
 function formatPeriod(periodStart: string, periodEnd: string): string {
   const start = formatDate(periodStart);

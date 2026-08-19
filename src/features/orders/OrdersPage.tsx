@@ -40,6 +40,7 @@ const RANGE_TABS: { value: RangeTab; label: string }[] = [
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es', {
+    timeZone: 'America/Havana',
     day: '2-digit',
     month: 'short',
     hour: '2-digit',

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
+import { formatDateTime } from '@/lib/formatDate';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import type { OrderStatus } from '@/lib/types';
 import {
@@ -22,17 +23,6 @@ const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = 
   COMPLETED: 'green',
   CANCELLED: 'slate',
 };
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('es', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
