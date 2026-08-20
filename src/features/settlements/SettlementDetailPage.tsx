@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,12 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatDate, formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { SETTLEMENT_STATUS_LABEL, SETTLEMENT_TYPE_LABEL } from '@/lib/labels';
-import { useCloseSettlementMutation, useGetSettlementOrdersQuery, useGetSettlementQuery } from './settlementsApi';
+import {
+  useCloseSettlementMutation,
+  useDeleteSettlementMutation,
+  useGetSettlementOrdersQuery,
+  useGetSettlementQuery,
+} from './settlementsApi';
 
 function SummaryCard({
   label,
@@ -36,16 +41,22 @@ function SummaryCard({
 
 export function SettlementDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.auth.user);
   const canClose = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
+  const canDelete =
+    currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' || currentUser?.role === 'EMPLOYEE';
 
   const [closeOpen, setCloseOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data, isLoading, error } = useGetSettlementQuery(id ?? '', { skip: !id });
   const { data: ordersData, isLoading: isLoadingOrders } = useGetSettlementOrdersQuery(id ?? '', {
     skip: !id,
   });
   const [closeSettlement, { isLoading: isClosing, error: closeError }] = useCloseSettlementMutation();
+  const [deleteSettlement, { isLoading: isDeleting, error: deleteError }] =
+    useDeleteSettlementMutation();
 
   if (isLoading) {
     return <p className="text-slate-400">Cargando…</p>;
@@ -61,6 +72,12 @@ export function SettlementDetailPage() {
     if (!id) return;
     await closeSettlement(id).unwrap();
     setCloseOpen(false);
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    await deleteSettlement(id).unwrap();
+    navigate('/settlements');
   }
 
   return (
@@ -92,10 +109,20 @@ export function SettlementDetailPage() {
             </p>
           )}
         </div>
-        {canClose && settlement.status === 'OPEN' && (
-          <Button type="button" onClick={() => setCloseOpen(true)}>
-            Cerrar cuadre
-          </Button>
+        {settlement.status === 'OPEN' && (
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <Button type="button" variant="secondary" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-4 w-4" />
+                Eliminar
+              </Button>
+            )}
+            {canClose && (
+              <Button type="button" onClick={() => setCloseOpen(true)}>
+                Cerrar cuadre
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -158,6 +185,7 @@ export function SettlementDetailPage() {
       </div>
 
       {closeError && <p className="text-sm text-red-600">{getErrorMessage(closeError)}</p>}
+      {deleteError && <p className="text-sm text-red-600">{getErrorMessage(deleteError)}</p>}
 
       {closeOpen && (
         <ConfirmDialog
@@ -168,6 +196,18 @@ export function SettlementDetailPage() {
           isLoading={isClosing}
           onConfirm={handleClose}
           onCancel={() => setCloseOpen(false)}
+        />
+      )}
+
+      {deleteOpen && (
+        <ConfirmDialog
+          title="Eliminar cuadre"
+          description="Se eliminará este cuadre por completo. Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          variant="danger"
+          isLoading={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteOpen(false)}
         />
       )}
     </div>

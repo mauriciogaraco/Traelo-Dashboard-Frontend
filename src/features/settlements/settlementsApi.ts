@@ -58,6 +58,13 @@ export const settlementsApi = baseApi.injectEndpoints({
         { type: 'Settlement', id: 'LIST' },
       ],
     }),
+    deleteSettlement: builder.mutation<void, string>({
+      query: (id) => ({ url: `/settlements/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Settlement', id },
+        { type: 'Settlement', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -68,4 +75,5 @@ export const {
   useGenerateDailySettlementMutation,
   useGenerateWeeklySettlementMutation,
   useCloseSettlementMutation,
+  useDeleteSettlementMutation,
 } = settlementsApi;

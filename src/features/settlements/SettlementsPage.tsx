@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDate } from '@/lib/formatDate';
 import { SETTLEMENT_STATUS_LABEL, SETTLEMENT_TYPE_LABEL } from '@/lib/labels';
-import type { SettlementStatus, SettlementType } from '@/lib/types';
+import type { SettlementDTO, SettlementStatus, SettlementType } from '@/lib/types';
 import { GenerateSettlementModal } from './GenerateSettlementModal';
-import { useListSettlementsQuery } from './settlementsApi';
+import { useDeleteSettlementMutation, useListSettlementsQuery } from './settlementsApi';
 
 const PAGE_SIZE = 10;
 
@@ -41,10 +42,19 @@ export function SettlementsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | SettlementType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | SettlementStatus>('all');
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [deletingSettlement, setDeletingSettlement] = useState<SettlementDTO | null>(null);
 
   useEffect(() => {
     setPage(1);
   }, [rangeFilter, delivererId, typeFilter, statusFilter]);
+
+  const [deleteSettlement, { isLoading: isDeleting }] = useDeleteSettlementMutation();
+
+  async function handleConfirmDelete() {
+    if (!deletingSettlement) return;
+    await deleteSettlement(deletingSettlement.id).unwrap();
+    setDeletingSettlement(null);
+  }
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -63,7 +73,7 @@ export function SettlementsPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta ?? null;
-  const columnCount = isDeliverer ? 7 : 8;
+  const columnCount = (isDeliverer ? 7 : 8) + (canGenerate ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,6 +147,7 @@ export function SettlementsPage() {
               <th className="px-4 py-3 font-medium">Servicio Tráelo</th>
               <th className="px-4 py-3 font-medium">A entregar</th>
               <th className="px-4 py-3 font-medium">Estado</th>
+              {canGenerate && <th className="px-4 py-3 font-medium"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -174,6 +185,23 @@ export function SettlementsPage() {
                     {SETTLEMENT_STATUS_LABEL[settlement.status]}
                   </Badge>
                 </td>
+                {canGenerate && (
+                  <td className="px-4 py-3 text-right">
+                    {settlement.status === 'OPEN' && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingSettlement(settlement);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar
+                      </Button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -189,6 +217,18 @@ export function SettlementsPage() {
             setGenerateOpen(false);
             navigate(`/settlements/${id}`);
           }}
+        />
+      )}
+
+      {deletingSettlement && (
+        <ConfirmDialog
+          title="Eliminar cuadre"
+          description={`Se eliminará el cuadre ${SETTLEMENT_TYPE_LABEL[deletingSettlement.type].toLowerCase()} de ${deletingSettlement.delivererName} (${formatPeriod(deletingSettlement.periodStart, deletingSettlement.periodEnd)}). Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          variant="danger"
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingSettlement(null)}
         />
       )}
     </div>
