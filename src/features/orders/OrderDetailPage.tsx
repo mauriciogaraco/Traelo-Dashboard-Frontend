@@ -239,12 +239,14 @@ export function OrderDetailPage() {
             <dt className="text-slate-500">Mensajería</dt>
             <dd className="font-medium text-slate-900">{order.deliveryFee} CUP</dd>
           </div>
-          {canManage && (
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Servicio Tráelo</dt>
-              <dd className="font-medium text-slate-900">{order.platformFee} CUP</dd>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <dt className="text-slate-500">Mensajería — parte de Tráelo</dt>
+            <dd className="font-medium text-slate-900">{order.traeloDeliveryShare} CUP</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-slate-500">Servicio Tráelo</dt>
+            <dd className="font-medium text-slate-900">{order.platformFee} CUP</dd>
+          </div>
           <div className="flex justify-between border-t border-slate-100 pt-2 text-base">
             <dt className="font-semibold text-slate-900">Total</dt>
             <dd className="font-semibold text-slate-900">{order.total} CUP</dd>

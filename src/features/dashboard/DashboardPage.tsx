@@ -3,9 +3,8 @@ import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import { Bike, DollarSign, PackageCheck, Percent, ShoppingBag, Store, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
-import type { DateRangePreset } from '@/lib/types';
+import type { DashboardSummaryDTO, DateRangePreset, TopBusinessDTO, TopDelivererDTO } from '@/lib/types';
 import { useGetDashboardSummaryQuery } from './dashboardApi';
 
 type RangeTab = Exclude<DateRangePreset, 'custom'>;
@@ -51,23 +50,69 @@ function StatCard({
   );
 }
 
+function TopBusinessCard({ topBusiness }: { topBusiness: TopBusinessDTO | null }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold text-slate-900">Negocio top</h2>
+      {topBusiness ? (
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Nombre</dt>
+            <dd className="text-right font-medium text-slate-900">{topBusiness.businessName}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Ventas</dt>
+            <dd className="text-right font-medium text-slate-900">{formatCUP(topBusiness.totalSales)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Pedidos</dt>
+            <dd className="text-right font-medium text-slate-900">{topBusiness.orderCount}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="text-sm text-slate-400">Sin datos en este periodo.</p>
+      )}
+    </div>
+  );
+}
+
+function TopDelivererCard({ topDeliverer }: { topDeliverer: TopDelivererDTO | null }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold text-slate-900">Mensajero top</h2>
+      {topDeliverer ? (
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Nombre</dt>
+            <dd className="text-right font-medium text-slate-900">{topDeliverer.delivererName}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Entregas</dt>
+            <dd className="text-right font-medium text-slate-900">{topDeliverer.deliveryCount}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Ganancias</dt>
+            <dd className="text-right font-medium text-slate-900">{formatCUP(topDeliverer.totalEarnings)}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="text-sm text-slate-400">Sin datos en este periodo.</p>
+      )}
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const isDeliverer = currentUser?.role === 'DELIVERER';
   const [range, setRange] = useState<RangeTab>('today');
 
-  const { data, isLoading, isFetching } = useGetDashboardSummaryQuery(
-    { range },
-    { skip: isDeliverer },
-  );
-
-  // El backend solo autoriza OWNER/ADMIN/EMPLOYEE en /dashboard/summary; un mensajero
-  // que caiga en "/" (ruta índice, sin RoleGate) va directo a su vista real.
-  if (isDeliverer) {
-    return <Navigate to="/orders" replace />;
-  }
+  const { data, isLoading, isFetching } = useGetDashboardSummaryQuery({ range });
 
   const summary = data?.data;
+  // El backend devuelve un shape reducido para DELIVERER (sin ganancias totales de Tráelo),
+  // así que acá solo se accede a los campos que ambos shapes comparten hasta angostar por rol.
+  const fullSummary = !isDeliverer ? (summary as DashboardSummaryDTO | undefined) : undefined;
 
   return (
     <div className="flex flex-col gap-5">
@@ -94,87 +139,52 @@ export function DashboardPage() {
 
       {isLoading && <p className="text-slate-400">Cargando…</p>}
 
-      {summary && (
+      {summary && isDeliverer && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={ShoppingBag} label="Ventas de negocios" value={formatCUP(summary.businessSalesGross)} />
-            <StatCard icon={Wallet} label="Servicio Tráelo" value={formatCUP(summary.platformFeeRevenue)} />
-            <StatCard icon={Bike} label="Mensajería" value={formatCUP(summary.deliveryFeeGross)} />
-            <StatCard icon={Users} label="Mensajeros activos" value={summary.delivererCount} />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               icon={PackageCheck}
               label="Pedidos completados"
               value={`${summary.completedOrders} / ${summary.totalOrders}`}
             />
             <StatCard icon={DollarSign} label="Ticket promedio" value={formatCUP(summary.averageTicket)} />
-            <StatCard icon={Store} label="Negocios activos" value={summary.businessCount} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TopBusinessCard topBusiness={summary.topBusiness} />
+            <TopDelivererCard topDeliverer={summary.topDeliverer} />
+          </div>
+        </>
+      )}
+
+      {fullSummary && (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard icon={ShoppingBag} label="Ventas de negocios" value={formatCUP(fullSummary.businessSalesGross)} />
+            <StatCard icon={Wallet} label="Servicio Tráelo" value={formatCUP(fullSummary.platformFeeRevenue)} />
+            <StatCard icon={Bike} label="Mensajería" value={formatCUP(fullSummary.deliveryFeeGross)} />
+            <StatCard icon={Users} label="Mensajeros activos" value={fullSummary.delivererCount} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              icon={PackageCheck}
+              label="Pedidos completados"
+              value={`${fullSummary.completedOrders} / ${fullSummary.totalOrders}`}
+            />
+            <StatCard icon={DollarSign} label="Ticket promedio" value={formatCUP(fullSummary.averageTicket)} />
+            <StatCard icon={Store} label="Negocios activos" value={fullSummary.businessCount} />
             <StatCard
               icon={Percent}
               label="Ganancia total Tráelo"
-              value={formatCUP(summary.traeloTotalRevenue)}
+              value={formatCUP(fullSummary.traeloTotalRevenue)}
               highlight
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold text-slate-900">Negocio top</h2>
-              {summary.topBusiness ? (
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Nombre</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {summary.topBusiness.businessName}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Ventas</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {formatCUP(summary.topBusiness.totalSales)}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Pedidos</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {summary.topBusiness.orderCount}
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-sm text-slate-400">Sin datos en este periodo.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold text-slate-900">Mensajero top</h2>
-              {summary.topDeliverer ? (
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Nombre</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {summary.topDeliverer.delivererName}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Entregas</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {summary.topDeliverer.deliveryCount}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Ganancias</dt>
-                    <dd className="text-right font-medium text-slate-900">
-                      {formatCUP(summary.topDeliverer.totalEarnings)}
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-sm text-slate-400">Sin datos en este periodo.</p>
-              )}
-            </div>
+            <TopBusinessCard topBusiness={fullSummary.topBusiness} />
+            <TopDelivererCard topDeliverer={fullSummary.topDeliverer} />
           </div>
         </>
       )}

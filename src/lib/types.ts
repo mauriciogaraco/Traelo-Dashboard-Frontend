@@ -308,6 +308,16 @@ export interface DashboardSummaryDTO {
   topDeliverer: TopDelivererDTO | null;
 }
 
+// Lo que recibe un mensajero desde /dashboard/summary: nunca incluye las ganancias totales de
+// Tráelo (ni platformFeeRevenue ni traeloDeliveryShareTotal/traeloTotalRevenue).
+export interface DelivererDashboardSummaryDTO {
+  totalOrders: number;
+  completedOrders: number;
+  averageTicket: number;
+  topBusiness: TopBusinessDTO | null;
+  topDeliverer: TopDelivererDTO | null;
+}
+
 export interface SystemConfigDTO {
   id: string;
   defaultDelivererCommissionPercentage: number;

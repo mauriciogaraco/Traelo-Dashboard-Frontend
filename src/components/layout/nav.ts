@@ -19,7 +19,12 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
+  {
+    to: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    roles: ['OWNER', 'ADMIN', 'EMPLOYEE', 'DELIVERER'],
+  },
   {
     to: '/orders',
     label: 'Pedidos',

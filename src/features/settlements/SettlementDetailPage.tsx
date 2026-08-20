@@ -68,6 +68,14 @@ export function SettlementDetailPage() {
   const settlement = data.data;
   const orders = ordersData?.data ?? [];
 
+  const deliveryFeeCounts = new Map<number, number>();
+  for (const order of orders) {
+    deliveryFeeCounts.set(order.deliveryFee, (deliveryFeeCounts.get(order.deliveryFee) ?? 0) + 1);
+  }
+  const deliveryFeeBreakdown = Array.from(deliveryFeeCounts.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([fee, count]) => ({ fee, count }));
+
   async function handleClose() {
     if (!id) return;
     await closeSettlement(id).unwrap();
@@ -127,7 +135,19 @@ export function SettlementDetailPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryCard label="Entregas" value={settlement.totalDeliveries} />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-slate-500">Entregas</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{settlement.totalDeliveries}</p>
+          {deliveryFeeBreakdown.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5 text-xs text-slate-500">
+              {deliveryFeeBreakdown.map(({ fee, count }) => (
+                <li key={fee}>
+                  {count} de {fee} CUP
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <SummaryCard label="Recaudado" value={`${settlement.totalCollected} CUP`} />
         <SummaryCard label="Mensajería Tráelo" value={`${settlement.traeloDeliveryShare} CUP`} />
         <SummaryCard label="Parte del mensajero" value={`${settlement.delivererShare} CUP`} />
