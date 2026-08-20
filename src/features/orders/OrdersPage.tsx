@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCheck, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
@@ -58,16 +58,23 @@ export function OrdersPage() {
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
   const [rangeTab, setRangeTab] = useState<RangeTab>('today');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [deletingOrder, setDeletingOrder] = useState<OrderDTO | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
     setPage(1);
     setSelectedIds(new Set());
     setBulkMessage(null);
-  }, [statusFilter, delivererFilter, rangeTab]);
+  }, [statusFilter, delivererFilter, rangeTab, search]);
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -84,6 +91,7 @@ export function OrdersPage() {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
     range: rangeTab === 'all' ? undefined : rangeTab,
+    search: search || undefined,
   });
 
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
@@ -137,7 +145,7 @@ export function OrdersPage() {
     );
   }
 
-  const columnCount = canManage ? 9 : 8;
+  const columnCount = canManage ? 10 : 9;
 
   return (
     <div className="flex flex-col gap-4">
@@ -189,6 +197,16 @@ export function OrdersPage() {
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar por cliente…"
+            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'ALL')}
@@ -235,6 +253,7 @@ export function OrdersPage() {
               <th className="px-4 py-3 font-medium">Dirección</th>
               <th className="px-4 py-3 font-medium">Mensajero</th>
               <th className="px-4 py-3 font-medium">Estado</th>
+              <th className="px-4 py-3 font-medium">Mensajería</th>
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Fecha</th>
               {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
@@ -286,6 +305,7 @@ export function OrdersPage() {
                 <td className="px-4 py-3">
                   <Badge tone={STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
                 </td>
+                <td className="px-4 py-3">{order.deliveryFee} CUP</td>
                 <td className="px-4 py-3 font-medium text-slate-900">{order.total} CUP</td>
                 <td className="px-4 py-3 text-slate-500">{formatDateTime(order.orderDate)}</td>
                 {canManage && (

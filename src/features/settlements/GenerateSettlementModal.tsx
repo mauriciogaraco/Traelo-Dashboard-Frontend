@@ -13,10 +13,17 @@ interface GenerateSettlementModalProps {
   onGenerated: (settlementId: string) => void;
 }
 
+// El negocio opera en Cuba: el campo de fecha se precarga con el día de hoy en La Habana (no
+// vacío) para que siempre quede claro qué día se va a usar, en vez de depender de que quede en
+// blanco — un campo vacío o mal tecleado fue justo lo que causó un cuadre con la fecha equivocada.
+function getTodayHavanaDateString(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Havana' }).format(new Date());
+}
+
 export function GenerateSettlementModal({ onClose, onGenerated }: GenerateSettlementModalProps) {
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [type, setType] = useState<SettlementType>('DAILY');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayHavanaDateString);
 
   const { data: deliverersData } = useListDeliverersQuery({ pageSize: 100, active: true });
   const [generateDaily, { isLoading: isGeneratingDaily, error: dailyError }] =
@@ -83,17 +90,18 @@ export function GenerateSettlementModal({ onClose, onGenerated }: GenerateSettle
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">Fecha de referencia (opcional)</label>
+          <label className="text-sm font-medium text-slate-700">Fecha de referencia</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            autoComplete="off"
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <p className="text-xs text-slate-400">
             {type === 'DAILY'
-              ? 'Se usa el día de esta fecha. Si se deja vacío, se usa hoy.'
-              : 'Se usa la semana (lunes a domingo) que contiene esta fecha. Si se deja vacío, se usa la semana actual.'}
+              ? 'Ya viene puesta en el día de hoy. Cambiala solo si querés generar el cuadre de otro día.'
+              : 'Ya viene puesta en hoy — se usa la semana (lunes a domingo) que contiene esa fecha. Cambiala solo si querés otra semana.'}
           </p>
         </div>
 
