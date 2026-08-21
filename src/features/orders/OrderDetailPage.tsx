@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check, Copy, FileText } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
 import type { OrderStatus } from '@/lib/types';
+import { generateOrderVoucherText } from './orderTextParser';
 import {
   useAssignOrderMutation,
   useDeleteOrderMutation,
@@ -35,6 +36,8 @@ export function OrderDetailPage() {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [voucherOpen, setVoucherOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data, isLoading, error } = useGetOrderQuery(id ?? '', { skip: !id });
   const { data: deliverersData } = useListDeliverersQuery(
@@ -53,6 +56,7 @@ export function OrderDetailPage() {
   }
 
   const order = data.data;
+  const voucherText = generateOrderVoucherText(order);
   const canEdit = canManage && order.status !== 'CANCELLED';
   const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
   const canComplete = canManage && order.status === 'ASSIGNED';
@@ -89,6 +93,12 @@ export function OrderDetailPage() {
     navigate('/orders', { replace: true });
   }
 
+  async function handleCopyVoucher() {
+    await navigator.clipboard.writeText(voucherText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <Link
@@ -110,6 +120,12 @@ export function OrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canManage && (
+            <Button type="button" variant="secondary" onClick={() => setVoucherOpen((v) => !v)}>
+              <FileText className="h-4 w-4" />
+              Generar vale
+            </Button>
+          )}
           {canEdit && (
             <Link to={`/orders/${order.id}/edit`}>
               <Button type="button" variant="secondary">
@@ -134,6 +150,25 @@ export function OrderDetailPage() {
           )}
         </div>
       </div>
+
+      {voucherOpen && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Vale del pedido</h2>
+            <Button type="button" variant="secondary" onClick={handleCopyVoucher}>
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copiado' : 'Copiar'}
+            </Button>
+          </div>
+          <textarea
+            readOnly
+            value={voucherText}
+            rows={voucherText.split('\n').length + 1}
+            onFocus={(e) => e.target.select()}
+            className="w-full resize-none rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

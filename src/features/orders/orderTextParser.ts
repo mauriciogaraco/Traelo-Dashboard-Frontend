@@ -1,4 +1,4 @@
-import type { BusinessDTO } from '@/lib/types';
+import type { BusinessDTO, OrderDTO } from '@/lib/types';
 
 export interface ParsedOrderItem {
   productName: string;
@@ -213,4 +213,37 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
   }
 
   return draft;
+}
+
+/**
+ * Genera el texto del vale a partir de un pedido ya guardado, en el mismo formato que
+ * `parseOrderText` espera al pegarlo — así el mensajero siempre recibe el vale actualizado
+ * (por ejemplo después de editar el pedido) en vez de que el staff lo corrija a mano.
+ */
+export function generateOrderVoucherText(order: OrderDTO): string {
+  const lines: string[] = [
+    `Cliente: ${order.customerName}`,
+    `Tel: ${order.customerPhone}`,
+    `Dirección: ${order.customerAddress}`,
+  ];
+
+  if (order.addressReference) {
+    lines.push(`Referencia: ${order.addressReference}`);
+  }
+
+  for (const business of order.businesses) {
+    lines.push('');
+    lines.push(business.businessName);
+    for (const item of business.items) {
+      lines.push(`${item.quantity}x ${item.productName} - ${item.subtotal}`);
+    }
+  }
+
+  lines.push('');
+  lines.push(`Mensajería: ${order.deliveryFee}`);
+  if (order.platformFee > 0) {
+    lines.push(`Servicio Tráelo: ${order.platformFee}`);
+  }
+
+  return lines.join('\n');
 }
