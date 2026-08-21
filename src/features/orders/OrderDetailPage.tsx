@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy, FileText } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
@@ -38,6 +38,8 @@ export function OrderDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [voucherOpen, setVoucherOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const voucherTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data, isLoading, error } = useGetOrderQuery(id ?? '', { skip: !id });
   const { data: deliverersData } = useListDeliverersQuery(
@@ -94,9 +96,36 @@ export function OrderDetailPage() {
   }
 
   async function handleCopyVoucher() {
-    await navigator.clipboard.writeText(voucherText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopyError(null);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API no disponible');
+      }
+      await navigator.clipboard.writeText(voucherText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback para navegadores/webviews que no tienen la Clipboard API o la rechazan
+      // (documento sin foco, contexto no seguro, in-app browsers de WhatsApp/Instagram, etc.):
+      // seleccionar el texto a mano y usar el comando de copiar clásico.
+      const textarea = voucherTextareaRef.current;
+      let copiedWithFallback = false;
+      if (textarea) {
+        textarea.focus();
+        textarea.select();
+        try {
+          copiedWithFallback = document.execCommand('copy');
+        } catch {
+          copiedWithFallback = false;
+        }
+      }
+      if (copiedWithFallback) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        setCopyError('No se pudo copiar automáticamente. Seleccioná el texto y copiá manualmente.');
+      }
+    }
   }
 
   return (
@@ -161,12 +190,14 @@ export function OrderDetailPage() {
             </Button>
           </div>
           <textarea
+            ref={voucherTextareaRef}
             readOnly
             value={voucherText}
             rows={voucherText.split('\n').length + 1}
             onFocus={(e) => e.target.select()}
             className="w-full resize-none rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
+          {copyError && <p className="mt-2 text-sm text-red-600">{copyError}</p>}
         </div>
       )}
 
