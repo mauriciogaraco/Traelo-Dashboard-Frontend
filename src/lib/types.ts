@@ -292,6 +292,21 @@ export interface BusinessSalesDetailDTO {
   }[];
 }
 
+export interface BusinessDelivererProductDTO {
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  totalSales: number;
+}
+
+export interface BusinessDelivererBreakdownDTO {
+  delivererId: string;
+  delivererName: string;
+  products: BusinessDelivererProductDTO[];
+  totalQuantity: number;
+  totalSales: number;
+}
+
 export interface DashboardSummaryDTO {
   totalOrders: number;
   completedOrders: number;

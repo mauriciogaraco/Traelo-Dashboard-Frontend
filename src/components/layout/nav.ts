@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bike,
+  CupSoda,
   LayoutDashboard,
   Package,
   Settings,
@@ -40,6 +41,7 @@ export const navItems: NavItem[] = [
     roles: ['OWNER', 'ADMIN', 'EMPLOYEE', 'DELIVERER'],
   },
   { to: '/reports', label: 'Reportes', icon: BarChart3, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
+  { to: '/cronos', label: 'Cronos', icon: CupSoda, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
   { to: '/users', label: 'Usuarios', icon: Users, roles: ['OWNER', 'ADMIN'] },
   { to: '/config', label: 'Configuración', icon: Settings, roles: ['OWNER', 'ADMIN'] },
 ];

@@ -6,6 +6,7 @@ import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { CronosPage } from '@/features/cronos/CronosPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
               { path: 'businesses/:id', element: <BusinessDetailPage /> },
               { path: 'deliverers', element: <DeliverersPage /> },
               { path: 'reports', element: <ReportsPage /> },
+              { path: 'cronos', element: <CronosPage /> },
             ],
           },
           {

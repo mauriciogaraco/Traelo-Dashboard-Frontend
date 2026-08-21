@@ -2,6 +2,7 @@ import { baseApi } from '@/lib/baseApi';
 import type {
   ApiOk,
   ApiPaginated,
+  BusinessDelivererBreakdownDTO,
   BusinessSalesDetailDTO,
   DateRangePreset,
   SalesReportDTO,
@@ -58,6 +59,15 @@ export const reportsApi = baseApi.injectEndpoints({
         params: range ? { range } : undefined,
       }),
     }),
+    getBusinessBreakdownByDeliverer: builder.query<
+      ApiOk<BusinessDelivererBreakdownDTO[]>,
+      { businessId: string; range?: ReportsRangeParams['range'] }
+    >({
+      query: ({ businessId, range }) => ({
+        url: `/reports/businesses/${businessId}/by-deliverer`,
+        params: range ? { range } : undefined,
+      }),
+    }),
   }),
 });
 
@@ -69,4 +79,5 @@ export const {
   useGetBusinessSalesDetailQuery,
   useListReportDeliverersQuery,
   useGetDelivererSalesDetailQuery,
+  useGetBusinessBreakdownByDelivererQuery,
 } = reportsApi;
