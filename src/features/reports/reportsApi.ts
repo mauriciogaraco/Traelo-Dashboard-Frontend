@@ -4,6 +4,8 @@ import type {
   ApiPaginated,
   BusinessDelivererBreakdownDTO,
   BusinessSalesDetailDTO,
+  CustomerReportDTO,
+  CustomerSortBy,
   DateRangePreset,
   SalesReportDTO,
   TopBusinessDTO,
@@ -16,6 +18,11 @@ export interface ReportsRangeParams {
 
 export interface TopReportsParams extends ReportsRangeParams {
   limit?: number;
+}
+
+export interface TopCustomersParams extends ReportsRangeParams {
+  limit?: number;
+  sortBy?: CustomerSortBy;
 }
 
 export interface ListReportsParams extends ReportsRangeParams {
@@ -68,6 +75,9 @@ export const reportsApi = baseApi.injectEndpoints({
         params: range ? { range } : undefined,
       }),
     }),
+    getTopCustomers: builder.query<ApiOk<CustomerReportDTO[]>, TopCustomersParams | void>({
+      query: (params) => ({ url: '/reports/customers', params: params ?? undefined }),
+    }),
   }),
 });
 
@@ -80,4 +90,5 @@ export const {
   useListReportDeliverersQuery,
   useGetDelivererSalesDetailQuery,
   useGetBusinessBreakdownByDelivererQuery,
+  useGetTopCustomersQuery,
 } = reportsApi;

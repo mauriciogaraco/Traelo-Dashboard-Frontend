@@ -5,13 +5,14 @@ import { Bike, PackageCheck, Percent, ShoppingBag, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
-import type { DateRangePreset, TopBusinessDTO, TopDelivererDTO } from '@/lib/types';
+import type { CustomerSortBy, DateRangePreset, TopBusinessDTO, TopDelivererDTO } from '@/lib/types';
 import { BusinessDetailModal } from './BusinessDetailModal';
 import { DelivererDetailModal } from './DelivererDetailModal';
 import { OrderCustomerSearch } from './OrderCustomerSearch';
 import {
   useGetSalesReportQuery,
   useGetTopBusinessesQuery,
+  useGetTopCustomersQuery,
   useGetTopDeliverersQuery,
   useListReportBusinessesQuery,
   useListReportDeliverersQuery,
@@ -292,6 +293,82 @@ function TopDeliverersSection({
   );
 }
 
+const CUSTOMER_SORT_TABS: { value: CustomerSortBy; label: string }[] = [
+  { value: 'orderCount', label: 'Más pedidos' },
+  { value: 'totalSpent', label: 'Más dinero' },
+  { value: 'traeloContribution', label: 'Más aporte a Tráelo' },
+];
+
+const CUSTOMERS_LIMIT = 20;
+
+function TopCustomersSection({ range }: { range: RangeTab }) {
+  const [sortBy, setSortBy] = useState<CustomerSortBy>('orderCount');
+  const { data, isLoading } = useGetTopCustomersQuery({ range, sortBy, limit: CUSTOMERS_LIMIT });
+  const customers = data?.data ?? [];
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+        <h2 className="text-sm font-semibold text-slate-900">
+          Clientes recurrentes — top {CUSTOMERS_LIMIT}
+        </h2>
+        <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {CUSTOMER_SORT_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setSortBy(tab.value)}
+              className={clsx(
+                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                sortBy === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-4 py-3 font-medium">Cliente</th>
+            <th className="px-4 py-3 font-medium">Teléfono</th>
+            <th className="px-4 py-3 font-medium">Pedidos</th>
+            <th className="px-4 py-3 font-medium">Total gastado</th>
+            <th className="px-4 py-3 font-medium">Aporte a Tráelo</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {isLoading && (
+            <tr>
+              <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                Cargando…
+              </td>
+            </tr>
+          )}
+          {!isLoading && customers.length === 0 && (
+            <tr>
+              <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                Sin clientes recurrentes (2+ pedidos) en este periodo.
+              </td>
+            </tr>
+          )}
+          {!isLoading &&
+            customers.map((customer) => (
+              <tr key={customer.customerPhone} className="text-slate-700">
+                <td className="px-4 py-3 font-medium text-slate-900">{customer.customerName}</td>
+                <td className="px-4 py-3">{customer.customerPhone}</td>
+                <td className="px-4 py-3">{customer.orderCount}</td>
+                <td className="px-4 py-3">{formatCUP(customer.totalSpent)}</td>
+                <td className="px-4 py-3">{formatCUP(customer.traeloContributionTotal)}</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function ReportsPage() {
   const [range, setRange] = useState<RangeTab>('today');
   const [businessDetail, setBusinessDetail] = useState<TopBusinessDTO | null>(null);
@@ -358,6 +435,8 @@ export function ReportsPage() {
         <TopBusinessesSection range={range} onViewDetail={setBusinessDetail} />
         <TopDeliverersSection range={range} onViewDetail={setDelivererDetail} />
       </div>
+
+      <TopCustomersSection range={range} />
 
       {businessDetail && (
         <BusinessDetailModal

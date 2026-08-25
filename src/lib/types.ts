@@ -260,6 +260,18 @@ export interface SalesReportDTO {
   averageTicket: number;
 }
 
+export type CustomerSortBy = 'orderCount' | 'totalSpent' | 'traeloContribution';
+
+export interface CustomerReportDTO {
+  customerPhone: string;
+  customerName: string;
+  orderCount: number;
+  totalSpent: number;
+  platformFeeContribution: number;
+  traeloDeliveryShareContribution: number;
+  traeloContributionTotal: number;
+}
+
 export interface TopBusinessDTO {
   businessId: string;
   businessName: string;
