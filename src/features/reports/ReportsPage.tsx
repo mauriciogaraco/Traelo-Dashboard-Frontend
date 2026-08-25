@@ -14,6 +14,7 @@ import {
   useGetTopBusinessesQuery,
   useGetTopCustomersQuery,
   useGetTopDeliverersQuery,
+  useGetTopProductsQuery,
   useListReportBusinessesQuery,
   useListReportDeliverersQuery,
 } from './reportsApi';
@@ -293,6 +294,61 @@ function TopDeliverersSection({
   );
 }
 
+const TOP_PRODUCTS_LIMIT = 20;
+
+function TopProductsSection({ range }: { range: RangeTab }) {
+  const { data, isLoading } = useGetTopProductsQuery({ range, limit: TOP_PRODUCTS_LIMIT });
+  const products = data?.data ?? [];
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-4 py-3">
+        <h2 className="text-sm font-semibold text-slate-900">
+          Productos más vendidos — top {TOP_PRODUCTS_LIMIT}
+        </h2>
+      </div>
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-4 py-3 font-medium">Producto</th>
+            <th className="px-4 py-3 font-medium">Negocio</th>
+            <th className="px-4 py-3 font-medium">Unidades</th>
+            <th className="px-4 py-3 font-medium">Ventas</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {isLoading && (
+            <tr>
+              <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                Cargando…
+              </td>
+            </tr>
+          )}
+          {!isLoading && products.length === 0 && (
+            <tr>
+              <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                Sin datos en este periodo.
+              </td>
+            </tr>
+          )}
+          {!isLoading &&
+            products.map((product) => (
+              <tr
+                key={`${product.businessId}-${product.productId ?? ''}-${product.productName}`}
+                className="text-slate-700"
+              >
+                <td className="px-4 py-3 font-medium text-slate-900">{product.productName}</td>
+                <td className="px-4 py-3">{product.businessName}</td>
+                <td className="px-4 py-3">{product.quantity}</td>
+                <td className="px-4 py-3">{formatCUP(product.totalSales)}</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const CUSTOMER_SORT_TABS: { value: CustomerSortBy; label: string }[] = [
   { value: 'orderCount', label: 'Más pedidos' },
   { value: 'totalSpent', label: 'Más dinero' },
@@ -435,6 +491,8 @@ export function ReportsPage() {
         <TopBusinessesSection range={range} onViewDetail={setBusinessDetail} />
         <TopDeliverersSection range={range} onViewDetail={setDelivererDetail} />
       </div>
+
+      <TopProductsSection range={range} />
 
       <TopCustomersSection range={range} />
 

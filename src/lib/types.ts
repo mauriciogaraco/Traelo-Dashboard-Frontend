@@ -272,6 +272,15 @@ export interface CustomerReportDTO {
   traeloContributionTotal: number;
 }
 
+export interface TopProductDTO {
+  businessId: string;
+  businessName: string;
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  totalSales: number;
+}
+
 export interface TopBusinessDTO {
   businessId: string;
   businessName: string;

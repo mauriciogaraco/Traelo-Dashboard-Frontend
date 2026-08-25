@@ -10,6 +10,7 @@ import type {
   SalesReportDTO,
   TopBusinessDTO,
   TopDelivererDTO,
+  TopProductDTO,
 } from '@/lib/types';
 
 export interface ReportsRangeParams {
@@ -78,6 +79,9 @@ export const reportsApi = baseApi.injectEndpoints({
     getTopCustomers: builder.query<ApiOk<CustomerReportDTO[]>, TopCustomersParams | void>({
       query: (params) => ({ url: '/reports/customers', params: params ?? undefined }),
     }),
+    getTopProducts: builder.query<ApiOk<TopProductDTO[]>, TopReportsParams | void>({
+      query: (params) => ({ url: '/reports/top-products', params: params ?? undefined }),
+    }),
   }),
 });
 
@@ -91,4 +95,5 @@ export const {
   useGetDelivererSalesDetailQuery,
   useGetBusinessBreakdownByDelivererQuery,
   useGetTopCustomersQuery,
+  useGetTopProductsQuery,
 } = reportsApi;
