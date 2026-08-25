@@ -240,10 +240,12 @@ export function generateOrderVoucherText(order: OrderDTO): string {
   }
 
   lines.push('');
+  lines.push(`Subtotal: ${order.productsTotal}`);
   lines.push(`Mensajería: ${order.deliveryFee}`);
   if (order.platformFee > 0) {
     lines.push(`Servicio Tráelo: ${order.platformFee}`);
   }
+  lines.push(`Total: ${order.total}`);
 
   return lines.join('\n');
 }
