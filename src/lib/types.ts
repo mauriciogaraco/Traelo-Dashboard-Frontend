@@ -369,6 +369,7 @@ export interface BusinessDelivererBreakdownDTO {
 export interface DashboardSummaryDTO {
   totalOrders: number;
   completedOrders: number;
+  completionRate: number;
   businessSalesGross: number;
   platformFeeRevenue: number;
   deliveryFeeGross: number;
@@ -387,6 +388,7 @@ export interface DashboardSummaryDTO {
 export interface DelivererDashboardSummaryDTO {
   totalOrders: number;
   completedOrders: number;
+  completionRate: number;
   averageTicket: number;
   topBusiness: TopBusinessDTO | null;
   topDeliverer: TopDelivererDTO | null;

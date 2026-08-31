@@ -25,11 +25,13 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  sublabel,
   highlight,
 }: {
   icon: LucideIcon;
   label: string;
   value: ReactNode;
+  sublabel?: string;
   highlight?: boolean;
 }) {
   return (
@@ -46,8 +48,13 @@ function StatCard({
       <p className={clsx('mt-2 text-lg font-semibold', highlight ? 'text-brand-700' : 'text-slate-900')}>
         {value}
       </p>
+      {sublabel && <p className="mt-0.5 text-xs text-slate-400">{sublabel}</p>}
     </div>
   );
+}
+
+function formatPercent(value: number): string {
+  return `${value.toFixed(0)}% completados`;
 }
 
 function TopBusinessCard({ topBusiness }: { topBusiness: TopBusinessDTO | null }) {
@@ -146,6 +153,7 @@ export function DashboardPage() {
               icon={PackageCheck}
               label="Pedidos completados"
               value={`${summary.completedOrders} / ${summary.totalOrders}`}
+              sublabel={formatPercent(summary.completionRate)}
             />
             <StatCard icon={DollarSign} label="Ticket promedio" value={formatCUP(summary.averageTicket)} />
           </div>
@@ -171,6 +179,7 @@ export function DashboardPage() {
               icon={PackageCheck}
               label="Pedidos completados"
               value={`${fullSummary.completedOrders} / ${fullSummary.totalOrders}`}
+              sublabel={formatPercent(fullSummary.completionRate)}
             />
             <StatCard icon={DollarSign} label="Ticket promedio" value={formatCUP(fullSummary.averageTicket)} />
             <StatCard icon={Store} label="Negocios activos" value={fullSummary.businessCount} />
