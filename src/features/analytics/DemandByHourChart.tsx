@@ -1,3 +1,13 @@
+import { useEffect, useRef } from 'react';
+import {
+  ColorType,
+  createChart,
+  HistogramSeries,
+  type IChartApi,
+  type ISeriesApi,
+  type Time,
+  type UTCTimestamp,
+} from 'lightweight-charts';
 import type { DemandByHourDTO } from '@/lib/types';
 
 interface DemandByHourChartProps {
@@ -6,98 +16,129 @@ interface DemandByHourChartProps {
   onSelectHour: (hour: number) => void;
 }
 
-const WIDTH = 760;
-const HEIGHT = 220;
-const PADDING_LEFT = 36;
-const PADDING_BOTTOM = 20;
-const PADDING_TOP = 12;
-const CHART_HEIGHT = HEIGHT - PADDING_BOTTOM - PADDING_TOP;
-const CHART_WIDTH = WIDTH - PADDING_LEFT;
+const PEAK_COLOR = '#f0501a'; // --color-brand-600
+const SELECTED_COLOR = '#c93d10'; // --color-brand-700
+const DEFAULT_COLOR = '#ffa37d'; // --color-brand-300
+
+// Las 24 horas no son una fecha real — se mapean a un día de referencia fijo (arbitrario, en
+// UTC puro) solo para poder usar el eje de tiempo de lightweight-charts; hourToTime/timeToHour
+// codifican y decodifican con métodos UTC en ambos sentidos, así que el resultado no depende
+// de la zona horaria del navegador de quien lo mira.
+const REFERENCE_DAY_MS = Date.UTC(2000, 0, 1);
+
+function hourToTime(hour: number): UTCTimestamp {
+  return ((REFERENCE_DAY_MS + hour * 3600_000) / 1000) as UTCTimestamp;
+}
+
+function timeToHour(time: Time): number {
+  return Math.round((Number(time) * 1000 - REFERENCE_DAY_MS) / 3600_000);
+}
 
 function formatHour(hour: number): string {
   return `${hour.toString().padStart(2, '0')}:00`;
 }
 
+function describeEntry(entry: DemandByHourDTO): string {
+  return `${formatHour(entry.hour)} — ${entry.orderCount} pedido${entry.orderCount === 1 ? '' : 's'}`;
+}
+
 export function DemandByHourChart({ data, selectedHour, onSelectHour }: DemandByHourChartProps) {
-  const maxCount = Math.max(...data.map((d) => d.orderCount), 1);
-  const slotWidth = CHART_WIDTH / data.length;
-  const barWidth = Math.min(24, slotWidth * 0.6);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const readoutRef = useRef<HTMLParagraphElement>(null);
+  const dataRef = useRef(data);
+  const onSelectHourRef = useRef(onSelectHour);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
 
-  // Grillas de referencia: 0%, 33%, 66%, 100% del máximo, redondeadas a números limpios.
-  const gridSteps = [0, 1 / 3, 2 / 3, 1].map((fraction) => Math.round(maxCount * fraction));
+  useEffect(() => {
+    onSelectHourRef.current = onSelectHour;
+  }, [onSelectHour]);
 
-  return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-56 w-full" role="img" aria-label="Pedidos por hora del día">
-      {gridSteps.map((value) => {
-        const y = PADDING_TOP + CHART_HEIGHT - (value / maxCount) * CHART_HEIGHT;
-        return (
-          <g key={value}>
-            <line x1={PADDING_LEFT} x2={WIDTH} y1={y} y2={y} stroke="#e2e8f0" strokeWidth={1} />
-            <text x={PADDING_LEFT - 6} y={y} textAnchor="end" dominantBaseline="middle" className="fill-slate-400 text-[9px]">
-              {value}
-            </text>
-          </g>
-        );
-      })}
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-      {data.map((entry, index) => {
-        const barHeight = (entry.orderCount / maxCount) * CHART_HEIGHT;
-        const x = PADDING_LEFT + index * slotWidth + (slotWidth - barWidth) / 2;
-        const y = PADDING_TOP + CHART_HEIGHT - barHeight;
+    const chart: IChartApi = createChart(container, {
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: '#64748b',
+        fontFamily: 'inherit',
+        fontSize: 11,
+      },
+      grid: {
+        horzLines: { color: '#e2e8f0' },
+        vertLines: { visible: false },
+      },
+      rightPriceScale: { borderVisible: false },
+      timeScale: {
+        borderVisible: false,
+        tickMarkFormatter: (time: Time) => formatHour(timeToHour(time)),
+      },
+      localization: {
+        timeFormatter: (time: Time) => formatHour(timeToHour(time)),
+      },
+    });
+
+    const series = chart.addSeries(HistogramSeries, {
+      color: DEFAULT_COLOR,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      base: 0,
+    });
+    seriesRef.current = series;
+    chartRef.current = chart;
+
+    chart.subscribeCrosshairMove((param) => {
+      const el = readoutRef.current;
+      if (!el) return;
+      const time = param.time as Time | undefined;
+      const entry = time
+        ? dataRef.current.find((d) => d.hour === timeToHour(time))
+        : dataRef.current[dataRef.current.length - 1];
+      el.textContent = entry ? describeEntry(entry) : '';
+    });
+
+    chart.subscribeClick((param) => {
+      if (!param.time) return;
+      onSelectHourRef.current(timeToHour(param.time as Time));
+    });
+
+    return () => {
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    dataRef.current = data;
+    const maxCount = Math.max(...data.map((d) => d.orderCount), 1);
+    seriesRef.current?.setData(
+      data.map((entry) => {
         const isPeak = entry.orderCount > 0 && entry.orderCount === maxCount;
         const isSelected = selectedHour === entry.hour;
+        return {
+          time: hourToTime(entry.hour),
+          value: entry.orderCount,
+          color: isSelected ? SELECTED_COLOR : isPeak ? PEAK_COLOR : DEFAULT_COLOR,
+        };
+      }),
+    );
+    const last = data[data.length - 1];
+    if (readoutRef.current) readoutRef.current.textContent = last ? describeEntry(last) : '';
+  }, [data, selectedHour]);
 
-        return (
-          <g
-            key={entry.hour}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectHour(entry.hour)}
-            onKeyDown={(e) => e.key === 'Enter' && onSelectHour(entry.hour)}
-            className="cursor-pointer outline-none"
-          >
-            <title>{`${formatHour(entry.hour)} — ${entry.orderCount} pedido${entry.orderCount === 1 ? '' : 's'}`}</title>
-            {/* Hit area más grande que la barra, para que sea fácil de tocar/clickear */}
-            <rect x={PADDING_LEFT + index * slotWidth} y={PADDING_TOP} width={slotWidth} height={CHART_HEIGHT} fill="transparent" />
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={Math.max(barHeight, 1)}
-              rx={4}
-              className={
-                isSelected
-                  ? 'fill-brand-700'
-                  : isPeak
-                    ? 'fill-brand-600'
-                    : 'fill-brand-300 transition-colors hover:fill-brand-500'
-              }
-            />
-            {isSelected && (
-              <rect
-                x={x - 2}
-                y={y - 2}
-                width={barWidth + 4}
-                height={barHeight + 4}
-                rx={5}
-                fill="none"
-                stroke="var(--color-brand-700)"
-                strokeWidth={1.5}
-              />
-            )}
-            {(index % 2 === 0 || data.length <= 12) && (
-              <text
-                x={PADDING_LEFT + index * slotWidth + slotWidth / 2}
-                y={HEIGHT - 4}
-                textAnchor="middle"
-                className="fill-slate-400 text-[9px]"
-              >
-                {entry.hour}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
+  // Encuadra las 24 horas completas solo cuando cambia el dataset (no en cada clic de
+  // selectedHour, para no resetear el zoom/pan del usuario al elegir una hora).
+  useEffect(() => {
+    chartRef.current?.timeScale().fitContent();
+  }, [data]);
+
+  return (
+    <div>
+      <p ref={readoutRef} className="mb-2 h-4 text-xs text-slate-500" />
+      <div ref={containerRef} className="h-56 w-full" role="img" aria-label="Pedidos por hora del día" />
+    </div>
   );
 }

@@ -4,9 +4,13 @@ import clsx from 'clsx';
 import { Repeat, Sparkles, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { DateRangePreset } from '@/lib/types';
+import { CustomerTrendChart } from './CustomerTrendChart';
+import { RetentionRateChart } from './RetentionRateChart';
+import { RetentionCohortsTable } from './RetentionCohortsTable';
 import { DemandByHourChart } from './DemandByHourChart';
 import {
   useGetCustomerSegmentationQuery,
+  useGetCustomerTrendQuery,
   useGetDemandByHourQuery,
   useGetProductsByHourQuery,
 } from './analyticsApi';
@@ -69,6 +73,9 @@ export function AnalyticsPage() {
     range,
   });
   const segmentation = segmentationData?.data;
+
+  const { data: trendData, isLoading: isLoadingTrend } = useGetCustomerTrendQuery({ range });
+  const trend = useMemo(() => trendData?.data ?? [], [trendData]);
 
   const { data: demandData, isLoading: isLoadingDemand } = useGetDemandByHourQuery({ range });
   const demand = useMemo(() => demandData?.data ?? [], [demandData]);
@@ -133,6 +140,26 @@ export function AnalyticsPage() {
       )}
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold text-slate-900">
+          Nuevos vs. recurrentes en el tiempo
+        </h2>
+        <p className="mb-3 text-xs text-slate-400">
+          Cuántos clientes de cada tipo hicieron pedidos cada día — cómo entran y cómo se quedan.
+        </p>
+        {isLoadingTrend && <p className="text-slate-400">Cargando…</p>}
+        {!isLoadingTrend && trend.length > 0 && <CustomerTrendChart data={trend} />}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold text-slate-900">Tasa de retención</h2>
+        <p className="mb-3 text-xs text-slate-400">
+          % de los clientes de cada día que ya eran recurrentes — a más alto, más fidelización.
+        </p>
+        {isLoadingTrend && <p className="text-slate-400">Cargando…</p>}
+        {!isLoadingTrend && trend.length > 0 && <RetentionRateChart data={trend} />}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">Pedidos por hora del día</h2>
           <div className="flex flex-wrap gap-4 text-xs text-slate-500">
@@ -188,6 +215,8 @@ export function AnalyticsPage() {
           </div>
         )}
       </div>
+
+      <RetentionCohortsTable />
     </div>
   );
 }

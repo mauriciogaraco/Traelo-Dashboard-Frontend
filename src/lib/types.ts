@@ -320,6 +320,21 @@ export interface ProductByHourDTO {
   totalSales: number;
 }
 
+export interface CustomerTrendPointDTO {
+  date: string;
+  newCustomers: number;
+  recurringCustomers: number;
+  newRevenue: number;
+  recurringRevenue: number;
+  retentionRate: number;
+}
+
+export interface RetentionCohortDTO {
+  cohortMonth: string;
+  cohortSize: number;
+  retention: (number | null)[];
+}
+
 export interface BusinessSalesDetailDTO {
   businessId: string;
   businessName: string;
