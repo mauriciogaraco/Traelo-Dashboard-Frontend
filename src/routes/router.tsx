@@ -8,6 +8,7 @@ import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { CronosPage } from '@/features/cronos/CronosPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
 import { BusinessesPage } from '@/features/businesses/BusinessesPage';
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
               { path: 'businesses/:id', element: <BusinessDetailPage /> },
               { path: 'deliverers', element: <DeliverersPage /> },
               { path: 'reports', element: <ReportsPage /> },
+              { path: 'analytics', element: <AnalyticsPage /> },
               { path: 'cronos', element: <CronosPage /> },
             ],
           },

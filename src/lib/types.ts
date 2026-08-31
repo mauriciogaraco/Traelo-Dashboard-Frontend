@@ -297,6 +297,29 @@ export interface TopDelivererDTO {
   platformFeeCollected: number;
 }
 
+export interface CustomerSegmentationDTO {
+  newCustomers: number;
+  recurringCustomers: number;
+  totalCustomers: number;
+  newCustomersRevenue: number;
+  recurringCustomersRevenue: number;
+}
+
+export interface DemandByHourDTO {
+  hour: number;
+  orderCount: number;
+  businessSalesGross: number;
+}
+
+export interface ProductByHourDTO {
+  businessId: string;
+  businessName: string;
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  totalSales: number;
+}
+
 export interface BusinessSalesDetailDTO {
   businessId: string;
   businessName: string;
