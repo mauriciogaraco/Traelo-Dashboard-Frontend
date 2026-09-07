@@ -13,8 +13,12 @@ import type {
   TopProductDTO,
 } from '@/lib/types';
 
+// range acepta 'custom' para permitir filtrar por una fecha específica (from = to = ese día);
+// las pestañas de rango siguen usando los presets normales.
 export interface ReportsRangeParams {
-  range?: Exclude<DateRangePreset, 'custom'>;
+  range?: DateRangePreset;
+  from?: string;
+  to?: string;
 }
 
 export interface TopReportsParams extends ReportsRangeParams {
@@ -24,6 +28,7 @@ export interface TopReportsParams extends ReportsRangeParams {
 export interface TopCustomersParams extends ReportsRangeParams {
   limit?: number;
   sortBy?: CustomerSortBy;
+  businessId?: string;
 }
 
 export interface ListReportsParams extends ReportsRangeParams {
@@ -48,11 +53,11 @@ export const reportsApi = baseApi.injectEndpoints({
     }),
     getBusinessSalesDetail: builder.query<
       ApiOk<BusinessSalesDetailDTO>,
-      { businessId: string; range?: ReportsRangeParams['range'] }
+      { businessId: string } & ReportsRangeParams
     >({
-      query: ({ businessId, range }) => ({
+      query: ({ businessId, ...range }) => ({
         url: `/reports/businesses/${businessId}`,
-        params: range ? { range } : undefined,
+        params: range,
       }),
     }),
     listReportDeliverers: builder.query<ApiPaginated<TopDelivererDTO>, ListReportsParams | void>({
@@ -60,20 +65,20 @@ export const reportsApi = baseApi.injectEndpoints({
     }),
     getDelivererSalesDetail: builder.query<
       ApiOk<TopDelivererDTO>,
-      { delivererId: string; range?: ReportsRangeParams['range'] }
+      { delivererId: string } & ReportsRangeParams
     >({
-      query: ({ delivererId, range }) => ({
+      query: ({ delivererId, ...range }) => ({
         url: `/reports/deliverers/${delivererId}`,
-        params: range ? { range } : undefined,
+        params: range,
       }),
     }),
     getBusinessBreakdownByDeliverer: builder.query<
       ApiOk<BusinessDelivererBreakdownDTO[]>,
-      { businessId: string; range?: ReportsRangeParams['range'] }
+      { businessId: string } & ReportsRangeParams
     >({
-      query: ({ businessId, range }) => ({
+      query: ({ businessId, ...range }) => ({
         url: `/reports/businesses/${businessId}/by-deliverer`,
-        params: range ? { range } : undefined,
+        params: range,
       }),
     }),
     getTopCustomers: builder.query<ApiOk<CustomerReportDTO[]>, TopCustomersParams | void>({

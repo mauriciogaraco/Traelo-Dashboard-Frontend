@@ -1,6 +1,5 @@
 import { Modal } from '@/components/ui/Modal';
-import type { DateRangePreset } from '@/lib/types';
-import { useGetBusinessSalesDetailQuery } from './reportsApi';
+import { useGetBusinessSalesDetailQuery, type ReportsRangeParams } from './reportsApi';
 
 function formatCUP(value: number): string {
   return `${value.toLocaleString('es')} CUP`;
@@ -9,17 +8,17 @@ function formatCUP(value: number): string {
 interface BusinessDetailModalProps {
   businessId: string;
   businessName: string;
-  range: Exclude<DateRangePreset, 'custom'>;
+  filter: ReportsRangeParams;
   onClose: () => void;
 }
 
 export function BusinessDetailModal({
   businessId,
   businessName,
-  range,
+  filter,
   onClose,
 }: BusinessDetailModalProps) {
-  const { data, isLoading } = useGetBusinessSalesDetailQuery({ businessId, range });
+  const { data, isLoading } = useGetBusinessSalesDetailQuery({ businessId, ...filter });
   const detail = data?.data;
 
   return (

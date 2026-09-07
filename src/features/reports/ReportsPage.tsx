@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
-import { Bike, PackageCheck, Percent, ShoppingBag, Wallet } from 'lucide-react';
+import { Bike, PackageCheck, Percent, ShoppingBag, Wallet, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import type { CustomerSortBy, DateRangePreset, TopBusinessDTO, TopDelivererDTO } from '@/lib/types';
 import { BusinessDetailModal } from './BusinessDetailModal';
 import { DelivererDetailModal } from './DelivererDetailModal';
@@ -17,6 +19,7 @@ import {
   useGetTopProductsQuery,
   useListReportBusinessesQuery,
   useListReportDeliverersQuery,
+  type ReportsRangeParams,
 } from './reportsApi';
 
 type RangeTab = Exclude<DateRangePreset, 'custom'>;
@@ -31,6 +34,22 @@ const RANGE_TABS: { value: RangeTab; label: string }[] = [
 
 const TOP_LIMIT = 10;
 const PAGE_SIZE = 10;
+
+// Se ancla al mediodía UTC en vez de medianoche: la fecha del <input type="date"> es un día
+// calendario sin huso horario, y medianoche UTC de ese día cae la tarde/noche anterior en
+// La Habana (UTC-5) — resolveDateRange calcularía el día de La Habana equivocado. Mediodía UTC
+// cae siempre dentro del mismo día calendario en La Habana, sin importar el offset exacto.
+function toHavanaSafeInstant(date: string): string {
+  return `${date}T12:00:00.000Z`;
+}
+
+function filterToParams(filter: { range: RangeTab } | { date: string }): ReportsRangeParams {
+  if ('date' in filter) {
+    const instant = toHavanaSafeInstant(filter.date);
+    return { range: 'custom', from: instant, to: instant };
+  }
+  return { range: filter.range };
+}
 
 function formatCUP(value: number): string {
   return `${value.toLocaleString('es')} CUP`;
@@ -99,10 +118,10 @@ function ViewModeToggle({
 }
 
 function TopBusinessesSection({
-  range,
+  filter,
   onViewDetail,
 }: {
-  range: RangeTab;
+  filter: ReportsRangeParams;
   onViewDetail: (business: TopBusinessDTO) => void;
 }) {
   const [mode, setMode] = useState<'top' | 'all'>('top');
@@ -120,11 +139,11 @@ function TopBusinessesSection({
 
   useEffect(() => {
     setPage(1);
-  }, [range, mode]);
+  }, [filter, mode]);
 
-  const topQuery = useGetTopBusinessesQuery({ range, limit: TOP_LIMIT }, { skip: mode !== 'top' });
+  const topQuery = useGetTopBusinessesQuery({ ...filter, limit: TOP_LIMIT }, { skip: mode !== 'top' });
   const allQuery = useListReportBusinessesQuery(
-    { range, page, pageSize: PAGE_SIZE, search: search || undefined },
+    { ...filter, page, pageSize: PAGE_SIZE, search: search || undefined },
     { skip: mode !== 'all' },
   );
 
@@ -197,10 +216,10 @@ function TopBusinessesSection({
 }
 
 function TopDeliverersSection({
-  range,
+  filter,
   onViewDetail,
 }: {
-  range: RangeTab;
+  filter: ReportsRangeParams;
   onViewDetail: (deliverer: TopDelivererDTO) => void;
 }) {
   const [mode, setMode] = useState<'top' | 'all'>('top');
@@ -218,11 +237,11 @@ function TopDeliverersSection({
 
   useEffect(() => {
     setPage(1);
-  }, [range, mode]);
+  }, [filter, mode]);
 
-  const topQuery = useGetTopDeliverersQuery({ range, limit: TOP_LIMIT }, { skip: mode !== 'top' });
+  const topQuery = useGetTopDeliverersQuery({ ...filter, limit: TOP_LIMIT }, { skip: mode !== 'top' });
   const allQuery = useListReportDeliverersQuery(
-    { range, page, pageSize: PAGE_SIZE, search: search || undefined },
+    { ...filter, page, pageSize: PAGE_SIZE, search: search || undefined },
     { skip: mode !== 'all' },
   );
 
@@ -296,8 +315,8 @@ function TopDeliverersSection({
 
 const TOP_PRODUCTS_LIMIT = 20;
 
-function TopProductsSection({ range }: { range: RangeTab }) {
-  const { data, isLoading } = useGetTopProductsQuery({ range, limit: TOP_PRODUCTS_LIMIT });
+function TopProductsSection({ filter }: { filter: ReportsRangeParams }) {
+  const { data, isLoading } = useGetTopProductsQuery({ ...filter, limit: TOP_PRODUCTS_LIMIT });
   const products = data?.data ?? [];
 
   return (
@@ -357,9 +376,22 @@ const CUSTOMER_SORT_TABS: { value: CustomerSortBy; label: string }[] = [
 
 const CUSTOMERS_LIMIT = 20;
 
-function TopCustomersSection({ range }: { range: RangeTab }) {
+function TopCustomersSection({ filter }: { filter: ReportsRangeParams }) {
   const [sortBy, setSortBy] = useState<CustomerSortBy>('orderCount');
-  const { data, isLoading } = useGetTopCustomersQuery({ range, sortBy, limit: CUSTOMERS_LIMIT });
+  const [businessId, setBusinessId] = useState<string | null>(null);
+
+  const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
+  const businessOptions = (businessesData?.data ?? []).map((business) => ({
+    value: business.id,
+    label: business.name,
+  }));
+
+  const { data, isLoading } = useGetTopCustomersQuery({
+    ...filter,
+    sortBy,
+    limit: CUSTOMERS_LIMIT,
+    businessId: businessId ?? undefined,
+  });
   const customers = data?.data ?? [];
 
   return (
@@ -368,20 +400,31 @@ function TopCustomersSection({ range }: { range: RangeTab }) {
         <h2 className="text-sm font-semibold text-slate-900">
           Clientes recurrentes — top {CUSTOMERS_LIMIT}
         </h2>
-        <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {CUSTOMER_SORT_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setSortBy(tab.value)}
-              className={clsx(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                sortBy === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-52">
+            <SearchableSelect
+              label="Negocio"
+              value={businessId}
+              onChange={setBusinessId}
+              options={businessOptions}
+              placeholder="Todos los negocios"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {CUSTOMER_SORT_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setSortBy(tab.value)}
+                className={clsx(
+                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  sortBy === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <table className="w-full text-left text-sm">
@@ -427,30 +470,65 @@ function TopCustomersSection({ range }: { range: RangeTab }) {
 
 export function ReportsPage() {
   const [range, setRange] = useState<RangeTab>('today');
+  const [specificDate, setSpecificDate] = useState<string | null>(null);
   const [businessDetail, setBusinessDetail] = useState<TopBusinessDTO | null>(null);
   const [delivererDetail, setDelivererDetail] = useState<TopDelivererDTO | null>(null);
 
-  const { data: salesData, isLoading: isSalesLoading } = useGetSalesReportQuery({ range });
+  const filter = useMemo<ReportsRangeParams>(
+    () => filterToParams(specificDate ? { date: specificDate } : { range }),
+    [range, specificDate],
+  );
+
+  const { data: salesData, isLoading: isSalesLoading } = useGetSalesReportQuery(filter);
   const sales = salesData?.data;
 
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-xl font-semibold text-slate-900">Reportes</h1>
 
-      <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
-        {RANGE_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setRange(tab.value)}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
+          {RANGE_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => {
+                setRange(tab.value);
+                setSpecificDate(null);
+              }}
+              className={clsx(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                !specificDate && range === tab.value
+                  ? 'bg-brand-600 text-white'
+                  : 'text-slate-600 hover:bg-slate-100',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            value={specificDate ?? ''}
+            onChange={(e) => setSpecificDate(e.target.value || null)}
             className={clsx(
-              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              range === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+              'rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500',
+              specificDate ? 'border-brand-500 text-brand-700' : 'border-slate-300 text-slate-600',
             )}
-          >
-            {tab.label}
-          </button>
-        ))}
+          />
+          {specificDate && (
+            <button
+              type="button"
+              onClick={() => setSpecificDate(null)}
+              className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Quitar fecha específica"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {isSalesLoading && <p className="text-slate-400">Cargando…</p>}
@@ -488,19 +566,19 @@ export function ReportsPage() {
       <OrderCustomerSearch />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <TopBusinessesSection range={range} onViewDetail={setBusinessDetail} />
-        <TopDeliverersSection range={range} onViewDetail={setDelivererDetail} />
+        <TopBusinessesSection filter={filter} onViewDetail={setBusinessDetail} />
+        <TopDeliverersSection filter={filter} onViewDetail={setDelivererDetail} />
       </div>
 
-      <TopProductsSection range={range} />
+      <TopProductsSection filter={filter} />
 
-      <TopCustomersSection range={range} />
+      <TopCustomersSection filter={filter} />
 
       {businessDetail && (
         <BusinessDetailModal
           businessId={businessDetail.businessId}
           businessName={businessDetail.businessName}
-          range={range}
+          filter={filter}
           onClose={() => setBusinessDetail(null)}
         />
       )}
@@ -509,7 +587,7 @@ export function ReportsPage() {
         <DelivererDetailModal
           delivererId={delivererDetail.delivererId}
           delivererName={delivererDetail.delivererName}
-          range={range}
+          filter={filter}
           onClose={() => setDelivererDetail(null)}
         />
       )}

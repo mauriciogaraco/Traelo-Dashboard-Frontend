@@ -1,6 +1,5 @@
 import { Modal } from '@/components/ui/Modal';
-import type { DateRangePreset } from '@/lib/types';
-import { useGetDelivererSalesDetailQuery } from './reportsApi';
+import { useGetDelivererSalesDetailQuery, type ReportsRangeParams } from './reportsApi';
 
 function formatCUP(value: number): string {
   return `${value.toLocaleString('es')} CUP`;
@@ -9,17 +8,17 @@ function formatCUP(value: number): string {
 interface DelivererDetailModalProps {
   delivererId: string;
   delivererName: string;
-  range: Exclude<DateRangePreset, 'custom'>;
+  filter: ReportsRangeParams;
   onClose: () => void;
 }
 
 export function DelivererDetailModal({
   delivererId,
   delivererName,
-  range,
+  filter,
   onClose,
 }: DelivererDetailModalProps) {
-  const { data, isLoading } = useGetDelivererSalesDetailQuery({ delivererId, range });
+  const { data, isLoading } = useGetDelivererSalesDetailQuery({ delivererId, ...filter });
   const detail = data?.data;
   const averagePerDelivery =
     detail && detail.deliveryCount > 0 ? detail.totalEarnings / detail.deliveryCount : 0;
