@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
-import { Bike, PackageCheck, Percent, ShoppingBag, Wallet, X } from 'lucide-react';
+import { Bike, Download, PackageCheck, Percent, ShoppingBag, Wallet, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
-import type { CustomerSortBy, DateRangePreset, TopBusinessDTO, TopDelivererDTO } from '@/lib/types';
+import { exportReportPdf, type PdfColumn } from '@/lib/pdfExport';
+import type {
+  CustomerReportDTO,
+  CustomerSortBy,
+  DateRangePreset,
+  TopBusinessDTO,
+  TopDelivererDTO,
+  TopProductDTO,
+} from '@/lib/types';
 import { BusinessDetailModal } from './BusinessDetailModal';
 import { DelivererDetailModal } from './DelivererDetailModal';
 import { OrderCustomerSearch } from './OrderCustomerSearch';
@@ -17,6 +25,8 @@ import {
   useGetTopCustomersQuery,
   useGetTopDeliverersQuery,
   useGetTopProductsQuery,
+  useLazyListReportBusinessesQuery,
+  useLazyListReportDeliverersQuery,
   useListReportBusinessesQuery,
   useListReportDeliverersQuery,
   type ReportsRangeParams,
@@ -53,6 +63,26 @@ function filterToParams(filter: { range: RangeTab } | { date: string }): Reports
 
 function formatCUP(value: number): string {
   return `${value.toLocaleString('es')} CUP`;
+}
+
+// Puro manejo de string: la fecha del <input type="date"> ya es un día calendario, no hace
+// falta pasar por Date/huso horario solo para mostrarla en formato dd/mm/yyyy.
+function formatSpecificDateLabel(date: string): string {
+  const [year, month, day] = date.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function todayFileStamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function PdfDownloadButton({ onClick, isLoading }: { onClick: () => void; isLoading: boolean }) {
+  return (
+    <Button type="button" variant="secondary" onClick={onClick} isLoading={isLoading}>
+      <Download className="h-4 w-4" />
+      PDF
+    </Button>
+  );
 }
 
 function StatCard({
@@ -117,17 +147,36 @@ function ViewModeToggle({
   );
 }
 
+const BUSINESS_PDF_COLUMNS: PdfColumn<TopBusinessDTO>[] = [
+  { header: 'Negocio', render: (r) => r.businessName },
+  { header: 'Ventas', align: 'right', render: (r) => formatCUP(r.totalSales) },
+  { header: 'Comisión', align: 'right', render: (r) => formatCUP(r.totalCommission) },
+  { header: 'Pedidos', align: 'right', render: (r) => String(r.orderCount) },
+];
+
+function businessPdfTotals(rows: TopBusinessDTO[]): (string | number)[] {
+  return [
+    'TOTAL',
+    formatCUP(rows.reduce((sum, r) => sum + r.totalSales, 0)),
+    formatCUP(rows.reduce((sum, r) => sum + r.totalCommission, 0)),
+    rows.reduce((sum, r) => sum + r.orderCount, 0),
+  ];
+}
+
 function TopBusinessesSection({
   filter,
+  rangeLabel,
   onViewDetail,
 }: {
   filter: ReportsRangeParams;
+  rangeLabel: string;
   onViewDetail: (business: TopBusinessDTO) => void;
 }) {
   const [mode, setMode] = useState<'top' | 'all'>('top');
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -146,15 +195,43 @@ function TopBusinessesSection({
     { ...filter, page, pageSize: PAGE_SIZE, search: search || undefined },
     { skip: mode !== 'all' },
   );
+  const [fetchAllForExport] = useLazyListReportBusinessesQuery();
 
   const businesses = mode === 'top' ? topQuery.data?.data ?? [] : allQuery.data?.data ?? [];
   const isLoading = mode === 'top' ? topQuery.isLoading : allQuery.isLoading;
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      // En modo "Todos" la tabla en pantalla solo muestra una página — el PDF trae el negocio
+      // completo en una sola pasada (el tope de 100 ya es el máximo que acepta pageSize en el
+      // backend, y es más que suficiente para la cantidad de negocios/mensajeros reales del app).
+      const rows =
+        mode === 'top'
+          ? businesses
+          : (await fetchAllForExport({ ...filter, page: 1, pageSize: 100, search: search || undefined }).unwrap())
+              .data;
+      await exportReportPdf({
+        title: 'Negocios',
+        subtitle: [rangeLabel, mode === 'top' ? `Top ${TOP_LIMIT}` : 'Todos', ...(search ? [`Búsqueda: "${search}"`] : [])],
+        fileName: `traelo-negocios-${todayFileStamp()}`,
+        columns: BUSINESS_PDF_COLUMNS,
+        rows,
+        totals: rows.length > 0 ? businessPdfTotals(rows) : undefined,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">Negocios</h2>
-        <ViewModeToggle mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-2">
+          <PdfDownloadButton onClick={handleExportPdf} isLoading={isExporting} />
+          <ViewModeToggle mode={mode} onChange={setMode} />
+        </div>
       </div>
       {mode === 'all' && (
         <div className="border-b border-slate-200 px-4 py-3">
@@ -215,17 +292,36 @@ function TopBusinessesSection({
   );
 }
 
+const DELIVERER_PDF_COLUMNS: PdfColumn<TopDelivererDTO>[] = [
+  { header: 'Mensajero', render: (r) => r.delivererName },
+  { header: 'Entregas', align: 'right', render: (r) => String(r.deliveryCount) },
+  { header: 'Ganancias', align: 'right', render: (r) => formatCUP(r.totalEarnings) },
+  { header: 'Servicio Tráelo', align: 'right', render: (r) => formatCUP(r.platformFeeCollected) },
+];
+
+function delivererPdfTotals(rows: TopDelivererDTO[]): (string | number)[] {
+  return [
+    'TOTAL',
+    rows.reduce((sum, r) => sum + r.deliveryCount, 0),
+    formatCUP(rows.reduce((sum, r) => sum + r.totalEarnings, 0)),
+    formatCUP(rows.reduce((sum, r) => sum + r.platformFeeCollected, 0)),
+  ];
+}
+
 function TopDeliverersSection({
   filter,
+  rangeLabel,
   onViewDetail,
 }: {
   filter: ReportsRangeParams;
+  rangeLabel: string;
   onViewDetail: (deliverer: TopDelivererDTO) => void;
 }) {
   const [mode, setMode] = useState<'top' | 'all'>('top');
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -244,15 +340,40 @@ function TopDeliverersSection({
     { ...filter, page, pageSize: PAGE_SIZE, search: search || undefined },
     { skip: mode !== 'all' },
   );
+  const [fetchAllForExport] = useLazyListReportDeliverersQuery();
 
   const deliverers = mode === 'top' ? topQuery.data?.data ?? [] : allQuery.data?.data ?? [];
   const isLoading = mode === 'top' ? topQuery.isLoading : allQuery.isLoading;
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      const rows =
+        mode === 'top'
+          ? deliverers
+          : (await fetchAllForExport({ ...filter, page: 1, pageSize: 100, search: search || undefined }).unwrap())
+              .data;
+      await exportReportPdf({
+        title: 'Mensajeros',
+        subtitle: [rangeLabel, mode === 'top' ? `Top ${TOP_LIMIT}` : 'Todos', ...(search ? [`Búsqueda: "${search}"`] : [])],
+        fileName: `traelo-mensajeros-${todayFileStamp()}`,
+        columns: DELIVERER_PDF_COLUMNS,
+        rows,
+        totals: rows.length > 0 ? delivererPdfTotals(rows) : undefined,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">Mensajeros</h2>
-        <ViewModeToggle mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-2">
+          <PdfDownloadButton onClick={handleExportPdf} isLoading={isExporting} />
+          <ViewModeToggle mode={mode} onChange={setMode} />
+        </div>
       </div>
       {mode === 'all' && (
         <div className="border-b border-slate-200 px-4 py-3">
@@ -315,16 +436,50 @@ function TopDeliverersSection({
 
 const TOP_PRODUCTS_LIMIT = 20;
 
-function TopProductsSection({ filter }: { filter: ReportsRangeParams }) {
+const PRODUCT_PDF_COLUMNS: PdfColumn<TopProductDTO>[] = [
+  { header: 'Producto', render: (r) => r.productName },
+  { header: 'Negocio', render: (r) => r.businessName },
+  { header: 'Unidades', align: 'right', render: (r) => String(r.quantity) },
+  { header: 'Ventas', align: 'right', render: (r) => formatCUP(r.totalSales) },
+];
+
+function productPdfTotals(rows: TopProductDTO[]): (string | number)[] {
+  return [
+    'TOTAL',
+    '',
+    rows.reduce((sum, r) => sum + r.quantity, 0),
+    formatCUP(rows.reduce((sum, r) => sum + r.totalSales, 0)),
+  ];
+}
+
+function TopProductsSection({ filter, rangeLabel }: { filter: ReportsRangeParams; rangeLabel: string }) {
   const { data, isLoading } = useGetTopProductsQuery({ ...filter, limit: TOP_PRODUCTS_LIMIT });
   const products = data?.data ?? [];
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      await exportReportPdf({
+        title: `Productos más vendidos — top ${TOP_PRODUCTS_LIMIT}`,
+        subtitle: [rangeLabel],
+        fileName: `traelo-productos-${todayFileStamp()}`,
+        columns: PRODUCT_PDF_COLUMNS,
+        rows: products,
+        totals: products.length > 0 ? productPdfTotals(products) : undefined,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">
           Productos más vendidos — top {TOP_PRODUCTS_LIMIT}
         </h2>
+        <PdfDownloadButton onClick={handleExportPdf} isLoading={isExporting} />
       </div>
       <table className="w-full text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -376,15 +531,35 @@ const CUSTOMER_SORT_TABS: { value: CustomerSortBy; label: string }[] = [
 
 const CUSTOMERS_LIMIT = 20;
 
-function TopCustomersSection({ filter }: { filter: ReportsRangeParams }) {
+const CUSTOMER_PDF_COLUMNS: PdfColumn<CustomerReportDTO>[] = [
+  { header: 'Cliente', render: (r) => r.customerName },
+  { header: 'Teléfono', render: (r) => r.customerPhone },
+  { header: 'Pedidos', align: 'right', render: (r) => String(r.orderCount) },
+  { header: 'Total gastado', align: 'right', render: (r) => formatCUP(r.totalSpent) },
+  { header: 'Aporte a Tráelo', align: 'right', render: (r) => formatCUP(r.traeloContributionTotal) },
+];
+
+function customerPdfTotals(rows: CustomerReportDTO[]): (string | number)[] {
+  return [
+    'TOTAL',
+    '',
+    rows.reduce((sum, r) => sum + r.orderCount, 0),
+    formatCUP(rows.reduce((sum, r) => sum + r.totalSpent, 0)),
+    formatCUP(rows.reduce((sum, r) => sum + r.traeloContributionTotal, 0)),
+  ];
+}
+
+function TopCustomersSection({ filter, rangeLabel }: { filter: ReportsRangeParams; rangeLabel: string }) {
   const [sortBy, setSortBy] = useState<CustomerSortBy>('orderCount');
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
   const businessOptions = (businessesData?.data ?? []).map((business) => ({
     value: business.id,
     label: business.name,
   }));
+  const businessName = businessOptions.find((b) => b.value === businessId)?.label;
 
   const { data, isLoading } = useGetTopCustomersQuery({
     ...filter,
@@ -393,6 +568,27 @@ function TopCustomersSection({ filter }: { filter: ReportsRangeParams }) {
     businessId: businessId ?? undefined,
   });
   const customers = data?.data ?? [];
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      await exportReportPdf({
+        title: `Clientes recurrentes — top ${CUSTOMERS_LIMIT}`,
+        subtitle: [
+          rangeLabel,
+          `Negocio: ${businessName ?? 'Todos'}`,
+          `Orden: ${CUSTOMER_SORT_TABS.find((t) => t.value === sortBy)?.label ?? ''}`,
+        ],
+        fileName: `traelo-clientes-${todayFileStamp()}`,
+        columns: CUSTOMER_PDF_COLUMNS,
+        rows: customers,
+        totals: customers.length > 0 ? customerPdfTotals(customers) : undefined,
+        emptyMessage: 'Sin clientes recurrentes (2+ pedidos) en este periodo.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -425,6 +621,7 @@ function TopCustomersSection({ filter }: { filter: ReportsRangeParams }) {
               </button>
             ))}
           </div>
+          <PdfDownloadButton onClick={handleExportPdf} isLoading={isExporting} />
         </div>
       </div>
       <table className="w-full text-left text-sm">
@@ -478,6 +675,9 @@ export function ReportsPage() {
     () => filterToParams(specificDate ? { date: specificDate } : { range }),
     [range, specificDate],
   );
+  const rangeLabel = specificDate
+    ? `Fecha: ${formatSpecificDateLabel(specificDate)}`
+    : `Rango: ${RANGE_TABS.find((tab) => tab.value === range)?.label ?? range}`;
 
   const { data: salesData, isLoading: isSalesLoading } = useGetSalesReportQuery(filter);
   const sales = salesData?.data;
@@ -566,13 +766,13 @@ export function ReportsPage() {
       <OrderCustomerSearch />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <TopBusinessesSection filter={filter} onViewDetail={setBusinessDetail} />
-        <TopDeliverersSection filter={filter} onViewDetail={setDelivererDetail} />
+        <TopBusinessesSection filter={filter} rangeLabel={rangeLabel} onViewDetail={setBusinessDetail} />
+        <TopDeliverersSection filter={filter} rangeLabel={rangeLabel} onViewDetail={setDelivererDetail} />
       </div>
 
-      <TopProductsSection filter={filter} />
+      <TopProductsSection filter={filter} rangeLabel={rangeLabel} />
 
-      <TopCustomersSection filter={filter} />
+      <TopCustomersSection filter={filter} rangeLabel={rangeLabel} />
 
       {businessDetail && (
         <BusinessDetailModal
