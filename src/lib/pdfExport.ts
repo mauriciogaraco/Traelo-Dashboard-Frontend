@@ -15,6 +15,15 @@ const WHITE = '#ffffff';
 const PAGE_MARGIN = 32;
 const HEADER_HEIGHT = 74;
 
+// El logo fuente es de 512×512 pero en el PDF se dibuja a ~34pt (unas 140px a 300dpi) — bajarlo
+// a este tamaño antes de convertirlo evita cargar un PNG de cientos de KB para algo minúsculo.
+const LOGO_PX = 160;
+
+// Alias fijo para addImage: sin él, jsPDF reincrusta el PNG completo en CADA página que dibuja
+// el encabezado (didDrawPage corre una vez por página), así que un reporte de varias páginas
+// terminaba pesando decenas de MB — con alias, jsPDF reutiliza el mismo objeto de imagen.
+const LOGO_ALIAS = 'traelo-logo';
+
 // El logo es .webp; jsPDF solo reconoce JPEG/PNG por firma de archivo, así que se decodifica
 // una vez en un <canvas> oculto y se reexporta como PNG en memoria. Cacheado porque cada
 // export de cada tablita reutiliza la misma imagen.
@@ -26,14 +35,14 @@ function getLogoPng(): Promise<string> {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width = LOGO_PX;
+        canvas.height = LOGO_PX;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('No se pudo preparar el logo para el PDF.'));
           return;
         }
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, LOGO_PX, LOGO_PX);
         resolve(canvas.toDataURL('image/png'));
       };
       img.onerror = () => reject(new Error('No se pudo cargar el logo para el PDF.'));
@@ -75,7 +84,15 @@ export async function exportReportPdf<T>(options: PdfExportOptions<T>): Promise<
     let textX = PAGE_MARGIN;
     if (logoPng) {
       const logoSize = 34;
-      doc.addImage(logoPng, 'PNG', PAGE_MARGIN, (HEADER_HEIGHT - logoSize) / 2, logoSize, logoSize);
+      doc.addImage(
+        logoPng,
+        'PNG',
+        PAGE_MARGIN,
+        (HEADER_HEIGHT - logoSize) / 2,
+        logoSize,
+        logoSize,
+        LOGO_ALIAS,
+      );
       textX = PAGE_MARGIN + logoSize + 12;
     }
 
