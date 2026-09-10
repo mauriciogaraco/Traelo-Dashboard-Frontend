@@ -335,6 +335,19 @@ export interface RetentionCohortDTO {
   retention: (number | null)[];
 }
 
+export type OrdersTrendGranularity = 'day' | 'week' | 'month';
+
+export interface OrdersTrendPointDTO {
+  label: string;
+  orderCount: number;
+  businessSalesGross: number;
+}
+
+export interface OrdersTrendDTO {
+  granularity: OrdersTrendGranularity;
+  points: OrdersTrendPointDTO[];
+}
+
 export interface BusinessSalesDetailDTO {
   businessId: string;
   businessName: string;

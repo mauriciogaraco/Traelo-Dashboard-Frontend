@@ -5,6 +5,7 @@ import type {
   CustomerTrendPointDTO,
   DateRangePreset,
   DemandByHourDTO,
+  OrdersTrendDTO,
   ProductByHourDTO,
   RetentionCohortDTO,
 } from '@/lib/types';
@@ -39,6 +40,9 @@ export const analyticsApi = baseApi.injectEndpoints({
     getCustomerTrend: builder.query<ApiOk<CustomerTrendPointDTO[]>, AnalyticsRangeParams | void>({
       query: (params) => ({ url: '/analytics/customer-trend', params: params ?? undefined }),
     }),
+    getOrdersTrend: builder.query<ApiOk<OrdersTrendDTO>, AnalyticsRangeParams | void>({
+      query: (params) => ({ url: '/analytics/orders-trend', params: params ?? undefined }),
+    }),
     getRetentionCohorts: builder.query<ApiOk<RetentionCohortDTO[]>, RetentionCohortsParams | void>(
       {
         query: (params) => ({ url: '/analytics/retention-cohorts', params: params ?? undefined }),
@@ -52,5 +56,6 @@ export const {
   useGetDemandByHourQuery,
   useGetProductsByHourQuery,
   useGetCustomerTrendQuery,
+  useGetOrdersTrendQuery,
   useGetRetentionCohortsQuery,
 } = analyticsApi;

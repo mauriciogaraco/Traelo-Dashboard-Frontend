@@ -8,10 +8,13 @@ import { CustomerTrendChart } from './CustomerTrendChart';
 import { RetentionRateChart } from './RetentionRateChart';
 import { RetentionCohortsTable } from './RetentionCohortsTable';
 import { DemandByHourChart } from './DemandByHourChart';
+import { OrdersTrendBarChart } from './OrdersTrendBarChart';
+import { OrdersTrendLineChart } from './OrdersTrendLineChart';
 import {
   useGetCustomerSegmentationQuery,
   useGetCustomerTrendQuery,
   useGetDemandByHourQuery,
+  useGetOrdersTrendQuery,
   useGetProductsByHourQuery,
 } from './analyticsApi';
 
@@ -76,6 +79,14 @@ export function AnalyticsPage() {
 
   const { data: trendData, isLoading: isLoadingTrend } = useGetCustomerTrendQuery({ range });
   const trend = useMemo(() => trendData?.data ?? [], [trendData]);
+
+  // "Hoy" ya tiene su propio detalle por hora (el gráfico de demanda de abajo) — un solo bucket
+  // de día/semana/mes para "Hoy" no dice nada, así que esta sección se salta ese caso.
+  const { data: ordersTrendData, isLoading: isLoadingOrdersTrend } = useGetOrdersTrendQuery(
+    { range },
+    { skip: range === 'today' },
+  );
+  const ordersTrend = ordersTrendData?.data;
 
   const { data: demandData, isLoading: isLoadingDemand } = useGetDemandByHourQuery({ range });
   const demand = useMemo(() => demandData?.data ?? [], [demandData]);
@@ -157,6 +168,46 @@ export function AnalyticsPage() {
         </p>
         {isLoadingTrend && <p className="text-slate-400">Cargando…</p>}
         {!isLoadingTrend && trend.length > 0 && <RetentionRateChart data={trend} />}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Volumen de pedidos</h2>
+          <p className="mb-3 text-xs text-slate-400">
+            {range === 'week' && 'Pedidos por día de esta semana.'}
+            {range === 'month' && 'Pedidos por semana de este mes.'}
+            {(range === '6months' || range === 'year') && 'Pedidos por mes.'}
+            {range === 'today' && 'Elegí Semana, Mes, Semestre o Año para ver esta tendencia.'}
+          </p>
+          {range === 'today' && (
+            <p className="flex h-48 items-center justify-center text-sm text-slate-400">
+              No aplica para "Hoy" — mirá "Pedidos por hora del día" más abajo.
+            </p>
+          )}
+          {range !== 'today' && isLoadingOrdersTrend && <p className="text-slate-400">Cargando…</p>}
+          {range !== 'today' && ordersTrend && ordersTrend.points.length > 0 && (
+            <OrdersTrendBarChart data={ordersTrend.points} granularity={ordersTrend.granularity} />
+          )}
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Tendencia de ventas</h2>
+          <p className="mb-3 text-xs text-slate-400">
+            {range === 'week' && 'Ventas de negocios por día de esta semana.'}
+            {range === 'month' && 'Ventas de negocios por semana de este mes.'}
+            {(range === '6months' || range === 'year') && 'Ventas de negocios por mes.'}
+            {range === 'today' && 'Elegí Semana, Mes, Semestre o Año para ver esta tendencia.'}
+          </p>
+          {range === 'today' && (
+            <p className="flex h-48 items-center justify-center text-sm text-slate-400">
+              No aplica para "Hoy".
+            </p>
+          )}
+          {range !== 'today' && isLoadingOrdersTrend && <p className="text-slate-400">Cargando…</p>}
+          {range !== 'today' && ordersTrend && ordersTrend.points.length > 0 && (
+            <OrdersTrendLineChart data={ordersTrend.points} granularity={ordersTrend.granularity} />
+          )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
