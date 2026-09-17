@@ -244,7 +244,7 @@ export function EditOrderPage() {
         </p>
       )}
 
-      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
           <FormField
             label="Cliente"

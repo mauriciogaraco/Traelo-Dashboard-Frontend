@@ -259,7 +259,7 @@ export function CreateOrderPage() {
       )}
 
       {mode === 'manual' && (
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
           {unmatchedLines.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <p className="font-medium">No se pudieron interpretar estas líneas:</p>
