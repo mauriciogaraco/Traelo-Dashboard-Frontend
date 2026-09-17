@@ -1,4 +1,4 @@
-import type { BusinessDTO, OrderDTO } from '@/lib/types';
+import type { BusinessDTO, OrderDTO, SystemConfigDTO } from '@/lib/types';
 
 export interface ParsedOrderItem {
   productName: string;
@@ -24,6 +24,8 @@ export interface ParsedOrderDraft {
   // como sugerencia editable para el campo de anulación del Servicio Tráelo — nunca se envía
   // solo, el staff siempre puede corregirlo antes de guardar.
   platformFeeOverride: number | null;
+  // "🎟️ Número del Sorteo: #N" del vale pegado — opcional, no todos los pedidos participan.
+  raffleNumber: number | null;
   businessGroups: ParsedOrderBusinessGroup[];
   unmatchedLines: string[];
 }
@@ -44,6 +46,7 @@ const NOTE_LABEL_PATTERNS: { prefix: string; regex: RegExp }[] = [
 
 const DELIVERY_FEE_REGEX = /^(?:mensajer[ií]a|env[ií]o|delivery|flete)\s*:?\s*\$?\s*([\d.,]+)/i;
 const PLATFORM_FEE_REGEX = /^servicio\s+tr[aá]elo\s*:?\s*\$?\s*([\d.,]+)/i;
+const RAFFLE_NUMBER_REGEX = /^n[uú]mero\s+del\s+sorteo\s*:?\s*#?\s*(\d+)/i;
 
 // Líneas informativas que nunca deben interpretarse como producto ni mostrarse como "sin
 // interpretar": el subtotal/total los calcula siempre el backend, y el header no aporta nada.
@@ -122,6 +125,7 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     addressReference: null,
     deliveryFee: null,
     platformFeeOverride: null,
+    raffleNumber: null,
     businessGroups: [],
     unmatchedLines: [],
   };
@@ -163,6 +167,13 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     const platformFeeMatch = line.match(PLATFORM_FEE_REGEX);
     if (platformFeeMatch?.[1]) {
       draft.platformFeeOverride = parseMoney(platformFeeMatch[1]);
+      continue;
+    }
+
+    // 2c. Número del sorteo (opcional): se ofrece como sugerencia editable.
+    const raffleMatch = line.match(RAFFLE_NUMBER_REGEX);
+    if (raffleMatch?.[1]) {
+      draft.raffleNumber = Number.parseInt(raffleMatch[1], 10);
       continue;
     }
 
@@ -219,8 +230,15 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
  * Genera el texto del vale a partir de un pedido ya guardado, en el mismo formato que
  * `parseOrderText` espera al pegarlo — así el mensajero siempre recibe el vale actualizado
  * (por ejemplo después de editar el pedido) en vez de que el staff lo corrija a mano.
+ *
+ * `config` es opcional: si trae `rafflePromoText`, ese bloque se agrega al final del vale
+ * (campaña de sorteo vigente, editable desde Configuración del sistema). Si no hay texto
+ * configurado, no se agrega nada — no depende de que el pedido tenga o no `raffleNumber`.
  */
-export function generateOrderVoucherText(order: OrderDTO): string {
+export function generateOrderVoucherText(
+  order: OrderDTO,
+  config?: Pick<SystemConfigDTO, 'rafflePromoText' | 'raffleVideoUrl'> | null,
+): string {
   const lines: string[] = [
     `Cliente: ${order.customerName}`,
     `Tel: ${order.customerPhone}`,
@@ -246,6 +264,18 @@ export function generateOrderVoucherText(order: OrderDTO): string {
     lines.push(`Servicio Tráelo: ${order.platformFee}`);
   }
   lines.push(`Total: ${order.total}`);
+  if (order.raffleNumber !== null) {
+    lines.push(`Número del Sorteo: #${order.raffleNumber}`);
+  }
+
+  if (config?.rafflePromoText) {
+    lines.push('');
+    lines.push(config.rafflePromoText);
+    if (config.raffleVideoUrl) {
+      lines.push('');
+      lines.push(`Más información en este video: ${config.raffleVideoUrl}`);
+    }
+  }
 
   return lines.join('\n');
 }

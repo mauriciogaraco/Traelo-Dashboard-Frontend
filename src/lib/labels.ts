@@ -49,3 +49,17 @@ export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = {
   OPEN: 'Abierto',
   CLOSED: 'Cerrado',
 };
+
+// dayOfWeek del backend sigue Date#getDay(): 0 = domingo … 6 = sábado.
+export const DAY_OF_WEEK_LABEL: Record<number, string> = {
+  0: 'Domingo',
+  1: 'Lunes',
+  2: 'Martes',
+  3: 'Miércoles',
+  4: 'Jueves',
+  5: 'Viernes',
+  6: 'Sábado',
+};
+
+// Orden de visualización habitual (lunes a domingo) sobre los valores de dayOfWeek.
+export const DAY_OF_WEEK_DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];

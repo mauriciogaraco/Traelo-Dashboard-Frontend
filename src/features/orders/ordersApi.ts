@@ -37,6 +37,8 @@ export interface CreateOrderInput {
   // Anula el Servicio Tráelo calculado automáticamente (p.ej. 0 si no se cobró en este pedido).
   // Si se omite, el backend lo calcula solo a partir de la comisión de cada negocio.
   platformFeeOverride?: number;
+  // "🎟️ Número del Sorteo" del vale, cuando el pedido participa de una promoción vigente.
+  raffleNumber?: number;
   businesses: CreateOrderBusinessInput[];
 }
 
@@ -52,6 +54,7 @@ export interface UpdateOrderInput {
   customerPhone?: string;
   deliveryFee?: number;
   platformFeeOverride?: number;
+  raffleNumber?: number | null;
   // Reemplaza por completo los negocios/productos del pedido. Si se omite, no se tocan.
   businesses?: CreateOrderBusinessInput[];
 }

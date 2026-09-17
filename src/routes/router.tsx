@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
-import { ModulePlaceholder } from '@/components/ui/ModulePlaceholder';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
@@ -13,6 +12,7 @@ import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
 import { BusinessesPage } from '@/features/businesses/BusinessesPage';
 import { BusinessDetailPage } from '@/features/businesses/BusinessDetailPage';
+import { ConfigPage } from '@/features/config/ConfigPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
             element: <RoleGate allow={['OWNER', 'ADMIN']} />,
             children: [
               { path: 'users', element: <UsersPage /> },
-              { path: 'config', element: <ModulePlaceholder title="Configuración" /> },
+              { path: 'config', element: <ConfigPage /> },
             ],
           },
         ],

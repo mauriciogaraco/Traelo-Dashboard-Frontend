@@ -129,9 +129,12 @@ export interface BusinessDTO {
   address: string;
   joinedAt: string;
   active: boolean;
+  acceptingOrders: boolean;
   commissionType: CommissionType;
   commissionPercentage: number | null;
   defaultProductCommissionAmount: number | null;
+  deliveryFeeBase: number;
+  logoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -140,14 +143,50 @@ export interface BusinessDetailDTO extends BusinessDTO {
   currentSubscription: BusinessSubscriptionDTO | null;
 }
 
+export interface BusinessHoursDTO {
+  id: string;
+  businessId: string;
+  dayOfWeek: number; // 0 = domingo … 6 = sábado (Date#getDay())
+  openTime: string; // "HH:mm"
+  closeTime: string; // "HH:mm"
+  closed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BusinessClosureDTO {
+  id: string;
+  businessId: string;
+  date: string;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryDTO {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductDTO {
   id: string;
   businessId: string;
   name: string;
+  description: string | null;
   category: string | null;
+  categoryId: string | null;
   price: number | null;
   active: boolean;
+  available: boolean;
+  lowStock: boolean;
   externalId: string | null;
+  imageUrl: string | null;
   commission: { commissionAmount: number } | null;
   createdAt: string;
   updatedAt: string;
@@ -202,6 +241,7 @@ export interface OrderDTO {
   delivererName: string | null;
   registeredByUserId: string;
   registeredByName: string;
+  raffleNumber: number | null;
   productsTotal: number; // subtotal de productos — 100% del negocio
   platformFee: number; // "Servicio Tráelo" — cargo visible, redondeado
   total: number; // productsTotal + deliveryFee + platformFee
@@ -410,5 +450,7 @@ export interface DelivererDashboardSummaryDTO {
 export interface SystemConfigDTO {
   id: string;
   defaultDelivererCommissionPercentage: number;
+  rafflePromoText: string | null;
+  raffleVideoUrl: string | null;
   updatedAt: string;
 }

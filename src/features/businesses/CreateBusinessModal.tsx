@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
@@ -18,6 +19,10 @@ const schema = z
     commissionType: z.enum(CommissionType),
     commissionPercentage: z.string().optional(),
     defaultProductCommissionAmount: z.string().optional(),
+    deliveryFeeBase: z
+      .string()
+      .optional()
+      .refine((v) => !v || Number(v) >= 0, 'Debe ser mayor o igual a 0'),
   })
   .refine(
     (data) =>
@@ -48,6 +53,7 @@ interface CreateBusinessModalProps {
 }
 
 export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
+  const navigate = useNavigate();
   const [createBusiness, { isLoading, error }] = useCreateBusinessMutation();
 
   const {
@@ -64,13 +70,14 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
       commissionType: 'PERCENTAGE',
       commissionPercentage: '',
       defaultProductCommissionAmount: '',
+      deliveryFeeBase: '',
     },
   });
 
   const commissionType = watch('commissionType');
 
   async function onSubmit(values: FormValues) {
-    await createBusiness({
+    const result = await createBusiness({
       name: values.name,
       phone: values.phone,
       address: values.address,
@@ -81,13 +88,19 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
         values.commissionType === 'FIXED_PER_PRODUCT'
           ? Number(values.defaultProductCommissionAmount)
           : undefined,
+      deliveryFeeBase: values.deliveryFeeBase ? Number(values.deliveryFeeBase) : undefined,
     }).unwrap();
     onClose();
+    navigate(`/businesses/${result.data.id}`);
   }
 
   return (
     <Modal title="Nuevo negocio" onClose={onClose}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <p className="-mt-2 text-xs text-slate-500">
+          Después de crearlo vas a poder subir el logo, cargar el horario y activar/desactivar la
+          recepción de pedidos desde la página del negocio.
+        </p>
         <FormField label="Nombre" error={errors.name?.message} {...register('name')} />
         <FormField label="Teléfono" error={errors.phone?.message} {...register('phone')} />
         <FormField label="Dirección" error={errors.address?.message} {...register('address')} />
@@ -122,6 +135,15 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
             {...register('defaultProductCommissionAmount')}
           />
         )}
+        <FormField
+          label="Tarifa de envío base (opcional, CUP)"
+          type="number"
+          min={0}
+          step="0.01"
+          placeholder="250"
+          error={errors.deliveryFeeBase?.message}
+          {...register('deliveryFeeBase')}
+        />
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>

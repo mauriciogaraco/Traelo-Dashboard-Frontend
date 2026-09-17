@@ -5,22 +5,28 @@ import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ImageUploader } from '@/components/ui/ImageUploader';
+import { Switch } from '@/components/ui/Switch';
+import { useToast } from '@/components/ui/ToastProvider';
 import clsx from 'clsx';
 import { COMMISSION_TYPE_LABEL, SUBSCRIPTION_STATUS_LABEL } from '@/lib/labels';
 import { EditBusinessModal } from './EditBusinessModal';
+import { HoursTab } from './HoursTab';
 import { ProductsTab } from './ProductsTab';
 import { SubscriptionsTab } from './SubscriptionsTab';
 import {
   useDeactivateBusinessMutation,
   useGetBusinessQuery,
+  useSetAcceptingOrdersMutation,
   useUpdateBusinessMutation,
+  useUploadBusinessLogoMutation,
 } from './businessesApi';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-type Tab = 'info' | 'products' | 'subscriptions';
+type Tab = 'info' | 'hours' | 'products' | 'subscriptions';
 
 export function BusinessDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,9 +37,12 @@ export function BusinessDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
+  const { showToast } = useToast();
   const { data, isLoading, error } = useGetBusinessQuery(id ?? '', { skip: !id });
   const [reactivateBusiness] = useUpdateBusinessMutation();
   const [deactivateBusiness, { isLoading: isDeactivating }] = useDeactivateBusinessMutation();
+  const [uploadLogo] = useUploadBusinessLogoMutation();
+  const [setAcceptingOrders, { isLoading: isTogglingAccepting }] = useSetAcceptingOrdersMutation();
 
   if (isLoading) {
     return <p className="text-slate-400">Cargando…</p>;
@@ -52,6 +61,7 @@ export function BusinessDetailPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'info', label: 'Información' },
+    { key: 'hours', label: 'Horarios' },
     { key: 'products', label: 'Productos' },
     ...(canManage ? [{ key: 'subscriptions' as Tab, label: 'Suscripciones' }] : []),
   ];
@@ -122,6 +132,47 @@ export function BusinessDetailPage() {
 
       {tab === 'info' && (
         <div className="grid gap-4 sm:grid-cols-2">
+          {canManage && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">Negocio</h2>
+              <div className="flex gap-4">
+                <ImageUploader
+                  currentImageUrl={business.logoUrl}
+                  onUpload={(file) => uploadLogo({ id: business.id, file }).unwrap()}
+                  successMessage="Logo actualizado"
+                />
+                <dl className="flex flex-1 flex-col justify-center gap-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Acepta pedidos</dt>
+                    <dd>
+                      <Switch
+                        checked={business.acceptingOrders}
+                        onChange={(value) =>
+                          setAcceptingOrders({ id: business.id, acceptingOrders: value }).then(
+                            (res) => {
+                              if ('error' in res) {
+                                showToast('No se pudo actualizar', 'error');
+                              } else {
+                                showToast(
+                                  value ? 'Ahora acepta pedidos' : 'Dejó de aceptar pedidos',
+                                );
+                              }
+                            },
+                          )
+                        }
+                      />
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-slate-500">Tarifa de envío base</dt>
+                    <dd className="font-medium text-slate-900">{business.deliveryFeeBase} CUP</dd>
+                  </div>
+                </dl>
+              </div>
+              {isTogglingAccepting && <p className="mt-2 text-xs text-slate-400">Actualizando…</p>}
+            </div>
+          )}
+
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold text-slate-900">Comisión</h2>
             <dl className="space-y-2 text-sm">
@@ -193,6 +244,7 @@ export function BusinessDetailPage() {
         </div>
       )}
 
+      {tab === 'hours' && <HoursTab businessId={business.id} canManage={canManage} />}
       {tab === 'products' && <ProductsTab business={business} canManage={canManage} />}
       {tab === 'subscriptions' && canManage && <SubscriptionsTab businessId={business.id} />}
 

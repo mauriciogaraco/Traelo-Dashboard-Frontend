@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { ORDER_STATUS_LABEL } from '@/lib/labels';
@@ -31,6 +32,9 @@ export function OrderDetailPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role !== 'DELIVERER';
   const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
+  // GET /config solo autoriza OWNER/ADMIN — el bloque promocional del vale queda ausente para
+  // EMPLOYEE, pero el vale sigue siendo válido sin él (el número de sorteo no depende de esto).
+  const canViewConfig = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [assigningDelivererId, setAssigningDelivererId] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -46,6 +50,7 @@ export function OrderDetailPage() {
     { pageSize: 100, active: true },
     { skip: !canManage },
   );
+  const { data: configData } = useGetConfigQuery(undefined, { skip: !canViewConfig });
   const [assignOrder, { isLoading: isAssigning }] = useAssignOrderMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
@@ -58,7 +63,7 @@ export function OrderDetailPage() {
   }
 
   const order = data.data;
-  const voucherText = generateOrderVoucherText(order);
+  const voucherText = generateOrderVoucherText(order, configData?.data);
   const canEdit = canManage && order.status !== 'CANCELLED';
   const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
   const canComplete = canManage && order.status === 'ASSIGNED';
@@ -223,6 +228,12 @@ export function OrderDetailPage() {
                 <dd className="text-right font-medium text-slate-900">
                   {order.addressReference}
                 </dd>
+              </div>
+            )}
+            {order.raffleNumber !== null && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Número del sorteo</dt>
+                <dd className="text-right font-medium text-slate-900">#{order.raffleNumber}</dd>
               </div>
             )}
           </dl>

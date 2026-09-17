@@ -18,6 +18,10 @@ const schema = z
     commissionType: z.enum(CommissionType),
     commissionPercentage: z.string().optional(),
     defaultProductCommissionAmount: z.string().optional(),
+    deliveryFeeBase: z
+      .string()
+      .optional()
+      .refine((v) => !v || Number(v) >= 0, 'Debe ser mayor o igual a 0'),
   })
   .refine(
     (data) =>
@@ -65,6 +69,7 @@ export function EditBusinessModal({ business, onClose }: EditBusinessModalProps)
       commissionType: business.commissionType,
       commissionPercentage: business.commissionPercentage?.toString() ?? '',
       defaultProductCommissionAmount: business.defaultProductCommissionAmount?.toString() ?? '',
+      deliveryFeeBase: business.deliveryFeeBase?.toString() ?? '',
     },
   });
 
@@ -86,6 +91,7 @@ export function EditBusinessModal({ business, onClose }: EditBusinessModalProps)
           values.commissionType === 'FIXED_PER_PRODUCT'
             ? Number(values.defaultProductCommissionAmount)
             : undefined,
+        deliveryFeeBase: values.deliveryFeeBase ? Number(values.deliveryFeeBase) : undefined,
       },
     }).unwrap();
     onClose();
@@ -128,6 +134,14 @@ export function EditBusinessModal({ business, onClose }: EditBusinessModalProps)
             {...register('defaultProductCommissionAmount')}
           />
         )}
+        <FormField
+          label="Tarifa de envío base (CUP)"
+          type="number"
+          min={0}
+          step="0.01"
+          error={errors.deliveryFeeBase?.message}
+          {...register('deliveryFeeBase')}
+        />
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>

@@ -147,9 +147,15 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
                   </td>
                 )}
                 <td className="px-4 py-3">
-                  <Badge tone={product.active ? 'green' : 'slate'}>
-                    {product.active ? 'Activo' : 'Inactivo'}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge tone={product.active ? 'green' : 'slate'}>
+                      {product.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    {product.active && !product.available && <Badge tone="red">Sin stock</Badge>}
+                    {product.active && product.available && product.lowStock && (
+                      <Badge tone="amber">Poco stock</Badge>
+                    )}
+                  </div>
                 </td>
                 {canManage && (
                   <td className="px-4 py-3">

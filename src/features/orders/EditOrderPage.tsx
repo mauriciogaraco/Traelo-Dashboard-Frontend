@@ -38,6 +38,7 @@ export function EditOrderPage() {
   const [deliveryFee, setDeliveryFee] = useState('');
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
+  const [raffleNumber, setRaffleNumber] = useState('');
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export function EditOrderPage() {
     setDeliveryFee(String(order.deliveryFee));
     setChargePlatformFee(order.platformFee > 0);
     setPlatformFeeOverride(String(order.platformFee));
+    setRaffleNumber(order.raffleNumber !== null ? String(order.raffleNumber) : '');
     setDelivererId(order.delivererId);
     setGroups(
       order.businesses.map((ob) => ({
@@ -147,6 +149,17 @@ export function EditOrderPage() {
       }
       platformFeeOverrideValue = parsed;
     }
+    let raffleNumberValue: number | null | undefined;
+    if (raffleNumber === '') {
+      raffleNumberValue = data.data.raffleNumber !== null ? null : undefined;
+    } else {
+      const parsed = Number(raffleNumber);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        setFormError('El número del sorteo debe ser un entero positivo.');
+        return;
+      }
+      raffleNumberValue = parsed;
+    }
 
     const cleanedGroups = groups
       .map((g) => ({
@@ -185,6 +198,7 @@ export function EditOrderPage() {
           addressReference: addressReference.trim() || undefined,
           deliveryFee: feeNumber,
           platformFeeOverride: platformFeeOverrideValue,
+          raffleNumber: raffleNumberValue,
           businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
         },
       }).unwrap();
@@ -318,6 +332,15 @@ export function EditOrderPage() {
                 Este pedido no cobra Servicio Tráelo — se guarda en 0 CUP.
               </p>
             )}
+            <FormField
+              label="Número del sorteo (opcional)"
+              type="number"
+              min={1}
+              step="1"
+              placeholder="Ej. 5"
+              value={raffleNumber}
+              onChange={(e) => setRaffleNumber(e.target.value)}
+            />
           </div>
         </div>
 

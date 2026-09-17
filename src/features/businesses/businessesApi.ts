@@ -2,8 +2,10 @@ import { baseApi } from '@/lib/baseApi';
 import type {
   ApiOk,
   ApiPaginated,
+  BusinessClosureDTO,
   BusinessDetailDTO,
   BusinessDTO,
+  BusinessHoursDTO,
   BusinessSubscriptionDTO,
   CommissionType,
   ProductDTO,
@@ -27,6 +29,7 @@ export interface CreateBusinessInput {
   commissionType: CommissionType;
   commissionPercentage?: number;
   defaultProductCommissionAmount?: number;
+  deliveryFeeBase?: number;
 }
 
 export interface UpdateBusinessInput {
@@ -34,9 +37,11 @@ export interface UpdateBusinessInput {
   phone?: string;
   address?: string;
   active?: boolean;
+  acceptingOrders?: boolean;
   commissionType?: CommissionType;
   commissionPercentage?: number;
   defaultProductCommissionAmount?: number;
+  deliveryFeeBase?: number;
 }
 
 export interface ListProductsParams {
@@ -50,16 +55,27 @@ export interface ListProductsParams {
 export interface CreateProductInput {
   businessId: string;
   name: string;
+  description?: string;
   category?: string;
+  categoryId?: string;
   price?: number;
   externalId?: string;
 }
 
 export interface UpdateProductInput {
   name?: string;
+  description?: string | null;
   category?: string;
+  categoryId?: string | null;
   price?: number;
   active?: boolean;
+}
+
+export interface SetProductAvailabilityInput {
+  businessId: string;
+  productId: string;
+  available?: boolean;
+  lowStock?: boolean;
 }
 
 export interface ListSubscriptionsParams {
@@ -74,6 +90,26 @@ export interface CreateSubscriptionInput {
   price: number;
   startDate?: string;
   endDate?: string;
+}
+
+export interface UpsertBusinessHoursInput {
+  businessId: string;
+  dayOfWeek: number;
+  openTime: string;
+  closeTime: string;
+  closed?: boolean;
+}
+
+export interface CreateBusinessClosureInput {
+  businessId: string;
+  date: string;
+  reason?: string;
+}
+
+function buildImageFormData(file: File): FormData {
+  const formData = new FormData();
+  formData.append('image', file);
+  return formData;
 }
 
 export const businessesApi = baseApi.injectEndpoints({
@@ -112,6 +148,80 @@ export const businessesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [
         { type: 'Business', id },
         { type: 'Business', id: 'LIST' },
+      ],
+    }),
+    setAcceptingOrders: builder.mutation<
+      ApiOk<BusinessDTO>,
+      { id: string; acceptingOrders: boolean }
+    >({
+      query: ({ id, acceptingOrders }) => ({
+        url: `/businesses/${id}/accepting-orders`,
+        method: 'PATCH',
+        body: { acceptingOrders },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Business', id },
+        { type: 'Business', id: 'LIST' },
+      ],
+    }),
+    uploadBusinessLogo: builder.mutation<ApiOk<BusinessDTO>, { id: string; file: File }>({
+      query: ({ id, file }) => ({
+        url: `/businesses/${id}/logo`,
+        method: 'POST',
+        body: buildImageFormData(file),
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Business', id },
+        { type: 'Business', id: 'LIST' },
+      ],
+    }),
+
+    // ── Horario semanal ───────────────────────────────────
+    listBusinessHours: builder.query<ApiOk<BusinessHoursDTO[]>, string>({
+      query: (businessId) => `/businesses/${businessId}/hours`,
+      providesTags: (_result, _error, businessId) => [{ type: 'BusinessHours', id: businessId }],
+    }),
+    upsertBusinessHours: builder.mutation<ApiOk<BusinessHoursDTO>, UpsertBusinessHoursInput>({
+      query: ({ businessId, dayOfWeek, ...body }) => ({
+        url: `/businesses/${businessId}/hours/${dayOfWeek}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'BusinessHours', id: businessId },
+      ],
+    }),
+
+    // ── Cierres excepcionales ─────────────────────────────
+    listBusinessClosures: builder.query<
+      ApiOk<BusinessClosureDTO[]>,
+      { businessId: string; upcoming?: boolean }
+    >({
+      query: ({ businessId, upcoming }) => ({
+        url: `/businesses/${businessId}/closures`,
+        params: upcoming ? { upcoming } : undefined,
+      }),
+      providesTags: (_result, _error, { businessId }) => [
+        { type: 'BusinessClosure', id: businessId },
+      ],
+    }),
+    createBusinessClosure: builder.mutation<ApiOk<BusinessClosureDTO>, CreateBusinessClosureInput>({
+      query: ({ businessId, ...body }) => ({
+        url: `/businesses/${businessId}/closures`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'BusinessClosure', id: businessId },
+      ],
+    }),
+    deleteBusinessClosure: builder.mutation<void, { businessId: string; closureId: string }>({
+      query: ({ businessId, closureId }) => ({
+        url: `/businesses/${businessId}/closures/${closureId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'BusinessClosure', id: businessId },
       ],
     }),
 
@@ -160,6 +270,31 @@ export const businessesApi = baseApi.injectEndpoints({
       query: ({ businessId, productId }) => ({
         url: `/businesses/${businessId}/products/${productId}`,
         method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { businessId, productId }) => [
+        { type: 'Product', id: productId },
+        { type: 'Product', id: `LIST-${businessId}` },
+      ],
+    }),
+    setProductAvailability: builder.mutation<ApiOk<ProductDTO>, SetProductAvailabilityInput>({
+      query: ({ businessId, productId, ...body }) => ({
+        url: `/businesses/${businessId}/products/${productId}/availability`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { businessId, productId }) => [
+        { type: 'Product', id: productId },
+        { type: 'Product', id: `LIST-${businessId}` },
+      ],
+    }),
+    uploadProductImage: builder.mutation<
+      ApiOk<ProductDTO>,
+      { businessId: string; productId: string; file: File }
+    >({
+      query: ({ businessId, productId, file }) => ({
+        url: `/businesses/${businessId}/products/${productId}/image`,
+        method: 'POST',
+        body: buildImageFormData(file),
       }),
       invalidatesTags: (_result, _error, { businessId, productId }) => [
         { type: 'Product', id: productId },
@@ -243,10 +378,19 @@ export const {
   useCreateBusinessMutation,
   useUpdateBusinessMutation,
   useDeactivateBusinessMutation,
+  useSetAcceptingOrdersMutation,
+  useUploadBusinessLogoMutation,
+  useListBusinessHoursQuery,
+  useUpsertBusinessHoursMutation,
+  useListBusinessClosuresQuery,
+  useCreateBusinessClosureMutation,
+  useDeleteBusinessClosureMutation,
   useListProductsQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeactivateProductMutation,
+  useSetProductAvailabilityMutation,
+  useUploadProductImageMutation,
   useSetProductCommissionMutation,
   useRemoveProductCommissionMutation,
   useListSubscriptionsQuery,

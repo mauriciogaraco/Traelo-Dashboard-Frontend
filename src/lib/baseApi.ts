@@ -81,7 +81,10 @@ export const baseApi = createApi({
   tagTypes: [
     'User',
     'Business',
+    'BusinessHours',
+    'BusinessClosure',
     'Product',
+    'Category',
     'Subscription',
     'Deliverer',
     'Order',
