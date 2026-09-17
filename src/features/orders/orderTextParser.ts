@@ -264,7 +264,7 @@ export function generateOrderVoucherText(
     lines.push(`Servicio Tráelo: ${order.platformFee}`);
   }
   lines.push(`Total: ${order.total}`);
-  if (order.raffleNumber !== null) {
+  if (order.raffleNumber != null) {
     lines.push(`Número del Sorteo: #${order.raffleNumber}`);
   }
 

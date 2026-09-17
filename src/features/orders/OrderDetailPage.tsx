@@ -230,7 +230,7 @@ export function OrderDetailPage() {
                 </dd>
               </div>
             )}
-            {order.raffleNumber !== null && (
+            {order.raffleNumber != null && (
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Número del sorteo</dt>
                 <dd className="text-right font-medium text-slate-900">#{order.raffleNumber}</dd>

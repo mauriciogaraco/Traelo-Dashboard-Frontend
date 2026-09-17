@@ -53,7 +53,10 @@ export function EditOrderPage() {
     setDeliveryFee(String(order.deliveryFee));
     setChargePlatformFee(order.platformFee > 0);
     setPlatformFeeOverride(String(order.platformFee));
-    setRaffleNumber(order.raffleNumber !== null ? String(order.raffleNumber) : '');
+    // == null (no !==) a propósito: el backend en producción todavía puede no mandar este
+    // campo en absoluto mientras el PR que lo agrega no esté desplegado, y ahí llega
+    // `undefined`, no `null` — un check estricto lo confundía con "tiene un valor".
+    setRaffleNumber(order.raffleNumber == null ? '' : String(order.raffleNumber));
     setDelivererId(order.delivererId);
     setGroups(
       order.businesses.map((ob) => ({
@@ -151,7 +154,7 @@ export function EditOrderPage() {
     }
     let raffleNumberValue: number | null | undefined;
     if (raffleNumber === '') {
-      raffleNumberValue = data.data.raffleNumber !== null ? null : undefined;
+      raffleNumberValue = data.data.raffleNumber == null ? undefined : null;
     } else {
       const parsed = Number(raffleNumber);
       if (!Number.isInteger(parsed) || parsed <= 0) {
