@@ -174,6 +174,12 @@ export interface CategoryDTO {
   updatedAt: string;
 }
 
+export interface PackagingOption {
+  name: string;
+  price: number;
+  capacity?: number;
+}
+
 export interface ProductDTO {
   id: string;
   businessId: string;
@@ -187,6 +193,8 @@ export interface ProductDTO {
   lowStock: boolean;
   externalId: string | null;
   imageUrl: string | null;
+  /** Ausente en backends que aún no tienen el campo; null/[] = sin empaque. */
+  packaging?: PackagingOption[] | null;
   commission: { commissionAmount: number } | null;
   createdAt: string;
   updatedAt: string;

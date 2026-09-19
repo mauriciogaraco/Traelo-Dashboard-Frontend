@@ -8,6 +8,7 @@ import type {
   BusinessHoursDTO,
   BusinessSubscriptionDTO,
   CommissionType,
+  PackagingOption,
   ProductDTO,
   SubscriptionCycle,
 } from '@/lib/types';
@@ -60,6 +61,7 @@ export interface CreateProductInput {
   categoryId?: string;
   price?: number;
   externalId?: string;
+  packaging?: PackagingOption[];
 }
 
 export interface UpdateProductInput {
@@ -69,6 +71,8 @@ export interface UpdateProductInput {
   categoryId?: string | null;
   price?: number;
   active?: boolean;
+  /** null o [] quitan el empaque; omitido no lo toca. */
+  packaging?: PackagingOption[] | null;
 }
 
 export interface SetProductAvailabilityInput {
