@@ -198,7 +198,8 @@ export interface ProductDTO {
   lowStock: boolean;
   externalId: string | null;
   imageUrl: string | null;
-  packaging: PackagingOption[] | null;
+  /** Ausente en backends que aún no tienen el campo; null/[] = sin empaque. */
+  packaging?: PackagingOption[] | null;
   commission: { commissionAmount: number } | null;
   createdAt: string;
   updatedAt: string;
