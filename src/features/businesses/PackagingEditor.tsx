@@ -1,6 +1,6 @@
-import { useFieldArray, useFormContext } from "react-hook-form";
-import { Button } from "@/components/ui/Button";
-import { FormField } from "@/components/ui/FormField";
+import { useFieldArray, useFormContext } from 'react-hook-form';
+import { Button } from '@/components/ui/Button';
+import { FormField } from '@/components/ui/FormField';
 
 export interface PackagingFormRow {
   name: string;
@@ -25,34 +25,27 @@ export function PackagingEditor() {
   } = useFormContext<PackagingFormShape>();
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "packaging",
+    name: 'packaging',
   });
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">
-          Empaque (opcional)
-        </span>
+        <span className="text-sm font-medium text-slate-700">Empaque (opcional)</span>
         <Button
           type="button"
           variant="secondary"
-          onClick={() => append({ name: "", price: "", capacity: "" })}
+          onClick={() => append({ name: '', price: '', capacity: '' })}
           disabled={fields.length >= 10}
         >
           Añadir opción
         </Button>
       </div>
       {fields.length === 0 && (
-        <p className="text-xs text-slate-500">
-          Este producto no lleva empaque.
-        </p>
+        <p className="text-xs text-slate-500">Este producto no lleva empaque.</p>
       )}
       {fields.map((field, index) => (
-        <div
-          key={field.id}
-          className="grid grid-cols-[1fr_6rem_6rem_auto] items-end gap-2"
-        >
+        <div key={field.id} className="grid grid-cols-[1fr_6rem_6rem_auto] items-end gap-2">
           <FormField
             label="Nombre"
             placeholder="Ej. Termopack"

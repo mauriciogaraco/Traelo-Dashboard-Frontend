@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   title: string;
@@ -9,20 +9,15 @@ interface ModalProps {
   widthClassName?: string;
 }
 
-export function Modal({
-  title,
-  onClose,
-  children,
-  widthClassName = "max-w-md",
-}: ModalProps) {
+export function Modal({ title, onClose, children, widthClassName = 'max-w-md' }: ModalProps) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         onClose();
       }
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
   return (
@@ -47,9 +42,7 @@ export function Modal({
           </button>
         </div>
         {/* El contenido scrollea dentro del modal: la tarjeta nunca supera el alto de la pantalla. */}
-        <div className="-mr-3 min-h-0 flex-1 overflow-y-auto pr-3">
-          {children}
-        </div>
+        <div className="-mr-3 min-h-0 flex-1 overflow-y-auto pr-3">{children}</div>
       </div>
     </div>
   );

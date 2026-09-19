@@ -51,6 +51,8 @@ export interface ListProductsParams {
   pageSize?: number;
   category?: string;
   active?: true;
+  /** Búsqueda por nombre (contiene, sin distinguir mayúsculas). */
+  search?: string;
 }
 
 export interface CreateProductInput {
