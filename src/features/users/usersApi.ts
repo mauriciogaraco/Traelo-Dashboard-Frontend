@@ -15,6 +15,8 @@ export interface UpdateUserInput {
   name?: string;
   phone?: string;
   active?: boolean;
+  // Solo para dueños de negocio: reasigna el negocio que administran.
+  businessId?: string;
 }
 
 export const usersApi = baseApi.injectEndpoints({

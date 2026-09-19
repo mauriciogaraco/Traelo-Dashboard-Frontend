@@ -1,11 +1,26 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiPaginated, CategoryDTO } from '@/lib/types';
+import type { ApiOk, ApiPaginated, CategoryDTO } from '@/lib/types';
 
 export interface ListCategoriesParams {
-  active?: true;
+  active?: boolean;
   search?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface CreateCategoryInput {
+  name: string;
+  slug: string;
+  icon?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateCategoryInput {
+  name?: string;
+  slug?: string;
+  icon?: string;
+  sortOrder?: number;
+  active?: boolean;
 }
 
 export const categoriesApi = baseApi.injectEndpoints({
@@ -20,7 +35,31 @@ export const categoriesApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'Category' as const, id: 'LIST' }],
     }),
+    createCategory: builder.mutation<ApiOk<CategoryDTO>, CreateCategoryInput>({
+      query: (body) => ({ url: '/categories', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Category', id: 'LIST' }],
+    }),
+    updateCategory: builder.mutation<ApiOk<CategoryDTO>, { id: string; body: UpdateCategoryInput }>({
+      query: ({ id, body }) => ({ url: `/categories/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Category', id },
+        { type: 'Category', id: 'LIST' },
+      ],
+    }),
+    // El DELETE del backend es una baja lógica (active = false).
+    deactivateCategory: builder.mutation<ApiOk<CategoryDTO>, string>({
+      query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Category', id },
+        { type: 'Category', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
-export const { useListCategoriesQuery } = categoriesApi;
+export const {
+  useListCategoriesQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeactivateCategoryMutation,
+} = categoriesApi;

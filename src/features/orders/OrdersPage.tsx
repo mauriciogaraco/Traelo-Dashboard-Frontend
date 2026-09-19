@@ -50,7 +50,8 @@ function formatDateTime(iso: string): string {
 
 export function OrdersPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
-  const canManage = currentUser?.role !== 'DELIVERER';
+  const canManage =
+    currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' || currentUser?.role === 'EMPLOYEE';
   const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [page, setPage] = useState(1);

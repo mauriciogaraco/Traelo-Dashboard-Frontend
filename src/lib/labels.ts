@@ -13,6 +13,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   ADMIN: 'Administrador',
   EMPLOYEE: 'Empleado',
   DELIVERER: 'Mensajero',
+  BUSINESS_OWNER: 'Dueño de negocio',
 };
 
 export const COMMISSION_TYPE_LABEL: Record<CommissionType, string> = {

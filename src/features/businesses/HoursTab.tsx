@@ -3,6 +3,7 @@ import type { SerializedError } from '@reduxjs/toolkit';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FormField } from '@/components/ui/FormField';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -12,6 +13,7 @@ import { CreateClosureModal } from './CreateClosureModal';
 import { EditDayHoursModal } from './EditDayHoursModal';
 import {
   useDeleteBusinessClosureMutation,
+  useDeleteBusinessHoursMutation,
   useListBusinessClosuresQuery,
   useListBusinessHoursQuery,
   useUpsertBusinessHoursMutation,
@@ -34,6 +36,7 @@ function formatClosureDate(iso: string): string {
 export function HoursTab({ businessId, canManage }: HoursTabProps) {
   const { showToast } = useToast();
   const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [resettingDay, setResettingDay] = useState<number | null>(null);
   const [closureModalOpen, setClosureModalOpen] = useState(false);
   const [generalOpenTime, setGeneralOpenTime] = useState('09:00');
   const [generalCloseTime, setGeneralCloseTime] = useState('22:00');
@@ -45,6 +48,7 @@ export function HoursTab({ businessId, canManage }: HoursTabProps) {
   });
   const [upsertHours, { isLoading: isApplyingAll }] = useUpsertBusinessHoursMutation();
   const [deleteClosure] = useDeleteBusinessClosureMutation();
+  const [deleteHours, { isLoading: isResetting }] = useDeleteBusinessHoursMutation();
 
   const hoursByDay = new Map<number, BusinessHoursDTO>(
     (hoursData?.data ?? []).map((h) => [h.dayOfWeek, h]),
@@ -68,6 +72,16 @@ export function HoursTab({ businessId, canManage }: HoursTabProps) {
         ),
       );
       showToast('Horario aplicado a los 7 días');
+    } catch (error) {
+      showToast(getErrorMessage(error as FetchBaseQueryError | SerializedError), 'error');
+    }
+  }
+
+  async function handleConfirmReset() {
+    if (resettingDay === null) return;
+    try {
+      await deleteHours({ businessId, dayOfWeek: resettingDay }).unwrap();
+      setResettingDay(null);
     } catch (error) {
       showToast(getErrorMessage(error as FetchBaseQueryError | SerializedError), 'error');
     }
@@ -148,6 +162,15 @@ export function HoursTab({ businessId, canManage }: HoursTabProps) {
                         >
                           Editar
                         </Button>
+                        {current && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setResettingDay(dayOfWeek)}
+                          >
+                            Quitar
+                          </Button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -209,6 +232,16 @@ export function HoursTab({ businessId, canManage }: HoursTabProps) {
           dayOfWeek={editingDay}
           current={hoursByDay.get(editingDay)}
           onClose={() => setEditingDay(null)}
+        />
+      )}
+      {resettingDay !== null && (
+        <ConfirmDialog
+          title="Quitar horario"
+          description={`Se elimina el horario configurado del ${DAY_OF_WEEK_LABEL[resettingDay].toLowerCase()} y el día queda "Sin configurar". ¿Confirmás?`}
+          confirmLabel="Quitar"
+          isLoading={isResetting}
+          onConfirm={handleConfirmReset}
+          onCancel={() => setResettingDay(null)}
         />
       )}
       {closureModalOpen && (

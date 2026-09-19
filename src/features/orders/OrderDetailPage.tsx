@@ -30,7 +30,8 @@ export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.auth.user);
-  const canManage = currentUser?.role !== 'DELIVERER';
+  const canManage =
+    currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' || currentUser?.role === 'EMPLOYEE';
   const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
   // GET /config solo autoriza OWNER/ADMIN — el bloque promocional del vale queda ausente para
   // EMPLOYEE, pero el vale sigue siendo válido sin él (el número de sorteo no depende de esto).
