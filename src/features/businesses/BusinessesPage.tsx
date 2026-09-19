@@ -1,35 +1,48 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, RotateCcw, Search, UserX } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAppSelector } from '@/app/hooks';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Pagination } from '@/components/ui/Pagination';
-import { COMMISSION_TYPE_LABEL } from '@/lib/labels';
-import { CommissionType, type BusinessDTO, type PaginationMeta } from '@/lib/types';
-import { CreateBusinessModal } from './CreateBusinessModal';
-import { EditBusinessModal } from './EditBusinessModal';
+import { useEffect, useMemo, useState } from "react";
+import { Plus, RotateCcw, Search, UserX } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Thumbnail } from "@/components/ui/Thumbnail";
+import { useAppSelector } from "@/app/hooks";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
+import { COMMISSION_TYPE_LABEL } from "@/lib/labels";
+import {
+  CommissionType,
+  type BusinessDTO,
+  type PaginationMeta,
+} from "@/lib/types";
+import { CreateBusinessModal } from "./CreateBusinessModal";
+import { EditBusinessModal } from "./EditBusinessModal";
 import {
   useDeactivateBusinessMutation,
   useListBusinessesQuery,
   useUpdateBusinessMutation,
-} from './businessesApi';
+} from "./businessesApi";
 
 const PAGE_SIZE = 10;
 
 export function BusinessesPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
-  const canManage = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
+  const canManage =
+    currentUser?.role === "OWNER" || currentUser?.role === "ADMIN";
 
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [commissionTypeFilter, setCommissionTypeFilter] = useState<CommissionType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [commissionTypeFilter, setCommissionTypeFilter] = useState<
+    CommissionType | "ALL"
+  >("ALL");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingBusiness, setEditingBusiness] = useState<BusinessDTO | null>(null);
-  const [deactivatingBusiness, setDeactivatingBusiness] = useState<BusinessDTO | null>(null);
+  const [editingBusiness, setEditingBusiness] = useState<BusinessDTO | null>(
+    null,
+  );
+  const [deactivatingBusiness, setDeactivatingBusiness] =
+    useState<BusinessDTO | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -40,18 +53,22 @@ export function BusinessesPage() {
     setPage(1);
   }, [search, commissionTypeFilter, statusFilter]);
 
-  const isInactiveFilter = statusFilter === 'inactive';
+  const isInactiveFilter = statusFilter === "inactive";
 
   const { data, isLoading, isFetching } = useListBusinessesQuery({
     search: search || undefined,
-    commissionType: commissionTypeFilter === 'ALL' ? undefined : commissionTypeFilter,
-    active: statusFilter === 'active' ? true : undefined,
+    commissionType:
+      commissionTypeFilter === "ALL" ? undefined : commissionTypeFilter,
+    active: statusFilter === "active" ? true : undefined,
     page: isInactiveFilter ? 1 : page,
     // Ver la nota en businessesApi.ts: active=false no es confiable en el backend.
     pageSize: isInactiveFilter ? 100 : PAGE_SIZE,
   });
 
-  const { rows, meta } = useMemo((): { rows: BusinessDTO[]; meta: PaginationMeta | null } => {
+  const { rows, meta } = useMemo((): {
+    rows: BusinessDTO[];
+    meta: PaginationMeta | null;
+  } => {
     if (!data) {
       return { rows: [], meta: null };
     }
@@ -72,7 +89,8 @@ export function BusinessesPage() {
   }, [data, isInactiveFilter, page]);
 
   const [reactivateBusiness] = useUpdateBusinessMutation();
-  const [deactivateBusiness, { isLoading: isDeactivating }] = useDeactivateBusinessMutation();
+  const [deactivateBusiness, { isLoading: isDeactivating }] =
+    useDeactivateBusinessMutation();
 
   async function handleConfirmDeactivate() {
     if (!deactivatingBusiness) return;
@@ -104,7 +122,9 @@ export function BusinessesPage() {
         </div>
         <select
           value={commissionTypeFilter}
-          onChange={(e) => setCommissionTypeFilter(e.target.value as CommissionType | 'ALL')}
+          onChange={(e) =>
+            setCommissionTypeFilter(e.target.value as CommissionType | "ALL")
+          }
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="ALL">Todos los modelos</option>
@@ -116,7 +136,9 @@ export function BusinessesPage() {
         </select>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as "all" | "active" | "inactive")
+          }
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="all">Todos los estados</option>
@@ -140,14 +162,20 @@ export function BusinessesPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-slate-400">
+                <td
+                  colSpan={canManage ? 6 : 5}
+                  className="px-4 py-8 text-center text-slate-400"
+                >
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-slate-400">
+                <td
+                  colSpan={canManage ? 6 : 5}
+                  className="px-4 py-8 text-center text-slate-400"
+                >
                   No hay negocios que coincidan con los filtros.
                 </td>
               </tr>
@@ -155,25 +183,36 @@ export function BusinessesPage() {
             {rows.map((business) => (
               <tr key={business.id} className="text-slate-700">
                 <td className="px-4 py-3 font-medium">
-                  <Link
-                    to={`/businesses/${business.id}`}
-                    className="text-slate-900 hover:text-brand-700 hover:underline"
-                  >
-                    {business.name}
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Thumbnail
+                      src={business.logoUrl}
+                      alt={business.name}
+                      size={40}
+                      shape="circle"
+                    />
+                    <Link
+                      to={`/businesses/${business.id}`}
+                      className="text-slate-900 hover:text-brand-700 hover:underline"
+                    >
+                      {business.name}
+                    </Link>
+                  </div>
                 </td>
                 <td className="px-4 py-3">{business.phone}</td>
-                <td className="px-4 py-3 max-w-xs truncate" title={business.address}>
+                <td
+                  className="px-4 py-3 max-w-xs truncate"
+                  title={business.address}
+                >
                   {business.address}
                 </td>
                 <td className="px-4 py-3">
-                  {business.commissionType === 'PERCENTAGE'
+                  {business.commissionType === "PERCENTAGE"
                     ? `${business.commissionPercentage}%`
                     : `${business.defaultProductCommissionAmount} CUP/prod.`}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge tone={business.active ? 'green' : 'slate'}>
-                    {business.active ? 'Activo' : 'Inactivo'}
+                  <Badge tone={business.active ? "green" : "slate"}>
+                    {business.active ? "Activo" : "Inactivo"}
                   </Badge>
                 </td>
                 {canManage && (
@@ -200,7 +239,10 @@ export function BusinessesPage() {
                           type="button"
                           variant="ghost"
                           onClick={() =>
-                            reactivateBusiness({ id: business.id, body: { active: true } })
+                            reactivateBusiness({
+                              id: business.id,
+                              body: { active: true },
+                            })
                           }
                         >
                           <RotateCcw className="h-4 w-4" />
@@ -216,11 +258,18 @@ export function BusinessesPage() {
         </table>
         {meta && <Pagination meta={meta} onPageChange={setPage} />}
       </div>
-      {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
+      {isFetching && !isLoading && (
+        <p className="text-xs text-slate-400">Actualizando…</p>
+      )}
 
-      {createOpen && <CreateBusinessModal onClose={() => setCreateOpen(false)} />}
+      {createOpen && (
+        <CreateBusinessModal onClose={() => setCreateOpen(false)} />
+      )}
       {editingBusiness && (
-        <EditBusinessModal business={editingBusiness} onClose={() => setEditingBusiness(null)} />
+        <EditBusinessModal
+          business={editingBusiness}
+          onClose={() => setEditingBusiness(null)}
+        />
       )}
       {deactivatingBusiness && (
         <ConfirmDialog

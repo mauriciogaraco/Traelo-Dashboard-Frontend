@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import type { ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { useEffect } from "react";
+import type { ReactNode } from "react";
+import { X } from "lucide-react";
 
 interface ModalProps {
   title: string;
@@ -9,15 +9,20 @@ interface ModalProps {
   widthClassName?: string;
 }
 
-export function Modal({ title, onClose, children, widthClassName = 'max-w-md' }: ModalProps) {
+export function Modal({
+  title,
+  onClose,
+  children,
+  widthClassName = "max-w-md",
+}: ModalProps) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
   return (
@@ -29,9 +34,9 @@ export function Modal({ title, onClose, children, widthClassName = 'max-w-md' }:
         onClick={onClose}
       />
       <div
-        className={`relative w-full ${widthClassName} rounded-2xl border border-slate-200 bg-white p-6 shadow-lg`}
+        className={`relative flex max-h-[calc(100dvh-2rem)] w-full flex-col ${widthClassName} rounded-2xl border border-slate-200 bg-white p-6 shadow-lg`}
       >
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex shrink-0 items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
             type="button"
@@ -41,7 +46,10 @@ export function Modal({ title, onClose, children, widthClassName = 'max-w-md' }:
             <X className="h-4 w-4" />
           </button>
         </div>
-        {children}
+        {/* El contenido scrollea dentro del modal: la tarjeta nunca supera el alto de la pantalla. */}
+        <div className="-mr-3 min-h-0 flex-1 overflow-y-auto pr-3">
+          {children}
+        </div>
       </div>
     </div>
   );

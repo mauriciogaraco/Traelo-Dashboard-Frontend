@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, RotateCcw, UserX } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Pagination } from '@/components/ui/Pagination';
-import type { BusinessDTO, PaginationMeta, ProductDTO } from '@/lib/types';
-import { CreateProductModal } from './CreateProductModal';
-import { EditProductModal } from './EditProductModal';
-import { ProductCommissionModal } from './ProductCommissionModal';
+import { useEffect, useMemo, useState } from "react";
+import { Plus, RotateCcw, UserX } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
+import { Thumbnail } from "@/components/ui/Thumbnail";
+import type { BusinessDTO, PaginationMeta, ProductDTO } from "@/lib/types";
+import { CreateProductModal } from "./CreateProductModal";
+import { EditProductModal } from "./EditProductModal";
+import { ProductCommissionModal } from "./ProductCommissionModal";
 import {
   useDeactivateProductMutation,
   useListProductsQuery,
   useUpdateProductMutation,
-} from './businessesApi';
+} from "./businessesApi";
 
 const PAGE_SIZE = 10;
 
@@ -23,27 +24,35 @@ interface ProductsTabProps {
 
 export function ProductsTab({ business, canManage }: ProductsTabProps) {
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
-  const [commissionProduct, setCommissionProduct] = useState<ProductDTO | null>(null);
-  const [deactivatingProduct, setDeactivatingProduct] = useState<ProductDTO | null>(null);
+  const [commissionProduct, setCommissionProduct] = useState<ProductDTO | null>(
+    null,
+  );
+  const [deactivatingProduct, setDeactivatingProduct] =
+    useState<ProductDTO | null>(null);
 
   useEffect(() => {
     setPage(1);
   }, [statusFilter]);
 
-  const isInactiveFilter = statusFilter === 'inactive';
-  const isFixedPerProduct = business.commissionType === 'FIXED_PER_PRODUCT';
+  const isInactiveFilter = statusFilter === "inactive";
+  const isFixedPerProduct = business.commissionType === "FIXED_PER_PRODUCT";
 
   const { data, isLoading } = useListProductsQuery({
     businessId: business.id,
-    active: statusFilter === 'active' ? true : undefined,
+    active: statusFilter === "active" ? true : undefined,
     page: isInactiveFilter ? 1 : page,
     pageSize: isInactiveFilter ? 100 : PAGE_SIZE,
   });
 
-  const { rows, meta } = useMemo((): { rows: ProductDTO[]; meta: PaginationMeta | null } => {
+  const { rows, meta } = useMemo((): {
+    rows: ProductDTO[];
+    meta: PaginationMeta | null;
+  } => {
     if (!data) {
       return { rows: [], meta: null };
     }
@@ -64,11 +73,15 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
   }, [data, isInactiveFilter, page]);
 
   const [reactivateProduct] = useUpdateProductMutation();
-  const [deactivateProduct, { isLoading: isDeactivating }] = useDeactivateProductMutation();
+  const [deactivateProduct, { isLoading: isDeactivating }] =
+    useDeactivateProductMutation();
 
   async function handleConfirmDeactivate() {
     if (!deactivatingProduct) return;
-    await deactivateProduct({ businessId: business.id, productId: deactivatingProduct.id }).unwrap();
+    await deactivateProduct({
+      businessId: business.id,
+      productId: deactivatingProduct.id,
+    }).unwrap();
     setDeactivatingProduct(null);
   }
 
@@ -79,7 +92,9 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as "all" | "active" | "inactive")
+          }
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="all">Todos los estados</option>
@@ -101,7 +116,9 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
               <th className="px-4 py-3 font-medium">Nombre</th>
               <th className="px-4 py-3 font-medium">Categoría</th>
               <th className="px-4 py-3 font-medium">Precio ref.</th>
-              {isFixedPerProduct && <th className="px-4 py-3 font-medium">Comisión</th>}
+              {isFixedPerProduct && (
+                <th className="px-4 py-3 font-medium">Comisión</th>
+              )}
               <th className="px-4 py-3 font-medium">Estado</th>
               {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
             </tr>
@@ -109,30 +126,48 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
+                <td
+                  colSpan={columnCount}
+                  className="px-4 py-8 text-center text-slate-400"
+                >
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
+                <td
+                  colSpan={columnCount}
+                  className="px-4 py-8 text-center text-slate-400"
+                >
                   Este negocio todavía no tiene productos cargados.
                 </td>
               </tr>
             )}
             {rows.map((product) => (
               <tr key={product.id} className="text-slate-700">
-                <td className="px-4 py-3 font-medium text-slate-900">{product.name}</td>
-                <td className="px-4 py-3">{product.category ?? '—'}</td>
-                <td className="px-4 py-3">{product.price !== null ? `${product.price} CUP` : '—'}</td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  <div className="flex items-center gap-3">
+                    <Thumbnail
+                      src={product.imageUrl}
+                      alt={product.name}
+                      size={40}
+                    />
+                    <span>{product.name}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">{product.category ?? "—"}</td>
+                <td className="px-4 py-3">
+                  {product.price !== null ? `${product.price} CUP` : "—"}
+                </td>
                 {isFixedPerProduct && (
                   <td className="px-4 py-3">
                     {product.commission ? (
                       `${product.commission.commissionAmount} CUP`
                     ) : (
                       <span className="text-slate-400">
-                        {business.defaultProductCommissionAmount} CUP (por defecto)
+                        {business.defaultProductCommissionAmount} CUP (por
+                        defecto)
                       </span>
                     )}
                     {canManage && (
@@ -148,13 +183,17 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
                 )}
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
-                    <Badge tone={product.active ? 'green' : 'slate'}>
-                      {product.active ? 'Activo' : 'Inactivo'}
+                    <Badge tone={product.active ? "green" : "slate"}>
+                      {product.active ? "Activo" : "Inactivo"}
                     </Badge>
-                    {product.active && !product.available && <Badge tone="red">Sin stock</Badge>}
-                    {product.active && product.available && product.lowStock && (
-                      <Badge tone="amber">Poco stock</Badge>
+                    {product.active && !product.available && (
+                      <Badge tone="red">Sin stock</Badge>
                     )}
+                    {product.active &&
+                      product.available &&
+                      product.lowStock && (
+                        <Badge tone="amber">Poco stock</Badge>
+                      )}
                   </div>
                 </td>
                 {canManage && (
@@ -203,7 +242,10 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
       </div>
 
       {createOpen && (
-        <CreateProductModal businessId={business.id} onClose={() => setCreateOpen(false)} />
+        <CreateProductModal
+          businessId={business.id}
+          onClose={() => setCreateOpen(false)}
+        />
       )}
       {editingProduct && (
         <EditProductModal
