@@ -64,7 +64,7 @@ export function OrderDetailPage() {
 
   const order = data.data;
   const voucherText = generateOrderVoucherText(order, configData?.data);
-  const canEdit = canManage && order.status !== 'CANCELLED';
+  const canEdit = canManage;
   const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
   const canComplete = canManage && order.status === 'ASSIGNED';
   const canCancel = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');

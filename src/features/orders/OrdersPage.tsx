@@ -35,8 +35,20 @@ const RANGE_TABS: { value: RangeTab; label: string }[] = [
   { value: 'month', label: 'Mes' },
   { value: '6months', label: 'Semestre' },
   { value: 'year', label: 'Año' },
+  { value: 'custom', label: 'Fecha' },
   { value: 'all', label: 'Todos' },
 ];
+
+// Día calendario de hoy en La Habana (YYYY-MM-DD): el negocio opera allá, no en la zona del navegador.
+function todayInHavana(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Havana' }).format(new Date());
+}
+
+// El backend resuelve el día en hora de La Habana a partir de un instante. Se manda el mediodía UTC
+// del día elegido para que caiga en ese mismo día calendario sea cual sea la zona del navegador.
+function dayToInstant(day: string): string {
+  return `${day}T12:00:00.000Z`;
+}
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es', {
@@ -58,6 +70,9 @@ export function OrdersPage() {
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
   const [rangeTab, setRangeTab] = useState<RangeTab>('today');
+  // Rango libre (pestaña "Fecha"): un día, o de "Desde" a "Hasta" (vacío = solo ese día).
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [deletingOrder, setDeletingOrder] = useState<OrderDTO | null>(null);
@@ -74,7 +89,7 @@ export function OrdersPage() {
     setPage(1);
     setSelectedIds(new Set());
     setBulkMessage(null);
-  }, [statusFilter, delivererFilter, rangeTab, search]);
+  }, [statusFilter, delivererFilter, rangeTab, dateFrom, dateTo, search]);
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -91,6 +106,9 @@ export function OrdersPage() {
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
     range: rangeTab === 'all' ? undefined : rangeTab,
+    ...(rangeTab === 'custom' && dateFrom
+      ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
+      : {}),
     search: search || undefined,
   });
 
@@ -183,7 +201,10 @@ export function OrdersPage() {
           <button
             key={tab.value}
             type="button"
-            onClick={() => setRangeTab(tab.value)}
+            onClick={() => {
+              setRangeTab(tab.value);
+              if (tab.value === 'custom' && !dateFrom) setDateFrom(todayInHavana());
+            }}
             className={clsx(
               'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
               rangeTab === tab.value
@@ -195,6 +216,43 @@ export function OrdersPage() {
           </button>
         ))}
       </div>
+
+      {rangeTab === 'custom' && (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+            Desde
+            <input
+              type="date"
+              value={dateFrom}
+              max={todayInHavana()}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                // "Hasta" nunca puede quedar antes que "Desde".
+                if (dateTo && e.target.value > dateTo) setDateTo(e.target.value);
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+            Hasta (opcional)
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              max={todayInHavana()}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </label>
+          <p className="pb-2 text-sm text-slate-500">
+            {dateFrom
+              ? dateTo && dateTo !== dateFrom
+                ? 'Pedidos de ese rango de días.'
+                : 'Pedidos de ese día.'
+              : 'Elegí un día para ver sus pedidos.'}
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative w-full sm:w-64">
@@ -311,14 +369,12 @@ export function OrdersPage() {
                 {canManage && (
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      {order.status !== 'CANCELLED' && (
-                        <Link to={`/orders/${order.id}/edit`}>
-                          <Button type="button" variant="ghost">
-                            <Pencil className="h-4 w-4" />
-                            Editar
-                          </Button>
-                        </Link>
-                      )}
+                      <Link to={`/orders/${order.id}/edit`}>
+                        <Button type="button" variant="ghost">
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      </Link>
                       {canDelete && order.status !== 'COMPLETED' && (
                         <Button
                           type="button"

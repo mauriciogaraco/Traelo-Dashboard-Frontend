@@ -206,7 +206,7 @@ export function EditOrderPage() {
         },
       }).unwrap();
 
-      if (!isCompleted && delivererId && delivererId !== data.data.delivererId) {
+      if (!isFinal && delivererId && delivererId !== data.data.delivererId) {
         await assignOrder({ id, delivererId }).unwrap();
       }
 
@@ -222,11 +222,10 @@ export function EditOrderPage() {
   if (error || !data) {
     return <p className="text-red-600">No se pudo cargar el pedido.</p>;
   }
-  if (data.data.status === 'CANCELLED') {
-    return <p className="text-red-600">Este pedido ya no se puede editar.</p>;
-  }
-
   const isCompleted = data.data.status === 'COMPLETED';
+  const isCancelled = data.data.status === 'CANCELLED';
+  // Completado o cancelado: se corrigen los datos, pero el mensajero ya no se puede cambiar.
+  const isFinal = isCompleted || isCancelled;
 
   return (
     <div className="flex flex-col gap-5">
@@ -243,6 +242,12 @@ export function EditOrderPage() {
       {isCompleted && (
         <p className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-700">
           Este pedido ya está completado. Podés corregir sus datos, pero el mensajero asignado no
+          se puede cambiar desde acá.
+        </p>
+      )}
+      {isCancelled && (
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+          Este pedido está cancelado. Podés corregir sus datos; seguirá cancelado y el mensajero no
           se puede cambiar desde acá.
         </p>
       )}
@@ -288,7 +293,7 @@ export function EditOrderPage() {
             onChange={setDelivererId}
             options={delivererOptions}
             placeholder="Sin asignar"
-            disabled={isCompleted}
+            disabled={isFinal}
           />
         </div>
 
