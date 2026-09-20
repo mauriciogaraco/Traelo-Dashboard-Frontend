@@ -10,6 +10,7 @@ import type {
   CommissionType,
   PackagingOption,
   ProductDTO,
+  ProductOfferDTO,
   SubscriptionCycle,
 } from '@/lib/types';
 
@@ -112,6 +113,24 @@ export interface CreateBusinessClosureInput {
   reason?: string;
 }
 
+export interface CreateProductOfferInput {
+  businessId: string;
+  productId: string;
+  price: number;
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface UpdateProductOfferInput {
+  businessId: string;
+  productId: string;
+  offerId: string;
+  price?: number;
+  startsAt?: string;
+  endsAt?: string;
+  active?: boolean;
+}
+
 function buildImageFormData(file: File): FormData {
   const formData = new FormData();
   formData.append('image', file);
@@ -192,6 +211,16 @@ export const businessesApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/hours/${dayOfWeek}`,
         method: 'PUT',
         body,
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'BusinessHours', id: businessId },
+      ],
+    }),
+
+    deleteBusinessHours: builder.mutation<void, { businessId: string; dayOfWeek: number }>({
+      query: ({ businessId, dayOfWeek }) => ({
+        url: `/businesses/${businessId}/hours/${dayOfWeek}`,
+        method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { businessId }) => [
         { type: 'BusinessHours', id: businessId },
@@ -335,6 +364,32 @@ export const businessesApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // ── Ofertas de producto ───────────────────────────────
+    listProductOffers: builder.query<
+      ApiOk<ProductOfferDTO[]>,
+      { businessId: string; productId: string }
+    >({
+      query: ({ businessId, productId }) =>
+        `/businesses/${businessId}/products/${productId}/offers`,
+      providesTags: (_result, _error, { productId }) => [{ type: 'ProductOffer', id: productId }],
+    }),
+    createProductOffer: builder.mutation<ApiOk<ProductOfferDTO>, CreateProductOfferInput>({
+      query: ({ businessId, productId, ...body }) => ({
+        url: `/businesses/${businessId}/products/${productId}/offers`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { productId }) => [{ type: 'ProductOffer', id: productId }],
+    }),
+    updateProductOffer: builder.mutation<ApiOk<ProductOfferDTO>, UpdateProductOfferInput>({
+      query: ({ businessId, productId, offerId, ...body }) => ({
+        url: `/businesses/${businessId}/products/${productId}/offers/${offerId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { productId }) => [{ type: 'ProductOffer', id: productId }],
+    }),
+
     // ── Suscripciones ─────────────────────────────────────
     listSubscriptions: builder.query<ApiPaginated<BusinessSubscriptionDTO>, ListSubscriptionsParams>({
       query: ({ businessId, ...params }) => ({
@@ -388,6 +443,10 @@ export const {
   useUploadBusinessLogoMutation,
   useListBusinessHoursQuery,
   useUpsertBusinessHoursMutation,
+  useDeleteBusinessHoursMutation,
+  useListProductOffersQuery,
+  useCreateProductOfferMutation,
+  useUpdateProductOfferMutation,
   useListBusinessClosuresQuery,
   useCreateBusinessClosureMutation,
   useDeleteBusinessClosureMutation,

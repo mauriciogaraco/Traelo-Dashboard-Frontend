@@ -17,6 +17,8 @@ export interface RegisterInput {
   password: string;
   phone?: string;
   role: Role;
+  // Obligatorio cuando role = BUSINESS_OWNER (el negocio que administra esa cuenta).
+  businessId?: string;
 }
 
 export interface ForgotPasswordInput {

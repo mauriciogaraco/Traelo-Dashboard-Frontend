@@ -6,6 +6,7 @@ export const Role = {
   ADMIN: 'ADMIN',
   EMPLOYEE: 'EMPLOYEE',
   DELIVERER: 'DELIVERER',
+  BUSINESS_OWNER: 'BUSINESS_OWNER',
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
@@ -104,6 +105,10 @@ export interface UserDTO {
   phone: string | null;
   role: Role;
   active: boolean;
+  // Solo para BUSINESS_OWNER. Opcionales: si el backend todavía no los devuelve llegan como
+  // undefined, no null — leer siempre con `?? null`/`== null`.
+  businessId?: string | null;
+  businessName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,6 +201,17 @@ export interface ProductDTO {
   /** Ausente en backends que aún no tienen el campo; null/[] = sin empaque. */
   packaging?: PackagingOption[] | null;
   commission: { commissionAmount: number } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductOfferDTO {
+  id: string;
+  productId: string;
+  price: number;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -461,4 +477,60 @@ export interface SystemConfigDTO {
   rafflePromoText: string | null;
   raffleVideoUrl: string | null;
   updatedAt: string;
+}
+
+// ── Portal del dueño de negocio (/my-business) ───────────────────────────
+// Nunca incluyen ganancias de Tráelo (comisión, Servicio Tráelo, reparto de mensajería) ni
+// teléfono/dirección del cliente — el backend ni siquiera los envía a este rol.
+
+export interface OwnerBusinessDTO {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  joinedAt: string;
+  active: boolean;
+  acceptingOrders: boolean;
+  logoUrl: string | null;
+}
+
+export interface OwnerSummaryDTO {
+  totalOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  completionRate: number;
+  activeOrders: number;
+  salesTotal: number;
+  averageTicket: number;
+  maxOrder: number;
+  topProducts: { productName: string; quantity: number; totalSales: number }[];
+}
+
+export interface PortalOrderItemDTO {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface PortalOrderDTO {
+  id: string;
+  orderNumber: number;
+  orderDate: string;
+  completedAt: string | null;
+  status: OrderStatus;
+  customerName: string;
+  delivererName: string | null;
+  items: PortalOrderItemDTO[];
+  subtotal: number;
+}
+
+export type PortalCustomerSortBy = 'orderCount' | 'totalSpent' | 'lastOrder';
+
+export interface RecurringCustomerDTO {
+  customerName: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string;
 }

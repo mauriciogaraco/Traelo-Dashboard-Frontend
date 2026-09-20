@@ -84,6 +84,7 @@ export const baseApi = createApi({
     'BusinessHours',
     'BusinessClosure',
     'Product',
+    'ProductOffer',
     'Category',
     'Subscription',
     'Deliverer',

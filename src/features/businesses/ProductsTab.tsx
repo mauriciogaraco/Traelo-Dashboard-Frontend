@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, RotateCcw, Search, UserX } from 'lucide-react';
+import { Plus, RotateCcw, Search, Tag, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -9,6 +9,7 @@ import type { BusinessDTO, PaginationMeta, ProductDTO } from '@/lib/types';
 import { CreateProductModal } from './CreateProductModal';
 import { EditProductModal } from './EditProductModal';
 import { ProductCommissionModal } from './ProductCommissionModal';
+import { ProductOffersModal } from './ProductOffersModal';
 import {
   useDeactivateProductMutation,
   useListProductsQuery,
@@ -18,16 +19,21 @@ import {
 const PAGE_SIZE = 10;
 
 interface ProductsTabProps {
-  business: BusinessDTO;
+  // Un dueño de negocio no recibe comisión ni tarifas del backend, por eso son opcionales.
+  business: Pick<BusinessDTO, 'id'> &
+    Partial<Pick<BusinessDTO, 'commissionType' | 'defaultProductCommissionAmount'>>;
   canManage: boolean;
+  // Dueño de negocio: edita su catálogo pero nunca ve comisiones ni ofertas de Tráelo.
+  ownerMode?: boolean;
 }
 
-export function ProductsTab({ business, canManage }: ProductsTabProps) {
+export function ProductsTab({ business, canManage, ownerMode = false }: ProductsTabProps) {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [offersProduct, setOffersProduct] = useState<ProductDTO | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
   const [commissionProduct, setCommissionProduct] = useState<ProductDTO | null>(null);
   const [deactivatingProduct, setDeactivatingProduct] = useState<ProductDTO | null>(null);
@@ -43,7 +49,7 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
   }, [statusFilter, search]);
 
   const isInactiveFilter = statusFilter === 'inactive';
-  const isFixedPerProduct = business.commissionType === 'FIXED_PER_PRODUCT';
+  const isFixedPerProduct = !ownerMode && business.commissionType === 'FIXED_PER_PRODUCT';
 
   const { data, isLoading } = useListProductsQuery({
     businessId: business.id,
@@ -197,6 +203,16 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
                       >
                         Editar
                       </Button>
+                      {!ownerMode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setOffersProduct(product)}
+                        >
+                          <Tag className="h-4 w-4" />
+                          Ofertas
+                        </Button>
+                      )}
                       {product.active ? (
                         <Button
                           type="button"
@@ -242,11 +258,18 @@ export function ProductsTab({ business, canManage }: ProductsTabProps) {
           onClose={() => setEditingProduct(null)}
         />
       )}
+      {offersProduct && (
+        <ProductOffersModal
+          businessId={business.id}
+          product={offersProduct}
+          onClose={() => setOffersProduct(null)}
+        />
+      )}
       {commissionProduct && (
         <ProductCommissionModal
           businessId={business.id}
           product={commissionProduct}
-          defaultCommissionAmount={business.defaultProductCommissionAmount}
+          defaultCommissionAmount={business.defaultProductCommissionAmount ?? null}
           onClose={() => setCommissionProduct(null)}
         />
       )}

@@ -12,6 +12,7 @@ import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
 import { BusinessesPage } from '@/features/businesses/BusinessesPage';
 import { BusinessDetailPage } from '@/features/businesses/BusinessDetailPage';
+import { CategoriesPage } from '@/features/categories/CategoriesPage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
@@ -19,6 +20,11 @@ import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
 import { EditOrderPage } from '@/features/orders/EditOrderPage';
 import { SettlementsPage } from '@/features/settlements/SettlementsPage';
 import { SettlementDetailPage } from '@/features/settlements/SettlementDetailPage';
+import { MyBusinessPage } from '@/features/portal/MyBusinessPage';
+import { PortalCustomersPage } from '@/features/portal/PortalCustomersPage';
+import { PortalDashboardPage } from '@/features/portal/PortalDashboardPage';
+import { PortalOrdersPage } from '@/features/portal/PortalOrdersPage';
+import { ForBusinessOwner } from './ForBusinessOwner';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGate } from './RoleGate';
 
@@ -32,12 +38,36 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'orders', element: <OrdersPage /> },
-          { path: 'orders/:id', element: <OrderDetailPage /> },
-          { path: 'settlements', element: <SettlementsPage /> },
-          { path: 'settlements/:id', element: <SettlementDetailPage /> },
+          {
+            index: true,
+            element: <ForBusinessOwner owner={<PortalDashboardPage />} other={<DashboardPage />} />,
+          },
+          {
+            path: 'orders',
+            element: <ForBusinessOwner owner={<PortalOrdersPage />} other={<OrdersPage />} />,
+          },
+          {
+            path: 'orders/:id',
+            element: (
+              <ForBusinessOwner owner={<Navigate to="/orders" replace />} other={<OrderDetailPage />} />
+            ),
+          },
           { path: 'change-password', element: <ChangePasswordPage /> },
+          {
+            // Cuadres: solo mensajeros y personal de Tráelo — un dueño de negocio no los ve.
+            element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE', 'DELIVERER']} />,
+            children: [
+              { path: 'settlements', element: <SettlementsPage /> },
+              { path: 'settlements/:id', element: <SettlementDetailPage /> },
+            ],
+          },
+          {
+            element: <RoleGate allow={['BUSINESS_OWNER']} />,
+            children: [
+              { path: 'customers', element: <PortalCustomersPage /> },
+              { path: 'my-business', element: <MyBusinessPage /> },
+            ],
+          },
           {
             element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE']} />,
             children: [
@@ -54,6 +84,7 @@ export const router = createBrowserRouter([
           {
             element: <RoleGate allow={['OWNER', 'ADMIN']} />,
             children: [
+              { path: 'categories', element: <CategoriesPage /> },
               { path: 'users', element: <UsersPage /> },
               { path: 'config', element: <ConfigPage /> },
             ],

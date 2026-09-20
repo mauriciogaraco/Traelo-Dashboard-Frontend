@@ -151,6 +151,9 @@ export function UsersPage() {
                 <td className="px-4 py-3">{user.email}</td>
                 <td className="px-4 py-3">
                   <Badge tone="brand">{ROLE_LABEL[user.role]}</Badge>
+                  {user.role === 'BUSINESS_OWNER' && (
+                    <p className="mt-1 text-xs text-slate-500">{user.businessName ?? 'Sin negocio'}</p>
+                  )}
                 </td>
                 <td className="px-4 py-3">{user.phone ?? '—'}</td>
                 <td className="px-4 py-3">
