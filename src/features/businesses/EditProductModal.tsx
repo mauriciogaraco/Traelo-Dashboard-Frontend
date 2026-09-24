@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -47,11 +48,20 @@ type FormValues = z.infer<typeof schema>;
 interface EditProductModalProps {
   businessId: string;
   product: ProductDTO;
+  // Marcar un producto como destacado (sección "Ofertas destacadas" del Home) lo deciden OWNER/ADMIN,
+  // no el dueño del negocio: quien monta el modal en modo dueño no pasa esto.
+  canFeature?: boolean;
   onClose: () => void;
 }
 
-export function EditProductModal({ businessId, product, onClose }: EditProductModalProps) {
+export function EditProductModal({
+  businessId,
+  product,
+  canFeature = false,
+  onClose,
+}: EditProductModalProps) {
   const { showToast } = useToast();
+  const [featured, setFeatured] = useState(product.featured);
   const [updateProduct, { isLoading, error }] = useUpdateProductMutation();
   const [setAvailability] = useSetProductAvailabilityMutation();
   const [uploadImage] = useUploadProductImageMutation();
@@ -60,6 +70,17 @@ export function EditProductModal({ businessId, product, onClose }: EditProductMo
   async function handleAvailabilityChange(patch: { available?: boolean; lowStock?: boolean }) {
     const res = await setAvailability({ businessId, productId: product.id, ...patch });
     if ('error' in res) {
+      showToast('No se pudo actualizar', 'error');
+    }
+  }
+
+  async function handleFeaturedChange(next: boolean) {
+    setFeatured(next);
+    try {
+      await updateProduct({ businessId, productId: product.id, body: { featured: next } }).unwrap();
+      showToast(next ? 'Marcado como destacado' : 'Quitado de destacados');
+    } catch {
+      setFeatured(!next);
       showToast('No se pudo actualizar', 'error');
     }
   }
@@ -125,6 +146,13 @@ export function EditProductModal({ businessId, product, onClose }: EditProductMo
             onChange={(lowStock) => handleAvailabilityChange({ lowStock })}
             label="Queda poco stock"
           />
+          {canFeature && (
+            <Switch
+              checked={featured}
+              onChange={handleFeaturedChange}
+              label="Destacado (Home de la app)"
+            />
+          )}
         </div>
       </div>
 

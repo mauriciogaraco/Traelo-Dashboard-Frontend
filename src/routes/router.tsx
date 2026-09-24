@@ -14,6 +14,8 @@ import { BusinessesPage } from '@/features/businesses/BusinessesPage';
 import { BusinessDetailPage } from '@/features/businesses/BusinessDetailPage';
 import { CategoriesPage } from '@/features/categories/CategoriesPage';
 import { ConfigPage } from '@/features/config/ConfigPage';
+import { NotificationsPage } from '@/features/notifications/NotificationsPage';
+import { ProductsPage } from '@/features/products/ProductsPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
@@ -87,6 +89,8 @@ export const router = createBrowserRouter([
               { path: 'categories', element: <CategoriesPage /> },
               { path: 'users', element: <UsersPage /> },
               { path: 'config', element: <ConfigPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
+              { path: 'products', element: <ProductsPage /> },
             ],
           },
         ],

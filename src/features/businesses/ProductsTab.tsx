@@ -188,6 +188,7 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
                       {product.active ? 'Activo' : 'Inactivo'}
                     </Badge>
                     {product.active && !product.available && <Badge tone="red">Sin stock</Badge>}
+                    {product.featured && <Badge tone="brand">Destacado</Badge>}
                     {product.active && product.available && product.lowStock && (
                       <Badge tone="amber">Poco stock</Badge>
                     )}
@@ -254,7 +255,10 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
       {editingProduct && (
         <EditProductModal
           businessId={business.id}
-          product={editingProduct}
+          // editingProduct es la copia del momento de abrir; el dato vivo sale de la lista (que se
+          // refresca tras cada cambio) para que los switches reflejen el estado real.
+          product={rows.find((p) => p.id === editingProduct.id) ?? editingProduct}
+          canFeature={!ownerMode}
           onClose={() => setEditingProduct(null)}
         />
       )}

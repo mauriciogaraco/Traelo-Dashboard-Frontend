@@ -23,6 +23,12 @@ export interface UpdateCategoryInput {
   active?: boolean;
 }
 
+function buildImageFormData(file: File): FormData {
+  const formData = new FormData();
+  formData.append('image', file);
+  return formData;
+}
+
 export const categoriesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     listCategories: builder.query<ApiPaginated<CategoryDTO>, ListCategoriesParams | void>({
@@ -54,6 +60,17 @@ export const categoriesApi = baseApi.injectEndpoints({
         { type: 'Category', id: 'LIST' },
       ],
     }),
+    uploadCategoryImage: builder.mutation<ApiOk<CategoryDTO>, { id: string; file: File }>({
+      query: ({ id, file }) => ({
+        url: `/categories/${id}/image`,
+        method: 'POST',
+        body: buildImageFormData(file),
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Category', id },
+        { type: 'Category', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -62,4 +79,5 @@ export const {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
   useDeactivateCategoryMutation,
+  useUploadCategoryImageMutation,
 } = categoriesApi;

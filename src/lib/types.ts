@@ -173,6 +173,8 @@ export interface CategoryDTO {
   name: string;
   slug: string;
   icon: string | null;
+  imageUrl: string | null;
+  imageBlurhash: string | null;
   active: boolean;
   sortOrder: number;
   createdAt: string;
@@ -200,9 +202,16 @@ export interface ProductDTO {
   imageUrl: string | null;
   /** Ausente en backends que aún no tienen el campo; null/[] = sin empaque. */
   packaging?: PackagingOption[] | null;
+  /** "Ofertas destacadas" del Home de la app — lo marca un OWNER/ADMIN a mano. */
+  featured: boolean;
   commission: { commissionAmount: number } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Fila del módulo global "Productos" (GET /products, cross-business) — solo OWNER/ADMIN. */
+export interface AdminProductDTO extends ProductDTO {
+  businessName: string;
 }
 
 export interface ProductOfferDTO {
@@ -469,6 +478,45 @@ export interface DelivererDashboardSummaryDTO {
   averageTicket: number;
   topBusiness: TopBusinessDTO | null;
   topDeliverer: TopDelivererDTO | null;
+}
+
+// ── Notificaciones / difusiones ──────────────────────────────────────────
+
+export const NotificationStatus = {
+  DRAFT: 'DRAFT',
+  SENDING: 'SENDING',
+  SENT: 'SENT',
+  PARTIALLY_SENT: 'PARTIALLY_SENT',
+  FAILED: 'FAILED',
+} as const;
+export type NotificationStatus = (typeof NotificationStatus)[keyof typeof NotificationStatus];
+
+// V1: una sola audiencia (ver notifications.dto.ts del backend — el objeto, no un string suelto,
+// deja lugar a BUSINESS_CUSTOMERS/INACTIVE_CUSTOMERS/AREA/POINTS/CUSTOM más adelante).
+export type NotificationAudience = { type: 'ALL_CUSTOMERS' };
+
+// A qué navega la app al tocar el push.
+export type NotificationDestination =
+  | { type: 'GENERAL' }
+  | { type: 'BUSINESS'; businessId: string }
+  | { type: 'PRODUCT'; productId: string }
+  | { type: 'CATEGORY'; categoryId: string };
+
+export interface NotificationDTO {
+  id: string;
+  title: string;
+  body: string;
+  audienceType: NotificationAudience['type'];
+  data: NotificationDestination;
+  status: NotificationStatus;
+  targetedCount: number;
+  sentCount: number;
+  failedCount: number;
+  createdById: string;
+  createdByName: string;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SystemConfigDTO {

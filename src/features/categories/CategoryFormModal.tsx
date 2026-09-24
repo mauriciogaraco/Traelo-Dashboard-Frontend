@@ -4,10 +4,15 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { ImageUploader } from '@/components/ui/ImageUploader';
 import { Modal } from '@/components/ui/Modal';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { CategoryDTO } from '@/lib/types';
-import { useCreateCategoryMutation, useUpdateCategoryMutation } from './categoriesApi';
+import {
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useUploadCategoryImageMutation,
+} from './categoriesApi';
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres').max(80),
@@ -49,6 +54,7 @@ export function CategoryFormModal({ category, onClose }: CategoryFormModalProps)
     useCreateCategoryMutation();
   const [updateCategory, { isLoading: isUpdating, error: updateError }] =
     useUpdateCategoryMutation();
+  const [uploadCategoryImage] = useUploadCategoryImageMutation();
   // Mientras el usuario no toque el slug a mano, se deriva del nombre.
   const [slugTouched, setSlugTouched] = useState(isEdit);
 
@@ -88,6 +94,19 @@ export function CategoryFormModal({ category, onClose }: CategoryFormModalProps)
 
   return (
     <Modal title={isEdit ? 'Editar categoría' : 'Nueva categoría'} onClose={onClose}>
+      {isEdit && (
+        <div className="mb-4 flex items-center gap-4">
+          <ImageUploader
+            currentImageUrl={category.imageUrl}
+            onUpload={(file) => uploadCategoryImage({ id: category.id, file }).unwrap()}
+            successMessage="Imagen actualizada"
+          />
+          <p className="flex-1 text-sm text-slate-500">
+            Se muestra en la app. Sin imagen, la app cae al ícono de abajo; sin ícono, muestra uno
+            genérico.
+          </p>
+        </div>
+      )}
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormField
           label="Nombre"
