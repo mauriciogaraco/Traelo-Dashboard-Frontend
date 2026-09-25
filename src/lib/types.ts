@@ -244,6 +244,9 @@ export interface OrderItemDTO {
   unitPrice: number;
   subtotal: number;
   commissionAmount: number;
+  // Variantes de los pedidos de la app (tipo/sabor y agrego elegidos).
+  optionName?: string | null;
+  addonName?: string | null;
 }
 
 export interface OrderBusinessDTO {
