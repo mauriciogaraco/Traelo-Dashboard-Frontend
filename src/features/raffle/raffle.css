@@ -1,0 +1,373 @@
+/* Sorteo de Tráelo: escenario oscuro con luces de la marca, rodillos y animaciones de revelado. */
+
+.raffle-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* Los rodillos se miden respecto al ancho del escenario (cqw): nunca se salen de la tarjeta. */
+  container-type: inline-size;
+  background:
+    radial-gradient(900px 420px at 50% -12%, rgba(255, 108, 55, 0.42), transparent 62%),
+    radial-gradient(700px 380px at 92% 112%, rgba(255, 176, 46, 0.2), transparent 58%),
+    radial-gradient(600px 320px at 6% 108%, rgba(167, 139, 250, 0.16), transparent 60%),
+    linear-gradient(160deg, #0b1020 0%, #1b1838 52%, #3a1a14 100%);
+}
+
+/* Puntos de luz que titilan al fondo. */
+.raffle-spark {
+  position: absolute;
+  z-index: -1;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #ffe08a;
+  box-shadow: 0 0 12px 3px rgba(255, 176, 46, 0.7);
+  opacity: 0;
+  animation: raffle-twinkle 4.2s ease-in-out infinite;
+}
+
+.raffle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 176, 46, 0.4);
+  background: rgba(255, 176, 46, 0.1);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffd98a;
+}
+
+.raffle-title-accent {
+  background: linear-gradient(100deg, #ff8452 0%, #ffb02e 55%, #ffe08a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Rodillos ─────────────────────────────────────────── */
+.reels {
+  display: flex;
+  justify-content: center;
+  gap: 0.09em;
+  line-height: 1;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  transition: font-size 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Ancho de los rodillos ≈ cantidad × 0.83em: el tamaño se reparte para que quepan siempre. */
+/* Además del ancho, el alto de la ventana (dvh) limita el tamaño: el número nunca desborda la pantalla. */
+/* sm: con el ganador visible · md: girando · xl: el número ya fijo. */
+.reels-sm {
+  font-size: min(5.75rem, 13dvh, calc(52cqw / (var(--reel-count, 4) * 0.83)));
+}
+.reels-md {
+  font-size: min(10rem, 20dvh, calc(64cqw / (var(--reel-count, 4) * 0.83)));
+}
+.reels-xl {
+  font-size: min(17rem, 38dvh, calc(78cqw / (var(--reel-count, 4) * 0.83)));
+}
+
+.reel-window {
+  position: relative;
+  overflow: hidden;
+  width: 0.74em;
+  height: 1.06em;
+  border-radius: 0.14em;
+  background: linear-gradient(#070b18 0%, #1b2140 50%, #070b18 100%);
+  box-shadow:
+    inset 0 0 0 0.02em rgba(255, 255, 255, 0.09),
+    inset 0 0.3em 0.28em rgba(0, 0, 0, 0.65),
+    inset 0 -0.3em 0.28em rgba(0, 0, 0, 0.65),
+    0 0 0.4em rgba(255, 108, 55, 0.28);
+  transition:
+    opacity 0.6s ease,
+    box-shadow 0.6s ease;
+}
+/* Sombra arriba y abajo: da profundidad de cilindro. */
+.reel-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    rgba(3, 6, 15, 0.85) 0%,
+    transparent 24%,
+    transparent 76%,
+    rgba(3, 6, 15, 0.85) 100%
+  );
+}
+.reel-window-dim {
+  opacity: 0.26;
+}
+.reel-window-revealed:not(.reel-window-dim) {
+  animation: raffle-glow 2.4s ease-in-out infinite;
+}
+.reel-strip {
+  will-change: transform, filter;
+}
+.reel-cell {
+  height: 1.06em;
+  line-height: 1.06em;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 0 0.22em rgba(255, 176, 46, 0.75);
+}
+
+/* Anillo que se expande cuando el número queda fijo. */
+.raffle-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14rem;
+  height: 14rem;
+  margin: -7rem 0 0 -7rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 176, 46, 0.7);
+  opacity: 0;
+  animation: raffle-ring 1.4s ease-out 1;
+  pointer-events: none;
+}
+
+/* ── Barra de suspenso (30 s) ─────────────────────────── */
+.raffle-progress {
+  height: 0.5rem;
+  width: min(28rem, 100%);
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.raffle-progress > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #ff6c37, #ffb02e);
+  box-shadow: 0 0 14px rgba(255, 176, 46, 0.7);
+  animation: raffle-fill 30s linear forwards;
+}
+
+/* ── Botón principal con destello ─────────────────────── */
+.raffle-cta {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 1rem 2.5rem;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(120deg, #f0501a 0%, #ff6c37 45%, #ffb02e 100%);
+  box-shadow:
+    0 12px 32px -8px rgba(255, 108, 55, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+.raffle-cta:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.06);
+}
+.raffle-cta:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+.raffle-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+.raffle-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: raffle-shine 3.2s ease-in-out infinite;
+}
+.raffle-cta-confirm {
+  background: linear-gradient(120deg, #15803d 0%, #22c55e 50%, #86efac 100%);
+  box-shadow:
+    0 12px 32px -8px rgba(34, 197, 94, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.raffle-ghost {
+  border-radius: 9999px;
+  padding: 1rem 2rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+.raffle-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+.raffle-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Tarjeta del ganador ──────────────────────────────── */
+.raffle-winner-card {
+  width: min(46rem, 100%);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 176, 46, 0.35);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  padding: 2rem 1.5rem;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 60px -20px rgba(255, 108, 55, 0.45);
+  animation: raffle-pop 0.7s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+.raffle-name {
+  animation: raffle-pop 0.9s cubic-bezier(0.2, 1.2, 0.3, 1) 0.15s both;
+}
+.raffle-phone {
+  animation: raffle-rise 0.8s ease-out 0.55s both;
+}
+.raffle-rise {
+  animation: raffle-rise 0.6s ease-out both;
+}
+
+/* ── Animaciones ──────────────────────────────────────── */
+@keyframes raffle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+}
+@keyframes raffle-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+@keyframes raffle-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 0.02em rgba(255, 176, 46, 0.55),
+      inset 0 0.3em 0.28em rgba(0, 0, 0, 0.65),
+      inset 0 -0.3em 0.28em rgba(0, 0, 0, 0.65),
+      0 0 0.35em rgba(255, 176, 46, 0.45);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 0.02em rgba(255, 224, 138, 0.9),
+      inset 0 0.3em 0.28em rgba(0, 0, 0, 0.65),
+      inset 0 -0.3em 0.28em rgba(0, 0, 0, 0.65),
+      0 0 0.7em rgba(255, 176, 46, 0.8);
+  }
+}
+@keyframes raffle-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+  }
+}
+@keyframes raffle-shine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+@keyframes raffle-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.86);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes raffle-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes raffle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.raffle-float {
+  animation: raffle-float 3.4s ease-in-out infinite;
+}
+
+/* ── Escenario ancho: todo crece con el ANCHO DEL ESCENARIO (no de la ventana) ── */
+@container (min-width: 48rem) {
+  .raffle-badge {
+    padding: 0.45rem 1.15rem;
+    font-size: 0.85rem;
+  }
+  .raffle-cta {
+    padding: 1.2rem 3.4rem;
+    font-size: 1.3rem;
+  }
+  .raffle-ghost {
+    padding: 1.15rem 2.4rem;
+    font-size: 1.2rem;
+  }
+  .raffle-winner-card {
+    width: min(60rem, 100%);
+    padding: 1.75rem 2.5rem;
+  }
+  .raffle-progress {
+    height: 0.65rem;
+    width: min(36rem, 100%);
+  }
+}
+
+/* Pantallas altas: hay espacio de sobra, la tarjeta del ganador respira más. */
+@media (min-height: 1000px) {
+  @container (min-width: 48rem) {
+    .raffle-winner-card {
+      padding: 2.75rem 2.5rem;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raffle-spark,
+  .raffle-cta::after,
+  .raffle-float,
+  .raffle-ring,
+  .reel-window-revealed:not(.reel-window-dim) {
+    animation: none;
+  }
+}
