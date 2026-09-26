@@ -166,6 +166,7 @@ export function RafflePage() {
   }
 
   const summary = summaryData?.data;
+  // Solo decide si se puede sortear: el número de participantes NO se muestra en la pantalla.
   const eligibleCount = summary?.eligibleCount ?? 0;
   const reelCount = Math.max(4, String(drawn?.raffleNumber ?? 0).length);
   const showReels = phase !== 'idle';
@@ -216,11 +217,11 @@ export function RafflePage() {
           <p className="min-h-6 text-sm text-slate-300 @xl:text-base @3xl:min-h-8 @3xl:text-xl" aria-live="polite">
             {phase === 'idle' &&
               (summaryLoading
-                ? 'Contando los pedidos que participan…'
+                ? 'Preparando el sorteo…'
                 : summaryError
                   ? 'No se pudo cargar el sorteo.'
                   : eligibleCount > 0
-                    ? `${eligibleCount} ${eligibleCount === 1 ? 'pedido participa' : 'pedidos participan'} en el sorteo`
+                    ? 'Todo listo para el sorteo'
                     : 'Todavía no hay pedidos completados con número de sorteo.')}
             {phase === 'spinning' && SPINNING_MESSAGES[messageIndex]}
             {phase === 'locking' && '¡Tenemos número!'}
