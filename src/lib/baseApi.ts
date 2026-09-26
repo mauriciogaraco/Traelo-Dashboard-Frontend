@@ -79,6 +79,7 @@ export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
   tagTypes: [
+    'Raffle',
     'User',
     'Business',
     'BusinessHours',
