@@ -171,13 +171,20 @@ export function RafflePage() {
   const showReels = phase !== 'idle';
   const reelsBig = phase === 'number';
   const busy = phase === 'spinning' || phase === 'locking';
+  // Con el ganador a la vista se compacta el escenario: los botones de confirmar deben verse sin scroll.
+  const compact = phase === 'winner' || phase === 'confirmed';
   const canStart = !summaryLoading && !summaryError && eligibleCount > 0;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-8">
       <Confetti burstKey={confettiKey} />
 
-      <section className="raffle-stage rounded-3xl border border-white/10 px-5 py-10 text-center shadow-2xl sm:px-12 sm:py-14">
+      <section
+        className={clsx(
+          'raffle-stage rounded-3xl border border-white/10 px-5 py-10 text-center shadow-2xl sm:px-12 sm:py-14 md:flex md:min-h-[clamp(30rem,calc(100dvh-11rem),58rem)] md:items-center lg:px-16',
+          compact && 'md:py-8',
+        )}
+      >
         {SPARKS.map((spark, i) => (
           <span
             key={i}
@@ -186,17 +193,27 @@ export function RafflePage() {
           />
         ))}
 
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-6">
+        <div
+          className={clsx(
+            'mx-auto flex w-full max-w-5xl flex-col items-center gap-6',
+            compact ? '@3xl:gap-4 [@media(min-height:1000px)]:@3xl:gap-8' : '@3xl:gap-8',
+          )}
+        >
           <span className="raffle-badge">
             <Ticket className="h-4 w-4" />
             Sorteo de Tráelo
           </span>
 
-          <h1 className="font-display text-3xl font-extrabold leading-tight text-white sm:text-5xl">
+          <h1
+            className={clsx(
+              'font-display text-3xl font-extrabold leading-tight text-white @xl:text-5xl',
+              compact ? '@3xl:text-5xl' : '@3xl:text-6xl @5xl:text-7xl',
+            )}
+          >
             Primer sorteo de <span className="raffle-title-accent">Tráelo</span>
           </h1>
 
-          <p className="min-h-6 text-sm text-slate-300 sm:text-base" aria-live="polite">
+          <p className="min-h-6 text-sm text-slate-300 @xl:text-base @3xl:min-h-8 @3xl:text-xl" aria-live="polite">
             {phase === 'idle' &&
               (summaryLoading
                 ? 'Contando los pedidos que participan…'
@@ -214,11 +231,11 @@ export function RafflePage() {
 
           {phase === 'idle' && (
             <div className="flex flex-col items-center gap-7 py-4">
-              <div className="raffle-float relative flex h-36 w-36 items-center justify-center rounded-full border border-amber-300/30 bg-white/5 shadow-[0_0_70px_-10px_rgba(255,176,46,0.55)]">
-                <Trophy className="h-16 w-16 text-amber-300" strokeWidth={1.5} />
-                <Sparkles className="absolute -right-1 -top-1 h-8 w-8 text-brand-300" />
+              <div className="raffle-float relative flex h-36 w-36 items-center justify-center rounded-full border border-amber-300/30 bg-white/5 shadow-[0_0_70px_-10px_rgba(255,176,46,0.55)] @3xl:h-48 @3xl:w-48">
+                <Trophy className="h-16 w-16 text-amber-300 @3xl:h-24 @3xl:w-24" strokeWidth={1.5} />
+                <Sparkles className="absolute -right-1 -top-1 h-8 w-8 text-brand-300 @3xl:h-10 @3xl:w-10" />
               </div>
-              <p className="max-w-md text-slate-400">
+              <p className="max-w-md text-slate-400 @3xl:max-w-xl @3xl:text-lg">
                 Cada pedido completado con número de sorteo es una participación. Se elige uno al azar
                 entre todos.
               </p>
@@ -242,10 +259,10 @@ export function RafflePage() {
                 target={drawn?.raffleNumber ?? null}
                 onSettled={handleSettled}
                 revealed={phase === 'number' || phase === 'winner' || phase === 'confirmed'}
-                size={reelsBig ? 'xl' : 'md'}
+                size={reelsBig ? 'xl' : phase === 'winner' || phase === 'confirmed' ? 'sm' : 'md'}
               />
               {(phase === 'number' || phase === 'winner' || phase === 'confirmed') && drawn && (
-                <p className="raffle-rise font-display text-sm font-semibold uppercase tracking-[0.3em] text-amber-200/80">
+                <p className="raffle-rise font-display text-sm font-semibold uppercase tracking-[0.3em] text-amber-200/80 @3xl:text-base">
                   Número de sorteo #{drawn.raffleNumber}
                 </p>
               )}
@@ -272,7 +289,7 @@ export function RafflePage() {
 
           {(phase === 'winner' || phase === 'confirmed') && drawn && (
             <div className="raffle-winner-card flex flex-col items-center gap-4">
-              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-amber-200">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-amber-200 @3xl:text-sm">
                 <Crown className="h-4 w-4" />
                 Ganador del sorteo
               </span>
@@ -280,14 +297,16 @@ export function RafflePage() {
                 className={clsx(
                   'raffle-name font-display font-extrabold leading-tight text-white [overflow-wrap:anywhere]',
                   // Los nombres largos bajan un escalón para no ocupar media pantalla.
-                  drawn.customerName.length > 22 ? 'text-3xl sm:text-5xl' : 'text-4xl sm:text-6xl',
+                  drawn.customerName.length > 22
+                    ? 'text-3xl @xl:text-5xl @3xl:text-5xl [@media(min-height:1000px)]:@3xl:text-6xl'
+                    : 'text-4xl @xl:text-6xl @3xl:text-6xl [@media(min-height:1000px)]:@3xl:text-7xl',
                 )}
               >
                 {drawn.customerName}
               </p>
               <div className="raffle-phone flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-                <Phone className="h-7 w-7 text-brand-300 sm:h-9 sm:w-9" />
-                <span className="font-display text-3xl font-bold tabular-nums text-amber-300 sm:text-5xl">
+                <Phone className="h-7 w-7 text-brand-300 @xl:h-9 @xl:w-9 @3xl:h-11 @3xl:w-11" />
+                <span className="font-display text-3xl font-bold tabular-nums text-amber-300 @xl:text-5xl @3xl:text-5xl [@media(min-height:1000px)]:@3xl:text-6xl">
                   {formatPhone(drawn.customerPhone)}
                 </span>
                 <button
@@ -299,7 +318,7 @@ export function RafflePage() {
                   <Copy className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-sm text-slate-400">Pedido #{drawn.orderNumber}</p>
+              <p className="text-sm text-slate-400 @3xl:text-base">Pedido #{drawn.orderNumber}</p>
             </div>
           )}
 
@@ -358,8 +377,31 @@ export function RafflePage() {
           </h2>
           <span className="text-sm text-slate-500">{summary?.winners.length ?? 0}</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        {/* Móvil: tarjetas (una tabla de 6 columnas obliga a hacer scroll horizontal). */}
+        <ul className="divide-y divide-slate-100 sm:hidden">
+          {summaryLoading && <li className="px-4 py-8 text-center text-slate-400">Cargando…</li>}
+          {!summaryLoading && (summary?.winners.length ?? 0) === 0 && (
+            <li className="px-4 py-8 text-center text-slate-400">Todavía no hay ganadores confirmados.</li>
+          )}
+          {summary?.winners.map((winner) => (
+            <li key={winner.id} className="flex flex-col gap-1.5 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 font-display font-semibold text-brand-700">
+                  #{winner.raffleNumber}
+                </span>
+                <span className="text-xs text-slate-500">{formatDateTime(winner.confirmedAt)}</span>
+              </div>
+              <p className="font-display text-base font-semibold text-slate-900">{winner.customerName}</p>
+              <p className="tabular-nums text-slate-700">{formatPhone(winner.customerPhone)}</p>
+              <p className="text-xs text-slate-500">
+                Pedido #{winner.orderNumber}
+                {winner.confirmedByName ? ` · confirmado por ${winner.confirmedByName}` : ''}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full text-left text-sm lg:text-base">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="whitespace-nowrap px-4 py-3 font-medium">N.º sorteo</th>

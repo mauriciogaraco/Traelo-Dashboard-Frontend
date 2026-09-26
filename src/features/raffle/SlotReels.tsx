@@ -25,7 +25,7 @@ interface SlotReelsProps {
   onSettled: () => void;
   /** Ya terminó: se atenúan los ceros de la izquierda para que resalte el número. */
   revealed?: boolean;
-  size?: 'md' | 'xl';
+  size?: 'sm' | 'md' | 'xl';
 }
 
 function padDigits(value: number, count: number): string {
@@ -113,7 +113,7 @@ export function SlotReels({ count, target, onSettled, revealed = false, size = '
 
   return (
     <div
-      className={clsx('reels', size === 'xl' ? 'reels-xl' : 'reels-md')}
+      className={clsx('reels', size === 'xl' ? 'reels-xl' : size === 'sm' ? 'reels-sm' : 'reels-md')}
       style={{ '--reel-count': count } as CSSProperties}
       role="img"
       aria-label={target !== null && revealed ? `Número ${target}` : 'Número girando'}

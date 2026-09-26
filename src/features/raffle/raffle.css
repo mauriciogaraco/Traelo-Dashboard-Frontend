@@ -60,11 +60,16 @@
   transition: font-size 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 /* Ancho de los rodillos ≈ cantidad × 0.83em: el tamaño se reparte para que quepan siempre. */
+/* Además del ancho, el alto de la ventana (dvh) limita el tamaño: el número nunca desborda la pantalla. */
+/* sm: con el ganador visible · md: girando · xl: el número ya fijo. */
+.reels-sm {
+  font-size: min(5.75rem, 13dvh, calc(52cqw / (var(--reel-count, 4) * 0.83)));
+}
 .reels-md {
-  font-size: min(6.75rem, calc(62cqw / (var(--reel-count, 4) * 0.83)));
+  font-size: min(10rem, 20dvh, calc(64cqw / (var(--reel-count, 4) * 0.83)));
 }
 .reels-xl {
-  font-size: min(13rem, calc(78cqw / (var(--reel-count, 4) * 0.83)));
+  font-size: min(17rem, 38dvh, calc(78cqw / (var(--reel-count, 4) * 0.83)));
 }
 
 .reel-window {
@@ -322,6 +327,39 @@
 }
 .raffle-float {
   animation: raffle-float 3.4s ease-in-out infinite;
+}
+
+/* ── Escenario ancho: todo crece con el ANCHO DEL ESCENARIO (no de la ventana) ── */
+@container (min-width: 48rem) {
+  .raffle-badge {
+    padding: 0.45rem 1.15rem;
+    font-size: 0.85rem;
+  }
+  .raffle-cta {
+    padding: 1.2rem 3.4rem;
+    font-size: 1.3rem;
+  }
+  .raffle-ghost {
+    padding: 1.15rem 2.4rem;
+    font-size: 1.2rem;
+  }
+  .raffle-winner-card {
+    width: min(60rem, 100%);
+    padding: 1.75rem 2.5rem;
+  }
+  .raffle-progress {
+    height: 0.65rem;
+    width: min(36rem, 100%);
+  }
+}
+
+/* Pantallas altas: hay espacio de sobra, la tarjeta del ganador respira más. */
+@media (min-height: 1000px) {
+  @container (min-width: 48rem) {
+    .raffle-winner-card {
+      padding: 2.75rem 2.5rem;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
