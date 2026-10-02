@@ -250,7 +250,13 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
       </div>
 
       {createOpen && (
-        <CreateProductModal businessId={business.id} onClose={() => setCreateOpen(false)} />
+        <CreateProductModal
+          businessId={business.id}
+          onClose={() => setCreateOpen(false)}
+          // Abre directo la edición del producto recién creado: es el único momento en que se le
+          // puede subir una imagen (ver el comentario en CreateProductModal).
+          onCreated={(product) => setEditingProduct(product)}
+        />
       )}
       {editingProduct && (
         <EditProductModal
