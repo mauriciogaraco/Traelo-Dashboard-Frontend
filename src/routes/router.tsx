@@ -13,6 +13,7 @@ import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
 import { BusinessesPage } from '@/features/businesses/BusinessesPage';
 import { BusinessDetailPage } from '@/features/businesses/BusinessDetailPage';
 import { CategoriesPage } from '@/features/categories/CategoriesPage';
+import { RafflePage } from '@/features/raffle/RafflePage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
@@ -87,6 +88,7 @@ export const router = createBrowserRouter([
             element: <RoleGate allow={['OWNER', 'ADMIN']} />,
             children: [
               { path: 'categories', element: <CategoriesPage /> },
+              { path: 'raffle', element: <RafflePage /> },
               { path: 'users', element: <UsersPage /> },
               { path: 'config', element: <ConfigPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
