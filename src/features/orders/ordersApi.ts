@@ -42,6 +42,29 @@ export interface CreateOrderInput {
   businesses: CreateOrderBusinessInput[];
 }
 
+// Fusión de pedidos: el mismo teléfono pidió otra vez a los pocos minutos y el staff decide.
+export interface MergePreview {
+  productsTotal: number;
+  deliveryFee: number;
+  platformFee: number;
+  total: number;
+  separateDeliveryFees: number;
+  separateTotals: number;
+}
+
+export interface MergeSuggestion {
+  /** El pedido NUEVO (el que se absorbería). */
+  newOrder: OrderDTO;
+  /** El pedido anterior del mismo teléfono (el vale que quedaría). */
+  targetOrder: OrderDTO;
+  preview: MergePreview | null;
+  canMerge: boolean;
+  blockedReason: string | null;
+  waitingSince: string;
+}
+
+export type MergeDecision = 'MERGE' | 'SEPARATE';
+
 export interface BulkCompleteOrdersResult {
   completed: OrderDTO[];
   skipped: { id: string; reason: string }[];
@@ -118,6 +141,20 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+    listMergeSuggestions: builder.query<ApiOk<MergeSuggestion[]>, void>({
+      query: () => '/orders/merge-suggestions',
+      providesTags: [{ type: 'Order' as const, id: 'MERGE' }],
+    }),
+    resolveMergeDecision: builder.mutation<
+      ApiOk<{ decision: MergeDecision; order: OrderDTO }>,
+      { id: string; decision: MergeDecision }
+    >({
+      query: ({ id, decision }) => ({ url: `/orders/${id}/merge-decision`, method: 'POST', body: { decision } }),
+      invalidatesTags: [
+        { type: 'Order', id: 'MERGE' },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
     bulkCompleteOrders: builder.mutation<ApiOk<BulkCompleteOrdersResult>, string[]>({
       query: (ids) => ({ url: '/orders/bulk/complete', method: 'PATCH', body: { ids } }),
       invalidatesTags: (result) =>
@@ -132,6 +169,8 @@ export const ordersApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useListMergeSuggestionsQuery,
+  useResolveMergeDecisionMutation,
   useListOrdersQuery,
   useGetOrderQuery,
   useCreateOrderMutation,

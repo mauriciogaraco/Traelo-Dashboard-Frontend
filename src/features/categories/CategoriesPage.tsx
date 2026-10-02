@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
+import { Thumbnail } from '@/components/ui/Thumbnail';
 import { useToast } from '@/components/ui/ToastProvider';
 import type { CategoryDTO } from '@/lib/types';
 import { CategoryFormModal } from './CategoryFormModal';
@@ -128,7 +129,12 @@ export function CategoriesPage() {
             )}
             {rows.map((category) => (
               <tr key={category.id} className="text-slate-700">
-                <td className="px-4 py-3 font-medium text-slate-900">{category.name}</td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  <div className="flex items-center gap-3">
+                    <Thumbnail src={category.imageUrl} alt={category.name} size={32} shape="circle" />
+                    {category.name}
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-mono text-xs">{category.slug}</td>
                 <td className="px-4 py-3">{category.icon ?? '—'}</td>
                 <td className="px-4 py-3">{category.sortOrder}</td>

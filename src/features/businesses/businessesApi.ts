@@ -76,6 +76,8 @@ export interface UpdateProductInput {
   active?: boolean;
   /** null o [] quitan el empaque; omitido no lo toca. */
   packaging?: PackagingOption[] | null;
+  /** "Ofertas destacadas" del Home de la app. */
+  featured?: boolean;
 }
 
 export interface SetProductAvailabilityInput {

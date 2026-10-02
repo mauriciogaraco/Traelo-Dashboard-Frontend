@@ -92,6 +92,7 @@ export const baseApi = createApi({
     'Order',
     'Settlement',
     'Config',
+    'Notification',
   ],
   endpoints: () => ({}),
 });
