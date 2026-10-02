@@ -5,15 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { useListOrdersQuery } from '@/features/orders/ordersApi';
 import { formatDate } from '@/lib/formatDate';
-import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import type { OrderStatus } from '@/lib/types';
-
-const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = {
-  PENDING: 'amber',
-  ASSIGNED: 'brand',
-  COMPLETED: 'green',
-  CANCELLED: 'slate',
-};
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 
 const PAGE_SIZE = 10;
 
@@ -97,7 +89,7 @@ export function OrderCustomerSearch() {
                       {order.customerAddress}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone={STATUS_TONE[order.status]}>
+                      <Badge tone={ORDER_STATUS_TONE[order.status]}>
                         {ORDER_STATUS_LABEL[order.status]}
                       </Badge>
                     </td>

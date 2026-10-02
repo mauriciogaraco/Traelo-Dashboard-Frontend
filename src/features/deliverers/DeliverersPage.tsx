@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import { KeyRound, Plus, RotateCcw, Search, UserX } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
@@ -9,6 +10,7 @@ import type { DelivererDTO, PaginationMeta } from '@/lib/types';
 import { ChangeDelivererPasswordModal } from './ChangeDelivererPasswordModal';
 import { CreateDelivererModal } from './CreateDelivererModal';
 import { EditDelivererModal } from './EditDelivererModal';
+import { WorkingTodayTab } from './WorkingTodayTab';
 import {
   useDeactivateDelivererMutation,
   useListDeliverersQuery,
@@ -16,6 +18,13 @@ import {
 } from './deliverersApi';
 
 const PAGE_SIZE = 10;
+
+const VIEW_TABS = [
+  { value: 'list', label: 'Listado' },
+  { value: 'today', label: 'Trabajando hoy' },
+] as const;
+
+type ViewTab = (typeof VIEW_TABS)[number]['value'];
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -25,6 +34,7 @@ export function DeliverersPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
+  const [view, setView] = useState<ViewTab>('list');
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -94,124 +104,146 @@ export function DeliverersPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar por nombre…"
-            className="rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        >
-          <option value="all">Todos los estados</option>
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-        </select>
+      <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        {VIEW_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setView(tab.value)}
+            className={clsx(
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              view === tab.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Nombre</th>
-              <th className="px-4 py-3 font-medium">Correo</th>
-              <th className="px-4 py-3 font-medium">Teléfono</th>
-              <th className="px-4 py-3 font-medium">% Comisión</th>
-              <th className="px-4 py-3 font-medium">Ingreso</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {isLoading && (
-              <tr>
-                <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
-                  Cargando…
-                </td>
-              </tr>
-            )}
-            {!isLoading && rows.length === 0 && (
-              <tr>
-                <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
-                  No hay mensajeros que coincidan con los filtros.
-                </td>
-              </tr>
-            )}
-            {rows.map((deliverer) => (
-              <tr key={deliverer.id} className="text-slate-700">
-                <td className="px-4 py-3 font-medium text-slate-900">{deliverer.name}</td>
-                <td className="px-4 py-3">{deliverer.email}</td>
-                <td className="px-4 py-3">{deliverer.phone ?? '—'}</td>
-                <td className="px-4 py-3">
-                  {deliverer.commissionPercentage !== null ? (
-                    `${deliverer.commissionPercentage}%`
-                  ) : (
-                    <span className="text-slate-400">
-                      {deliverer.effectiveCommissionPercentage}% (por defecto)
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">{formatDate(deliverer.joinedAt)}</td>
-                <td className="px-4 py-3">
-                  <Badge tone={deliverer.active ? 'green' : 'slate'}>
-                    {deliverer.active ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </td>
-                {canManage && (
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setEditingDeliverer(deliverer)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setPasswordDeliverer(deliverer)}
-                      >
-                        <KeyRound className="h-4 w-4" />
-                        Contraseña
-                      </Button>
-                      {deliverer.active ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setDeactivatingDeliverer(deliverer)}
-                        >
-                          <UserX className="h-4 w-4" />
-                          Desactivar
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() =>
-                            reactivateDeliverer({ id: deliverer.id, body: { active: true } })
-                          }
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                          Activar
-                        </Button>
-                      )}
-                    </div>
-                  </td>
+      {view === 'today' && <WorkingTodayTab />}
+
+      {view === 'list' && (
+        <>
+          <div className="flex flex-wrap gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Buscar por nombre…"
+                className="rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Nombre</th>
+                  <th className="px-4 py-3 font-medium">Correo</th>
+                  <th className="px-4 py-3 font-medium">Teléfono</th>
+                  <th className="px-4 py-3 font-medium">% Comisión</th>
+                  <th className="px-4 py-3 font-medium">Ingreso</th>
+                  <th className="px-4 py-3 font-medium">Estado</th>
+                  {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isLoading && (
+                  <tr>
+                    <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
+                      Cargando…
+                    </td>
+                  </tr>
                 )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {meta && <Pagination meta={meta} onPageChange={setPage} />}
-      </div>
-      {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
+                {!isLoading && rows.length === 0 && (
+                  <tr>
+                    <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
+                      No hay mensajeros que coincidan con los filtros.
+                    </td>
+                  </tr>
+                )}
+                {rows.map((deliverer) => (
+                  <tr key={deliverer.id} className="text-slate-700">
+                    <td className="px-4 py-3 font-medium text-slate-900">{deliverer.name}</td>
+                    <td className="px-4 py-3">{deliverer.email}</td>
+                    <td className="px-4 py-3">{deliverer.phone ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {deliverer.commissionPercentage !== null ? (
+                        `${deliverer.commissionPercentage}%`
+                      ) : (
+                        <span className="text-slate-400">
+                          {deliverer.effectiveCommissionPercentage}% (por defecto)
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{formatDate(deliverer.joinedAt)}</td>
+                    <td className="px-4 py-3">
+                      <Badge tone={deliverer.active ? 'green' : 'slate'}>
+                        {deliverer.active ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </td>
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setEditingDeliverer(deliverer)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setPasswordDeliverer(deliverer)}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                            Contraseña
+                          </Button>
+                          {deliverer.active ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setDeactivatingDeliverer(deliverer)}
+                            >
+                              <UserX className="h-4 w-4" />
+                              Desactivar
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() =>
+                                reactivateDeliverer({ id: deliverer.id, body: { active: true } })
+                              }
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Activar
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
+          </div>
+          {isFetching && !isLoading && <p className="text-xs text-slate-400">Actualizando…</p>}
+        </>
+      )}
 
       {createOpen && <CreateDelivererModal onClose={() => setCreateOpen(false)} />}
       {editingDeliverer && (

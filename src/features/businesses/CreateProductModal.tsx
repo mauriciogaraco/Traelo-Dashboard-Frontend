@@ -7,6 +7,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import type { ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
 import { useCreateProductMutation } from './businessesApi';
 
@@ -26,9 +27,14 @@ type FormValues = z.infer<typeof schema>;
 interface CreateProductModalProps {
   businessId: string;
   onClose: () => void;
+  // El alta no acepta imagen (el backend solo recibe el archivo vía POST .../products/:id/image,
+  // que necesita un producto ya creado) — se la pasamos al que abre este modal para que, si
+  // quiere, encadene la edición y el usuario suba la foto sin tener que volver a buscar el
+  // producto en la lista.
+  onCreated?: (product: ProductDTO) => void;
 }
 
-export function CreateProductModal({ businessId, onClose }: CreateProductModalProps) {
+export function CreateProductModal({ businessId, onClose, onCreated }: CreateProductModalProps) {
   const [createProduct, { isLoading, error }] = useCreateProductMutation();
   const { data: categoriesData } = useListCategoriesQuery({ active: true, pageSize: 100 });
 
@@ -43,7 +49,7 @@ export function CreateProductModal({ businessId, onClose }: CreateProductModalPr
   });
 
   async function onSubmit(values: FormValues) {
-    await createProduct({
+    const created = await createProduct({
       businessId,
       name: values.name,
       description: values.description || undefined,
@@ -51,6 +57,7 @@ export function CreateProductModal({ businessId, onClose }: CreateProductModalPr
       categoryId: values.categoryId ?? undefined,
       price: values.price ? Number(values.price) : undefined,
     }).unwrap();
+    onCreated?.(created.data);
     onClose();
   }
 

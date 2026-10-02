@@ -9,8 +9,8 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
-import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import type { OrderStatus } from '@/lib/types';
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { ACTIVE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
 import {
   useAssignOrderMutation,
@@ -18,13 +18,6 @@ import {
   useGetOrderQuery,
   useUpdateOrderStatusMutation,
 } from './ordersApi';
-
-const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = {
-  PENDING: 'amber',
-  ASSIGNED: 'brand',
-  COMPLETED: 'green',
-  CANCELLED: 'slate',
-};
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -66,9 +59,13 @@ export function OrderDetailPage() {
   const order = data.data;
   const voucherText = generateOrderVoucherText(order, configData?.data);
   const canEdit = canManage;
+  // Asignar/reasignar solo aplica a PENDING/ASSIGNED — ver la misma restricción en
+  // ordersService.assignOrder (backend).
   const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
-  const canComplete = canManage && order.status === 'ASSIGNED';
-  const canCancel = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
+  // Completar/cancelar valen desde cualquier estado activo (ver ACTIVE_ORDER_STATUSES): el
+  // mensajero puede estar en cualquier sub-fase del trayecto, el staff lo completa igual.
+  const canComplete = canManage && ACTIVE_ORDER_STATUSES.includes(order.status);
+  const canCancel = canManage && order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
   const canDeleteOrder = canDelete && order.status !== 'COMPLETED';
 
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
@@ -148,7 +145,7 @@ export function OrderDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold text-slate-900">Pedido #{order.orderNumber}</h1>
-            <Badge tone={STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+            <Badge tone={ORDER_STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
           </div>
           <p className="mt-1 text-sm text-slate-500">
             Registrado por {order.registeredByName} · {formatDateTime(order.orderDate)}

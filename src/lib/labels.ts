@@ -37,8 +37,26 @@ export const SUBSCRIPTION_STATUS_LABEL: Record<SubscriptionStatus, string> = {
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING: 'Pendiente',
   ASSIGNED: 'Asignado',
+  CONFIRMED: 'Confirmado',
+  HEADING_OUT: 'Yendo al negocio',
+  PICKING_UP: 'Recogiendo',
+  ON_THE_WAY: 'En camino',
   COMPLETED: 'Completado',
   CANCELLED: 'Cancelado',
+};
+
+// Mismo color para toda la fase "en curso" (ASSIGNED en adelante): lo que le importa al staff
+// de un vistazo es pendiente / en curso / terminado, no en qué sub-fase exacta del trayecto va
+// el mensajero (eso lo ve con detalle en el pedido).
+export const ORDER_STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = {
+  PENDING: 'amber',
+  ASSIGNED: 'brand',
+  CONFIRMED: 'brand',
+  HEADING_OUT: 'brand',
+  PICKING_UP: 'brand',
+  ON_THE_WAY: 'brand',
+  COMPLETED: 'green',
+  CANCELLED: 'slate',
 };
 
 export const SETTLEMENT_TYPE_LABEL: Record<SettlementType, string> = {

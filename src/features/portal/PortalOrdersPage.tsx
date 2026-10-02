@@ -3,19 +3,12 @@ import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { formatDateTime } from '@/lib/formatDate';
-import { ORDER_STATUS_LABEL } from '@/lib/labels';
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { OrderStatus } from '@/lib/types';
 import { RangeTabs } from './RangeTabs';
 import { useListPortalOrdersQuery, type PortalRange } from './portalApi';
 
 const PAGE_SIZE = 15;
-
-const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = {
-  PENDING: 'amber',
-  ASSIGNED: 'brand',
-  COMPLETED: 'green',
-  CANCELLED: 'slate',
-};
 
 function formatCUP(value: number): string {
   return `${value.toLocaleString('es')} CUP`;
@@ -122,7 +115,9 @@ export function PortalOrdersPage() {
                     <td className="px-4 py-3 font-medium text-slate-900">#{order.orderNumber}</td>
                     <td className="px-4 py-3">{order.customerName}</td>
                     <td className="px-4 py-3">
-                      <Badge tone={STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+                      <Badge tone={ORDER_STATUS_TONE[order.status]}>
+                        {ORDER_STATUS_LABEL[order.status]}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">{formatCUP(order.subtotal)}</td>
                     <td className="px-4 py-3">{order.delivererName ?? '—'}</td>
