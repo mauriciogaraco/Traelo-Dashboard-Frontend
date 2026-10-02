@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, RotateCcw, Search, UserX } from 'lucide-react';
+import { KeyRound, Plus, RotateCcw, Search, UserX } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import type { DelivererDTO, PaginationMeta } from '@/lib/types';
+import { ChangeDelivererPasswordModal } from './ChangeDelivererPasswordModal';
 import { CreateDelivererModal } from './CreateDelivererModal';
 import { EditDelivererModal } from './EditDelivererModal';
 import {
@@ -30,6 +31,7 @@ export function DeliverersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [editingDeliverer, setEditingDeliverer] = useState<DelivererDTO | null>(null);
+  const [passwordDeliverer, setPasswordDeliverer] = useState<DelivererDTO | null>(null);
   const [deactivatingDeliverer, setDeactivatingDeliverer] = useState<DelivererDTO | null>(null);
 
   useEffect(() => {
@@ -171,6 +173,14 @@ export function DeliverersPage() {
                       >
                         Editar
                       </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setPasswordDeliverer(deliverer)}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                        Contraseña
+                      </Button>
                       {deliverer.active ? (
                         <Button
                           type="button"
@@ -206,6 +216,12 @@ export function DeliverersPage() {
       {createOpen && <CreateDelivererModal onClose={() => setCreateOpen(false)} />}
       {editingDeliverer && (
         <EditDelivererModal deliverer={editingDeliverer} onClose={() => setEditingDeliverer(null)} />
+      )}
+      {passwordDeliverer && (
+        <ChangeDelivererPasswordModal
+          deliverer={passwordDeliverer}
+          onClose={() => setPasswordDeliverer(null)}
+        />
       )}
       {deactivatingDeliverer && (
         <ConfirmDialog
