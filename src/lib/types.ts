@@ -34,10 +34,29 @@ export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof Subscr
 export const OrderStatus = {
   PENDING: 'PENDING',
   ASSIGNED: 'ASSIGNED',
+  // Sub-fases del trayecto (app mensajero), entre ASSIGNED y COMPLETED — ver el comentario en
+  // el enum OrderStatus del backend (schema.prisma). El staff puede saltárselas y completar o
+  // cancelar directo desde cualquiera de ellas (ver ACTIVE_ORDER_STATUSES).
+  CONFIRMED: 'CONFIRMED',
+  HEADING_OUT: 'HEADING_OUT',
+  PICKING_UP: 'PICKING_UP',
+  ON_THE_WAY: 'ON_THE_WAY',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+
+// Estados "activos" previos a COMPLETED/CANCELLED — el mensajero puede estar en cualquiera de
+// ellos (o nunca haber usado la app y seguir en ASSIGNED). El staff puede completar un pedido
+// directo desde cualquiera de estos, sin pasar por los intermedios (ver
+// ordersService.bulkCompleteOrders / STAFF_STATUS_TRANSITIONS en el backend).
+export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
+  'ASSIGNED',
+  'CONFIRMED',
+  'HEADING_OUT',
+  'PICKING_UP',
+  'ON_THE_WAY',
+];
 
 export const SettlementType = {
   DAILY: 'DAILY',
@@ -123,6 +142,11 @@ export interface DelivererDTO {
   joinedAt: string;
   commissionPercentage: number | null;
   effectiveCommissionPercentage: number;
+  // "En turno hoy": en línea en la cola de despacho automático de la app de mensajero.
+  // Distinto de `active` (alta/baja administrativa de la cuenta).
+  onDuty: boolean;
+  // Timestamp del turno (null si no está en línea). El más antiguo es el próximo en la cola.
+  queuedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

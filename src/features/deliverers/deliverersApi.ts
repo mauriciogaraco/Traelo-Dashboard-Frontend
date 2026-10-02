@@ -7,6 +7,10 @@ export interface ListDeliverersParams {
   search?: string;
   // "active" solo admite el valor true: ver la misma nota en usersApi.ts.
   active?: true;
+  // "Trabajando hoy": filtra por si está en línea en la cola de despacho (Deliverer.queuedAt).
+  // A diferencia de `active`, este sí admite false de forma confiable (usa booleanQueryParam
+  // en el backend).
+  onDuty?: boolean;
 }
 
 export interface CreateDelivererInput {

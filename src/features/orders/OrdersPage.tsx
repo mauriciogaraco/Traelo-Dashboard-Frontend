@@ -9,8 +9,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
-import { ORDER_STATUS_LABEL } from '@/lib/labels';
-import { OrderStatus, type OrderDTO } from '@/lib/types';
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { ACTIVE_ORDER_STATUSES, OrderStatus, type OrderDTO } from '@/lib/types';
 import type { DateRangePreset } from './ordersApi';
 import {
   useBulkCompleteOrdersMutation,
@@ -19,13 +19,6 @@ import {
 } from './ordersApi';
 
 const PAGE_SIZE = 15;
-
-const STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' | 'slate'> = {
-  PENDING: 'amber',
-  ASSIGNED: 'brand',
-  COMPLETED: 'green',
-  CANCELLED: 'slate',
-};
 
 type RangeTab = DateRangePreset | 'all';
 
@@ -123,8 +116,11 @@ export function OrdersPage() {
   }
 
   const rowsForBulk = data?.data ?? [];
-  // Solo los pedidos ASSIGNED pueden marcarse como completados, en bulto o individualmente.
-  const eligibleIds = rowsForBulk.filter((o) => o.status === 'ASSIGNED').map((o) => o.id);
+  // Cualquier estado activo previo a COMPLETED/CANCELLED puede marcarse como completado, en
+  // bulto o individualmente (ver ACTIVE_ORDER_STATUSES / bulkCompleteOrders en el backend).
+  const eligibleIds = rowsForBulk
+    .filter((o) => ACTIVE_ORDER_STATUSES.includes(o.status))
+    .map((o) => o.id);
   const selectedEligibleCount = eligibleIds.filter((id) => selectedIds.has(id)).length;
   const allEligibleSelected = eligibleIds.length > 0 && selectedEligibleCount === eligibleIds.length;
 
@@ -337,7 +333,7 @@ export function OrdersPage() {
               <tr key={order.id} className="text-slate-700">
                 {canManage && (
                   <td className="px-4 py-3">
-                    {order.status === 'ASSIGNED' && (
+                    {ACTIVE_ORDER_STATUSES.includes(order.status) && (
                       <input
                         type="checkbox"
                         className="accent-brand-600"
@@ -362,7 +358,9 @@ export function OrdersPage() {
                 </td>
                 <td className="px-4 py-3">{order.delivererName ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <Badge tone={STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+                  <Badge tone={ORDER_STATUS_TONE[order.status]}>
+                    {ORDER_STATUS_LABEL[order.status]}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3">{order.deliveryFee} CUP</td>
                 <td className="px-4 py-3 font-medium text-slate-900">{order.total} CUP</td>
