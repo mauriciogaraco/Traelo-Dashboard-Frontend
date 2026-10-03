@@ -1,5 +1,5 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiOk, ApiPaginated, DelivererDTO } from '@/lib/types';
+import type { ApiOk, ApiPaginated, DateRangePreset, DelivererDTO } from '@/lib/types';
 
 export interface ListDeliverersParams {
   page?: number;
@@ -11,6 +11,25 @@ export interface ListDeliverersParams {
   // A diferencia de `active`, este sí admite false de forma confiable (usa booleanQueryParam
   // en el backend).
   onDuty?: boolean;
+}
+
+export interface DelivererBonusDTO {
+  delivererId: string;
+  name: string;
+  active: boolean;
+  completedDeliveries: number;
+  reviewCount: number;
+  averageRating: number | null;
+  points: number;
+}
+
+export interface DelivererBonusesDTO {
+  range: { from: string; to: string };
+  rows: DelivererBonusDTO[];
+}
+
+export interface DelivererBonusesParams {
+  range?: Exclude<DateRangePreset, 'custom'>;
 }
 
 export interface CreateDelivererInput {
@@ -41,6 +60,9 @@ export const deliverersApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'Deliverer' as const, id: 'LIST' }],
     }),
+    getDelivererBonuses: builder.query<ApiOk<DelivererBonusesDTO>, DelivererBonusesParams | void>({
+      query: (params) => ({ url: '/deliverers/bonuses', params: params ?? undefined }),
+    }),
     createDeliverer: builder.mutation<ApiOk<DelivererDTO>, CreateDelivererInput>({
       query: (body) => ({ url: '/deliverers', method: 'POST', body }),
       invalidatesTags: [{ type: 'Deliverer', id: 'LIST' }],
@@ -67,6 +89,7 @@ export const deliverersApi = baseApi.injectEndpoints({
 
 export const {
   useListDeliverersQuery,
+  useGetDelivererBonusesQuery,
   useCreateDelivererMutation,
   useUpdateDelivererMutation,
   useDeactivateDelivererMutation,

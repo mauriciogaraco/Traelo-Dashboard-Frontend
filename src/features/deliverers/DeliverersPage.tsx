@@ -10,6 +10,7 @@ import type { DelivererDTO, PaginationMeta } from '@/lib/types';
 import { ChangeDelivererPasswordModal } from './ChangeDelivererPasswordModal';
 import { CreateDelivererModal } from './CreateDelivererModal';
 import { EditDelivererModal } from './EditDelivererModal';
+import { BonusesTab } from './BonusesTab';
 import { WorkingTodayTab } from './WorkingTodayTab';
 import {
   useDeactivateDelivererMutation,
@@ -22,6 +23,7 @@ const PAGE_SIZE = 10;
 const VIEW_TABS = [
   { value: 'list', label: 'Listado' },
   { value: 'today', label: 'Trabajando hoy' },
+  { value: 'bonuses', label: 'Bonificaciones' },
 ] as const;
 
 type ViewTab = (typeof VIEW_TABS)[number]['value'];
@@ -34,6 +36,8 @@ export function DeliverersPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const canManage = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
+  // Las bonificaciones son plata del personal: solo las ven quienes administran (OWNER/ADMIN).
+  const visibleTabs = VIEW_TABS.filter((tab) => tab.value !== 'bonuses' || canManage);
   const [view, setView] = useState<ViewTab>('list');
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -105,7 +109,7 @@ export function DeliverersPage() {
       </div>
 
       <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-white p-1">
-        {VIEW_TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.value}
             type="button"
@@ -121,6 +125,8 @@ export function DeliverersPage() {
       </div>
 
       {view === 'today' && <WorkingTodayTab />}
+
+      {view === 'bonuses' && canManage && <BonusesTab />}
 
       {view === 'list' && (
         <>
