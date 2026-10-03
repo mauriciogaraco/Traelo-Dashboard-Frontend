@@ -448,6 +448,93 @@ export interface OrdersTrendDTO {
   points: OrdersTrendPointDTO[];
 }
 
+// ── Clientes de la app (cuentas Customer) ────────────────────────────────────
+
+export interface UserTypeCountDTO {
+  role: Role;
+  active: number;
+  inactive: number;
+}
+
+export interface TopReferrerDTO {
+  id: string;
+  name: string;
+  phone: string;
+  referrals: number;
+  converted: number;
+  lastReferralAt: string;
+}
+
+export interface AppCustomersOverviewDTO {
+  users: {
+    staff: UserTypeCountDTO[];
+    delivererProfiles: number;
+    customers: number;
+  };
+  customers: {
+    countedSince: string;
+    total: number;
+    excluded: number;
+    withEmail: number;
+    active: number;
+    withPush: number;
+    withFavorites: number;
+    referred: number;
+    withOrder: number;
+    withCompletedOrder: number;
+  };
+  referrals: {
+    allTime: { referred: number; organic: number; withReferralCode: number };
+    period: {
+      referred: number;
+      organic: number;
+      converted: number;
+      activeReferrers: number;
+    };
+    top: TopReferrerDTO[];
+  };
+  period: {
+    granularity: OrdersTrendGranularity;
+    registered: number;
+    series: { label: string; count: number }[];
+    funnel: { registered: number; withOrder: number; withCompletedOrder: number };
+    avgHoursToFirstOrder: number | null;
+    medianHoursToFirstOrder: number | null;
+  };
+  orders: {
+    total: number;
+    appRegistered: number;
+    appGuest: number;
+    webRegistered: number;
+    webGuest: number;
+    telegram: number;
+    manual: number;
+    guestPeople: number;
+    guestPeopleWithAccount: number;
+  };
+}
+
+export type AppCustomerListFilter =
+  | 'all'
+  | 'with-order'
+  | 'without-order'
+  | 'excluded'
+  | 'with-push';
+
+export interface AppCustomerRowDTO {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  active: boolean;
+  hasPassword: boolean;
+  hasPush: boolean;
+  orderCount: number;
+  pointsBalance: number;
+  lastOrderAt: string | null;
+  createdAt: string;
+}
+
 export interface BusinessSalesDetailDTO {
   businessId: string;
   businessName: string;
