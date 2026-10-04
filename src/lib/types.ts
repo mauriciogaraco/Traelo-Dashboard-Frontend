@@ -638,6 +638,12 @@ export interface SystemConfigDTO {
   defaultDelivererCommissionPercentage: number;
   rafflePromoText: string | null;
   raffleVideoUrl: string | null;
+  // Horario global de pedidos. Las horas llegan como ISO anclado a 1970-01-01 UTC
+  // ("1970-01-01T21:00:00.000Z" = 21:00 de La Habana): se leen con isoToTime.
+  operatingHoursEnabled: boolean;
+  operatingHoursStart: string | null;
+  operatingHoursEnd: string | null;
+  operatingHoursWeekendEnd: string | null;
   updatedAt: string;
 }
 

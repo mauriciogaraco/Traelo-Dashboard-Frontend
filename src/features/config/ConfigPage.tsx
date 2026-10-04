@@ -5,9 +5,17 @@ import { z } from 'zod';
 import { useAppSelector } from '@/app/hooks';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { Switch } from '@/components/ui/Switch';
 import { Textarea } from '@/components/ui/Textarea';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { useGetConfigQuery, useUpdateConfigMutation } from './configApi';
+
+// "1970-01-01T21:00:00.000Z" -> "21:00". El backend ancla las horas del día a 1970-01-01 UTC.
+function isoToTime(iso: string | null | undefined): string {
+  return iso ? iso.slice(11, 16) : '';
+}
+
+const timeField = z.string().regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida');
 
 const schema = z.object({
   defaultDelivererCommissionPercentage: z
@@ -20,6 +28,22 @@ const schema = z.object({
     .max(500)
     .optional()
     .refine((v) => !v || /^https?:\/\/.+/i.test(v), 'Debe ser una URL válida (http/https)'),
+  operatingHoursEnabled: z.boolean(),
+  operatingHoursStart: timeField,
+  operatingHoursEnd: timeField,
+  operatingHoursWeekendEnd: timeField,
+}).superRefine((values, ctx) => {
+  if (!values.operatingHoursEnabled) return;
+  const { operatingHoursStart: start, operatingHoursEnd: end, operatingHoursWeekendEnd: weekend } = values;
+  if (!start) ctx.addIssue({ code: 'custom', path: ['operatingHoursStart'], message: 'Requerido' });
+  if (!end) ctx.addIssue({ code: 'custom', path: ['operatingHoursEnd'], message: 'Requerido' });
+  // "HH:mm" se ordena igual como texto que como hora.
+  if (start && end && start >= end) {
+    ctx.addIssue({ code: 'custom', path: ['operatingHoursEnd'], message: 'Debe ser posterior a la apertura' });
+  }
+  if (start && weekend && start >= weekend) {
+    ctx.addIssue({ code: 'custom', path: ['operatingHoursWeekendEnd'], message: 'Debe ser posterior a la apertura' });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -35,6 +59,8 @@ export function ConfigPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -42,8 +68,13 @@ export function ConfigPage() {
       defaultDelivererCommissionPercentage: '',
       rafflePromoText: '',
       raffleVideoUrl: '',
+      operatingHoursEnabled: false,
+      operatingHoursStart: '',
+      operatingHoursEnd: '',
+      operatingHoursWeekendEnd: '',
     },
   });
+  const hoursEnabled = watch('operatingHoursEnabled');
 
   useEffect(() => {
     if (!data) return;
@@ -51,6 +82,10 @@ export function ConfigPage() {
       defaultDelivererCommissionPercentage: data.data.defaultDelivererCommissionPercentage.toString(),
       rafflePromoText: data.data.rafflePromoText ?? '',
       raffleVideoUrl: data.data.raffleVideoUrl ?? '',
+      operatingHoursEnabled: data.data.operatingHoursEnabled,
+      operatingHoursStart: isoToTime(data.data.operatingHoursStart),
+      operatingHoursEnd: isoToTime(data.data.operatingHoursEnd),
+      operatingHoursWeekendEnd: isoToTime(data.data.operatingHoursWeekendEnd),
     });
   }, [data, reset]);
 
@@ -59,6 +94,10 @@ export function ConfigPage() {
       defaultDelivererCommissionPercentage: Number(values.defaultDelivererCommissionPercentage),
       rafflePromoText: values.rafflePromoText || null,
       raffleVideoUrl: values.raffleVideoUrl || null,
+      operatingHoursEnabled: values.operatingHoursEnabled,
+      operatingHoursStart: values.operatingHoursStart || null,
+      operatingHoursEnd: values.operatingHoursEnd || null,
+      operatingHoursWeekendEnd: values.operatingHoursWeekendEnd || null,
     }).unwrap();
     setSuccess(true);
   }
@@ -98,6 +137,50 @@ export function ConfigPage() {
             error={errors.defaultDelivererCommissionPercentage?.message}
             {...register('defaultDelivererCommissionPercentage')}
           />
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Horario de pedidos</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Fuera de este horario (hora de La Habana) no se reciben pedidos de la app ni de la web.
+            Viernes, sábado y domingo pueden cerrar más tarde que el resto de la semana.
+          </p>
+          <div className="flex flex-col gap-4">
+            <Switch
+              checked={hoursEnabled}
+              onChange={(value) => {
+                if (canEdit) setValue('operatingHoursEnabled', value, { shouldDirty: true });
+              }}
+              label="Limitar los pedidos por horario"
+            />
+            <FormField
+              label="Abren a las"
+              type="time"
+              disabled={!canEdit}
+              error={errors.operatingHoursStart?.message}
+              {...register('operatingHoursStart')}
+            />
+            <FormField
+              label="Cierran de lunes a jueves"
+              type="time"
+              disabled={!canEdit}
+              error={errors.operatingHoursEnd?.message}
+              {...register('operatingHoursEnd')}
+            />
+            <FormField
+              label="Cierran viernes, sábado y domingo (opcional)"
+              type="time"
+              disabled={!canEdit}
+              error={errors.operatingHoursWeekendEnd?.message}
+              {...register('operatingHoursWeekendEnd')}
+            />
+            {!hoursEnabled && (
+              <p className="text-xs text-slate-400">
+                El horario está apagado: se reciben pedidos a cualquier hora. Si dejás vacío el cierre
+                de fin de semana, esos días cierran igual que el resto.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
