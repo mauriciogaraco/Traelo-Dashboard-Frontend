@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Ban, Bell, CheckCheck, PencilLine } from 'lucide-react';
+import { Ban, Bell, CheckCheck, PencilLine, UserCheck, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -18,21 +18,25 @@ const POLL_MS = 30_000;
 
 const STAFF_ROLES = ['OWNER', 'ADMIN', 'EMPLOYEE'];
 
+const ICON_BY_TYPE: Record<StaffNotificationDTO['type'], { Icon: typeof Ban; tone: string }> = {
+  ORDER_VOUCHER_EDITED: { Icon: PencilLine, tone: 'bg-amber-100 text-amber-600' },
+  ORDER_CANCELLED_BY_DELIVERER: { Icon: Ban, tone: 'bg-red-100 text-red-600' },
+  DELIVERER_ON_DUTY: { Icon: UserCheck, tone: 'bg-green-100 text-green-600' },
+  DELIVERER_OFF_DUTY: { Icon: UserMinus, tone: 'bg-slate-200 text-slate-600' },
+};
+
 function NotificationIcon({ type }: { type: StaffNotificationDTO['type'] }) {
-  return type === 'ORDER_CANCELLED_BY_DELIVERER' ? (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-      <Ban className="h-4 w-4" />
-    </span>
-  ) : (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-      <PencilLine className="h-4 w-4" />
+  const { Icon, tone } = ICON_BY_TYPE[type];
+  return (
+    <span className={clsx('flex h-8 w-8 shrink-0 items-center justify-center rounded-full', tone)}>
+      <Icon className="h-4 w-4" />
     </span>
   );
 }
 
 /**
- * Campana de la barra superior: avisos del equipo cuando un mensajero edita un vale o cancela un
- * pedido desde la app. Solo para el staff (OWNER/ADMIN/EMPLOYEE).
+ * Campana de la barra superior: avisos del equipo cuando un mensajero edita un vale, cancela un
+ * pedido o se pone activo/inactivo desde la app. Solo para el staff (OWNER/ADMIN/EMPLOYEE).
  */
 export function InboxBell() {
   const role = useAppSelector((state) => state.auth.user?.role);
@@ -92,7 +96,9 @@ export function InboxBell() {
   function handleOpenItem(item: StaffNotificationDTO) {
     if (!item.read) void markRead(item.id);
     setOpen(false);
+    // Avisos de pedido abren el pedido; los de estado de un mensajero, la lista de mensajeros.
     if (item.orderId) navigate(`/orders/${item.orderId}`);
+    else if (item.delivererId) navigate('/deliverers');
   }
 
   return (
