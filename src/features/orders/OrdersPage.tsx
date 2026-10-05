@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCheck, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { CheckCheck, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
@@ -19,6 +19,8 @@ import {
 } from './ordersApi';
 
 const PAGE_SIZE = 15;
+/** La lista se vuelve a pedir sola cada 3 minutos (además del botón de refrescar). */
+const AUTO_REFRESH_MS = 3 * 60_000;
 
 type RangeTab = DateRangePreset | 'all';
 
@@ -94,17 +96,20 @@ export function OrdersPage() {
     label: d.name,
   }));
 
-  const { data, isLoading, isFetching } = useListOrdersQuery({
-    page,
-    pageSize: PAGE_SIZE,
-    status: statusFilter === 'ALL' ? undefined : statusFilter,
-    delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
-    range: rangeTab === 'all' ? undefined : rangeTab,
-    ...(rangeTab === 'custom' && dateFrom
-      ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
-      : {}),
-    search: search || undefined,
-  });
+  const { data, isLoading, isFetching, refetch } = useListOrdersQuery(
+    {
+      page,
+      pageSize: PAGE_SIZE,
+      status: statusFilter === 'ALL' ? undefined : statusFilter,
+      delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
+      range: rangeTab === 'all' ? undefined : rangeTab,
+      ...(rangeTab === 'custom' && dateFrom
+        ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
+        : {}),
+      search: search || undefined,
+    },
+    { pollingInterval: AUTO_REFRESH_MS },
+  );
 
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
   const [bulkCompleteOrders, { isLoading: isBulkCompleting }] = useBulkCompleteOrdersMutation();
@@ -165,7 +170,19 @@ export function OrdersPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">Pedidos</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-slate-900">Pedidos</h1>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            title="Refrescar pedidos"
+            aria-label="Refrescar pedidos"
+            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={clsx('h-4 w-4', isFetching && 'animate-spin')} />
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           {canManage && selectedIds.size > 0 && (
             <Button type="button" variant="secondary" onClick={() => setBulkConfirmOpen(true)}>

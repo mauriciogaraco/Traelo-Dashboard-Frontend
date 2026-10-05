@@ -93,6 +93,7 @@ export const baseApi = createApi({
     'Settlement',
     'Config',
     'Notification',
+    'StaffInbox',
   ],
   endpoints: () => ({}),
 });

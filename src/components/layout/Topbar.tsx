@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { loggedOut } from '@/features/auth/authSlice';
+import { InboxBell } from '@/features/staffInbox/InboxBell';
 import { ROLE_LABEL } from '@/lib/labels';
 
 interface TopbarProps {
@@ -45,6 +46,7 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
       </div>
       <div className="hidden sm:block" />
       <div className="flex items-center gap-2 sm:gap-4">
+        <InboxBell />
         {user && (
           <div className="hidden text-right leading-tight sm:block">
             <p className="text-sm font-medium text-slate-900">{user.name}</p>
