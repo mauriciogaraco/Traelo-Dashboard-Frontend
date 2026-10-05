@@ -1,7 +1,11 @@
 import { baseApi } from '@/lib/baseApi';
 import type { ApiOk, ApiPaginated, PaginationQuery } from '@/lib/types';
 
-export type StaffNotificationType = 'ORDER_VOUCHER_EDITED' | 'ORDER_CANCELLED_BY_DELIVERER';
+export type StaffNotificationType =
+  | 'ORDER_VOUCHER_EDITED'
+  | 'ORDER_CANCELLED_BY_DELIVERER'
+  | 'DELIVERER_ON_DUTY'
+  | 'DELIVERER_OFF_DUTY';
 
 export interface StaffNotificationDTO {
   id: string;
