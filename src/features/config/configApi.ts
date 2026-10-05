@@ -5,6 +5,11 @@ export interface UpdateSystemConfigInput {
   defaultDelivererCommissionPercentage?: number;
   rafflePromoText?: string | null;
   raffleVideoUrl?: string | null;
+  operatingHoursEnabled?: boolean;
+  // "HH:mm" (hora de La Habana); null = sin valor.
+  operatingHoursStart?: string | null;
+  operatingHoursEnd?: string | null;
+  operatingHoursWeekendEnd?: string | null;
 }
 
 export const configApi = baseApi.injectEndpoints({
