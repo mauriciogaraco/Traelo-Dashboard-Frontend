@@ -120,6 +120,14 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+    // "Pasar pedido": el staff lo pasa al siguiente mensajero de la cola (solo mientras está por confirmar).
+    passOrder: builder.mutation<ApiOk<OrderDTO>, string>({
+      query: (id) => ({ url: `/orders/${id}/pass`, method: 'PATCH' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Order', id },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
     updateOrderStatus: builder.mutation<
       ApiOk<OrderDTO>,
       { id: string; status: 'COMPLETED' | 'CANCELLED' }
@@ -176,6 +184,7 @@ export const {
   useCreateOrderMutation,
   useUpdateOrderMutation,
   useAssignOrderMutation,
+  usePassOrderMutation,
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
   useBulkCompleteOrdersMutation,

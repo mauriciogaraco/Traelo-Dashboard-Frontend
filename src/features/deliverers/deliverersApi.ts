@@ -77,6 +77,14 @@ export const deliverersApi = baseApi.injectEndpoints({
         { type: 'Deliverer', id: 'LIST' },
       ],
     }),
+    // Activa/desactiva a un mensajero en la cola de hoy ("Trabajando hoy"); no es la cuenta.
+    setDelivererDuty: builder.mutation<ApiOk<DelivererDTO>, { id: string; onDuty: boolean }>({
+      query: ({ id, onDuty }) => ({ url: `/deliverers/${id}/duty`, method: 'PATCH', body: { onDuty } }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Deliverer', id },
+        { type: 'Deliverer', id: 'LIST' },
+      ],
+    }),
     deactivateDeliverer: builder.mutation<ApiOk<DelivererDTO>, string>({
       query: (id) => ({ url: `/deliverers/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, _error, id) => [
@@ -92,5 +100,6 @@ export const {
   useGetDelivererBonusesQuery,
   useCreateDelivererMutation,
   useUpdateDelivererMutation,
+  useSetDelivererDutyMutation,
   useDeactivateDelivererMutation,
 } = deliverersApi;
