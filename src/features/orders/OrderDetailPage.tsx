@@ -183,6 +183,13 @@ export function OrderDetailPage() {
         </div>
       </div>
 
+      {order.status === 'CANCELLED' && order.cancellationReason && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="font-semibold">Motivo de la cancelación</p>
+          <p className="mt-0.5 whitespace-pre-line">{order.cancellationReason}</p>
+        </div>
+      )}
+
       {voucherOpen && (
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">

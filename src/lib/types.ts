@@ -297,6 +297,8 @@ export interface OrderDTO {
   assignedAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
+  /** Motivo que dio el mensajero al cancelar desde la app (null si no lo mandó o cancela el staff). */
+  cancellationReason: string | null;
   delivererId: string | null;
   delivererName: string | null;
   registeredByUserId: string;
