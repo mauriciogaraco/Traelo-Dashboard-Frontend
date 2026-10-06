@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, Check, Copy, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, Copy, FileText } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
@@ -9,6 +9,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
+import { getErrorMessage } from '@/lib/getErrorMessage';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { ACTIVE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
@@ -16,6 +17,7 @@ import {
   useAssignOrderMutation,
   useDeleteOrderMutation,
   useGetOrderQuery,
+  usePassOrderMutation,
   useUpdateOrderStatusMutation,
 } from './ordersApi';
 
@@ -33,6 +35,8 @@ export function OrderDetailPage() {
   const [assigningDelivererId, setAssigningDelivererId] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [passOpen, setPassOpen] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [voucherOpen, setVoucherOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -48,6 +52,7 @@ export function OrderDetailPage() {
   const [assignOrder, { isLoading: isAssigning }] = useAssignOrderMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
+  const [passOrder, { isLoading: isPassing }] = usePassOrderMutation();
 
   if (isLoading) {
     return <p className="text-slate-400">Cargando…</p>;
@@ -67,6 +72,9 @@ export function OrderDetailPage() {
   const canComplete = canManage && ACTIVE_ORDER_STATUSES.includes(order.status);
   const canCancel = canManage && order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
   const canDeleteOrder = canDelete && order.status !== 'COMPLETED';
+  // Pasar al siguiente mensajero de la cola: solo mientras el que lo tiene aún no lo confirmó
+  // (ver ordersService.passOrder en el backend).
+  const canPass = canManage && order.status === 'ASSIGNED' && order.delivererId !== null;
 
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
@@ -84,6 +92,17 @@ export function OrderDetailPage() {
     if (!id) return;
     await updateStatus({ id, status: 'COMPLETED' }).unwrap();
     setCompleteOpen(false);
+  }
+
+  async function handlePass() {
+    if (!id) return;
+    setPassError(null);
+    try {
+      await passOrder(id).unwrap();
+      setPassOpen(false);
+    } catch (error) {
+      setPassError(getErrorMessage(error as Parameters<typeof getErrorMessage>[0]));
+    }
   }
 
   async function handleCancel() {
@@ -156,6 +175,19 @@ export function OrderDetailPage() {
             <Button type="button" variant="secondary" onClick={() => setVoucherOpen((v) => !v)}>
               <FileText className="h-4 w-4" />
               Generar vale
+            </Button>
+          )}
+          {canPass && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setPassError(null);
+                setPassOpen(true);
+              }}
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Pasar pedido
             </Button>
           )}
           {canEdit && (
@@ -344,6 +376,20 @@ export function OrderDetailPage() {
           isLoading={isUpdatingStatus}
           onConfirm={handleComplete}
           onCancel={() => setCompleteOpen(false)}
+        />
+      )}
+      {passOpen && (
+        <ConfirmDialog
+          title="Pasar pedido"
+          description={
+            passError ??
+            `El pedido #${order.orderNumber} pasará al siguiente mensajero de la cola (${order.delivererName ?? 'el actual'} dejará de tenerlo) y el nuevo tendrá que aceptarlo.`
+          }
+          confirmLabel="Pasar pedido"
+          variant="primary"
+          isLoading={isPassing}
+          onConfirm={handlePass}
+          onCancel={() => setPassOpen(false)}
         />
       )}
       {cancelOpen && (
