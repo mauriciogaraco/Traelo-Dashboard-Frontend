@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Ban, Bell, CheckCheck, PencilLine, UserCheck, UserMinus } from 'lucide-react';
+import { ArrowRight, Ban, Bell, CheckCheck, PencilLine, UserCheck, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -101,6 +101,13 @@ export function InboxBell() {
     else if (item.delivererId) navigate('/deliverers');
   }
 
+  // A dónde lleva el botón del aviso (null = el aviso no tiene detalle al que ir).
+  function detailLabel(item: StaffNotificationDTO): string | null {
+    if (item.orderId) return 'Ver detalles del pedido';
+    if (item.delivererId) return 'Ver mensajeros';
+    return null;
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -146,25 +153,37 @@ export function InboxBell() {
             ) : (
               <ul className="divide-y divide-slate-100">
                 {items.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenItem(item)}
-                      className={clsx(
-                        'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50',
-                        !item.read && 'bg-brand-50/60',
+                  <li
+                    key={item.id}
+                    className={clsx('flex items-start gap-3 px-4 py-3', !item.read && 'bg-brand-50/60')}
+                  >
+                    <NotificationIcon type={item.type} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900">{item.title}</p>
+                      <p className="mt-0.5 text-sm text-slate-600">{item.body}</p>
+                      <p className="mt-1 text-xs text-slate-400">{formatDateTime(item.createdAt)}</p>
+                      {detailLabel(item) && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenItem(item)}
+                          className="mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                        >
+                          {detailLabel(item)}
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
                       )}
-                    >
-                      <NotificationIcon type={item.type} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-slate-900">{item.title}</span>
-                        <span className="mt-0.5 block text-sm text-slate-600">{item.body}</span>
-                        <span className="mt-1 block text-xs text-slate-400">{formatDateTime(item.createdAt)}</span>
-                      </span>
-                      {!item.read && (
-                        <span aria-label="Sin leer" className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" />
-                      )}
-                    </button>
+                    </div>
+                    {!item.read && (
+                      <button
+                        type="button"
+                        onClick={() => void markRead(item.id)}
+                        title="Marcar como leído"
+                        aria-label="Marcar como leído"
+                        className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
+                      >
+                        <span className="h-2 w-2 rounded-full bg-brand-600" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
