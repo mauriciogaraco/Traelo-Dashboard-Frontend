@@ -1,23 +1,34 @@
 import { useEffect, useState } from 'react';
-import { CheckCheck, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { CheckCheck, Download, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/ToastProvider';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { exportReportPdf } from '@/lib/pdfExport';
 import { ACTIVE_ORDER_STATUSES, OrderStatus, type OrderDTO } from '@/lib/types';
-import type { DateRangePreset } from './ordersApi';
+import type { DateRangePreset, ListOrdersParams } from './ordersApi';
 import {
   useBulkCompleteOrdersMutation,
   useDeleteOrderMutation,
+  useLazyListOrdersQuery,
   useListOrdersQuery,
 } from './ordersApi';
+import {
+  EXPORT_PAGE_SIZE,
+  ORDERS_PDF_COLUMNS,
+  TooManyOrdersError,
+  fetchAllOrders,
+  ordersPdfSubtitle,
+  ordersPdfTotals,
+} from './ordersListPdf';
 
 const PAGE_SIZE = 15;
 /** La lista se vuelve a pedir sola cada 3 minutos (además del botón de refrescar). */
@@ -105,21 +116,65 @@ export function OrdersPage() {
     label: b.name,
   }));
 
+  // Los filtros activos, sin paginación: los usa la lista y también el PDF de todos los pedidos filtrados.
+  const filterParams: ListOrdersParams = {
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
+    businessId: canManage ? (businessFilter ?? undefined) : undefined,
+    range: rangeTab === 'all' ? undefined : rangeTab,
+    ...(rangeTab === 'custom' && dateFrom
+      ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
+      : {}),
+    search: search || undefined,
+  };
+
   const { data, isLoading, isFetching, refetch } = useListOrdersQuery(
-    {
-      page,
-      pageSize: PAGE_SIZE,
-      status: statusFilter === 'ALL' ? undefined : statusFilter,
-      delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
-      businessId: canManage ? (businessFilter ?? undefined) : undefined,
-      range: rangeTab === 'all' ? undefined : rangeTab,
-      ...(rangeTab === 'custom' && dateFrom
-        ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
-        : {}),
-      search: search || undefined,
-    },
+    { page, pageSize: PAGE_SIZE, ...filterParams },
     { pollingInterval: AUTO_REFRESH_MS },
   );
+
+  const { showToast } = useToast();
+  const [fetchOrdersPage] = useLazyListOrdersQuery();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  async function handleExportPdf() {
+    setIsExportingPdf(true);
+    try {
+      const rows = await fetchAllOrders((p) =>
+        fetchOrdersPage({ ...filterParams, page: p, pageSize: EXPORT_PAGE_SIZE }).unwrap(),
+      );
+      const rangeLabel =
+        rangeTab === 'custom'
+          ? dateFrom
+            ? `Fecha: ${dateFrom}${dateTo && dateTo !== dateFrom ? ` a ${dateTo}` : ''}`
+            : 'Todos los pedidos'
+          : rangeTab === 'all'
+            ? 'Todos los pedidos'
+            : (RANGE_TABS.find((tab) => tab.value === rangeTab)?.label ?? '');
+      await exportReportPdf({
+        title: 'Pedidos',
+        subtitle: ordersPdfSubtitle({
+          rangeLabel,
+          status: statusFilter === 'ALL' ? null : ORDER_STATUS_LABEL[statusFilter],
+          businessName: businessOptions.find((b) => b.value === businessFilter)?.label,
+          delivererName: delivererOptions.find((d) => d.value === delivererFilter)?.label,
+          search,
+        }),
+        fileName: `traelo-pedidos-${todayInHavana()}`,
+        columns: ORDERS_PDF_COLUMNS,
+        rows,
+        totals: rows.length > 0 ? ordersPdfTotals(rows) : undefined,
+        emptyMessage: 'No hay pedidos con estos filtros.',
+      });
+    } catch (error) {
+      showToast(
+        error instanceof TooManyOrdersError ? error.message : 'No se pudo generar el PDF. Intenta de nuevo.',
+        'error',
+      );
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }
 
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
   const [bulkCompleteOrders, { isLoading: isBulkCompleting }] = useBulkCompleteOrdersMutation();
@@ -198,6 +253,12 @@ export function OrdersPage() {
             <Button type="button" variant="secondary" onClick={() => setBulkConfirmOpen(true)}>
               <CheckCheck className="h-4 w-4" />
               Completar seleccionados ({selectedIds.size})
+            </Button>
+          )}
+          {canManage && (
+            <Button type="button" variant="secondary" isLoading={isExportingPdf} onClick={handleExportPdf}>
+              <Download className="h-4 w-4" />
+              PDF
             </Button>
           )}
           {canManage && (

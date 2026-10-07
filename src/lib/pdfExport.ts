@@ -55,6 +55,8 @@ export function getLogoPng(): Promise<string> {
 export interface PdfColumn<T> {
   header: string;
   align?: 'left' | 'right' | 'center';
+  /** Ancho fijo en puntos; sin él, la columna se ajusta a su contenido. */
+  width?: number;
   render: (row: T) => string;
 }
 
@@ -149,7 +151,7 @@ export async function exportReportPdf<T>(options: PdfExportOptions<T>): Promise<
     },
     alternateRowStyles: { fillColor: BRAND_50 },
     columnStyles: Object.fromEntries(
-      options.columns.map((c, i) => [i, { halign: c.align ?? 'left' }]),
+      options.columns.map((c, i) => [i, { halign: c.align ?? 'left', ...(c.width ? { cellWidth: c.width } : {}) }]),
     ),
     didDrawPage: drawHeader,
   });
