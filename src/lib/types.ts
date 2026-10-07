@@ -271,12 +271,24 @@ export interface OrderItemDTO {
   // Variantes de los pedidos de la app (tipo/sabor y agrego elegidos).
   optionName?: string | null;
   addonName?: string | null;
+  // Empaque, caja y canje por puntos (el backend los manda siempre; opcionales por compatibilidad).
+  packagingName?: string | null;
+  packagingFee?: number;
+  unitsPerPack?: number;
+  pointsUnits?: number;
+  pointsDiscount?: number;
 }
+
+/** Un cambio de una línea del vale (ver lastEditSummary del pedido). */
+export type OrderItemChangeDTO =
+  | { kind: 'added' | 'removed'; productName: string; quantity: number }
+  | { kind: 'quantity' | 'price'; productName: string; from: number; to: number };
 
 export interface OrderBusinessDTO {
   id: string;
   businessId: string;
   businessName: string;
+  businessAddress?: string;
   subtotal: number;
   commissionEarned: number;
   commissionTypeSnapshot: CommissionType | null;
@@ -304,6 +316,15 @@ export interface OrderDTO {
   registeredByUserId: string;
   registeredByName: string;
   raffleNumber: number | null;
+  // Campos que el backend ya manda y el dashboard usa en el PDF del pedido.
+  source?: 'APP' | 'WEB' | 'MANUAL' | 'TELEGRAM';
+  scheduledFor?: string | null;
+  packagingTotal?: number;
+  totalBeforeRedemption?: number;
+  pointsRedeemed?: number;
+  pointsDiscount?: number;
+  lastEditedAt?: string | null;
+  lastEditSummary?: OrderItemChangeDTO[] | null;
   productsTotal: number; // subtotal de productos — 100% del negocio
   platformFee: number; // "Servicio Tráelo" — cargo visible, redondeado
   total: number; // productsTotal + deliveryFee + platformFee
