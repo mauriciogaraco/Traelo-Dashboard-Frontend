@@ -180,6 +180,7 @@ export const {
   useListMergeSuggestionsQuery,
   useResolveMergeDecisionMutation,
   useListOrdersQuery,
+  useLazyListOrdersQuery,
   useGetOrderQuery,
   useCreateOrderMutation,
   useUpdateOrderMutation,
