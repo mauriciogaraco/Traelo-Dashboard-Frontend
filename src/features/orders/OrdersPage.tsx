@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { ACTIVE_ORDER_STATUSES, OrderStatus, type OrderDTO } from '@/lib/types';
@@ -64,6 +65,7 @@ export function OrdersPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
+  const [businessFilter, setBusinessFilter] = useState<string | null>(null);
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
   const [rangeTab, setRangeTab] = useState<RangeTab>('today');
   // Rango libre (pestaña "Fecha"): un día, o de "Desde" a "Hasta" (vacío = solo ese día).
@@ -85,7 +87,7 @@ export function OrdersPage() {
     setPage(1);
     setSelectedIds(new Set());
     setBulkMessage(null);
-  }, [statusFilter, delivererFilter, rangeTab, dateFrom, dateTo, search]);
+  }, [statusFilter, delivererFilter, businessFilter, rangeTab, dateFrom, dateTo, search]);
 
   const { data: deliverersData } = useListDeliverersQuery(
     { pageSize: 100, active: true },
@@ -96,12 +98,20 @@ export function OrdersPage() {
     label: d.name,
   }));
 
+  // Todos los negocios (también los inactivos: un pedido viejo puede ser de uno que ya no está activo).
+  const { data: businessesData } = useListBusinessesQuery({ pageSize: 100 }, { skip: !canManage });
+  const businessOptions = (businessesData?.data ?? []).map((b) => ({
+    value: b.id,
+    label: b.name,
+  }));
+
   const { data, isLoading, isFetching, refetch } = useListOrdersQuery(
     {
       page,
       pageSize: PAGE_SIZE,
       status: statusFilter === 'ALL' ? undefined : statusFilter,
       delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
+      businessId: canManage ? (businessFilter ?? undefined) : undefined,
       range: rangeTab === 'all' ? undefined : rangeTab,
       ...(rangeTab === 'custom' && dateFrom
         ? { from: dayToInstant(dateFrom), to: dayToInstant(dateTo || dateFrom) }
@@ -299,6 +309,17 @@ export function OrdersPage() {
               onChange={setDelivererFilter}
               options={delivererOptions}
               placeholder="Todos los mensajeros"
+            />
+          </div>
+        )}
+        {canManage && (
+          <div className="w-56">
+            <SearchableSelect
+              label=""
+              value={businessFilter}
+              onChange={setBusinessFilter}
+              options={businessOptions}
+              placeholder="Todos los negocios"
             />
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, ArrowRightLeft, Check, Copy, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, Copy, FileDown, FileText } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { ACTIVE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
@@ -37,6 +38,8 @@ export function OrderDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [passOpen, setPassOpen] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [voucherOpen, setVoucherOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -92,6 +95,18 @@ export function OrderDetailPage() {
     if (!id) return;
     await updateStatus({ id, status: 'COMPLETED' }).unwrap();
     setCompleteOpen(false);
+  }
+
+  async function handleDownloadPdf() {
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      await exportOrderPdf(order);
+    } catch {
+      setPdfError('No se pudo generar el PDF. Intenta de nuevo.');
+    } finally {
+      setPdfBusy(false);
+    }
   }
 
   async function handlePass() {
@@ -177,6 +192,12 @@ export function OrderDetailPage() {
               Generar vale
             </Button>
           )}
+          {canManage && (
+            <Button type="button" variant="secondary" isLoading={pdfBusy} onClick={handleDownloadPdf}>
+              <FileDown className="h-4 w-4" />
+              Descargar PDF
+            </Button>
+          )}
           {canPass && (
             <Button
               type="button"
@@ -214,6 +235,8 @@ export function OrderDetailPage() {
           )}
         </div>
       </div>
+
+      {pdfError && <p className="text-sm text-red-600">{pdfError}</p>}
 
       {order.status === 'CANCELLED' && order.cancellationReason && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
