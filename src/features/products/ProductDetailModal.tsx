@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Globe, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -29,6 +29,23 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
     }
   }
 
+  async function toggleFamiliaOnly() {
+    try {
+      await updateProduct({
+        businessId: product.businessId,
+        productId: product.id,
+        body: { familiaOnly: !product.familiaOnly },
+      }).unwrap();
+      showToast(
+        product.familiaOnly
+          ? 'Ya no es exclusivo de Tráelo Familia'
+          : 'Marcado como exclusivo de Tráelo Familia',
+      );
+    } catch {
+      showToast('No se pudo guardar el cambio', 'error');
+    }
+  }
+
   return (
     <Modal title="Detalle del producto" onClose={onClose}>
       <div className="flex flex-col gap-5">
@@ -47,6 +64,20 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
               >
                 <Star className="h-5 w-5" fill={product.featured ? 'currentColor' : 'none'} />
               </button>
+              <button
+                type="button"
+                onClick={toggleFamiliaOnly}
+                disabled={isLoading}
+                title={
+                  product.familiaOnly
+                    ? 'Quitar exclusividad de Tráelo Familia'
+                    : 'Marcar como exclusivo de Tráelo Familia'
+                }
+                aria-pressed={product.familiaOnly}
+                className="shrink-0 rounded-full p-1.5 text-sky-500 transition-colors hover:bg-sky-50 disabled:opacity-50"
+              >
+                <Globe className="h-5 w-5" fill={product.familiaOnly ? 'currentColor' : 'none'} />
+              </button>
             </div>
             <p className="text-sm text-slate-500">{product.businessName}</p>
           </div>
@@ -56,6 +87,11 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
           {product.featured
             ? 'Destacado: aparece en "Ofertas destacadas" en el Home de la app.'
             : 'No está destacado — no aparece en "Ofertas destacadas" del Home.'}
+        </p>
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          {product.familiaOnly
+            ? 'Exclusivo de Tráelo Familia: no aparece en el catálogo normal de la app, solo para clientes en el exterior.'
+            : 'Disponible en el catálogo normal — no es exclusivo de Tráelo Familia.'}
         </p>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Star } from 'lucide-react';
+import { Globe, Search, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -103,19 +103,20 @@ export function ProductsPage() {
               <th className="px-4 py-3 font-medium">Precio</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Destacado</th>
+              <th className="px-4 py-3 font-medium">Familia</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                   No hay productos para mostrar.
                 </td>
               </tr>
@@ -145,6 +146,13 @@ export function ProductsPage() {
                     <Star className="h-4 w-4 text-amber-500" fill="currentColor" />
                   ) : (
                     <Star className="h-4 w-4 text-slate-300" />
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {product.familiaOnly ? (
+                    <Globe className="h-4 w-4 text-sky-500" fill="currentColor" />
+                  ) : (
+                    <Globe className="h-4 w-4 text-slate-300" />
                   )}
                 </td>
               </tr>
