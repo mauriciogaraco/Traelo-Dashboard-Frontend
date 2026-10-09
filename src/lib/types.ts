@@ -211,6 +211,12 @@ export interface PackagingOption {
   capacity?: number;
 }
 
+/** Agrego de un producto: extra opcional con precio por unidad. */
+export interface AddonOption {
+  name: string;
+  price: number;
+}
+
 export interface ProductDTO {
   id: string;
   businessId: string;
@@ -226,6 +232,12 @@ export interface ProductDTO {
   imageUrl: string | null;
   /** Ausente en backends que aún no tienen el campo; null/[] = sin empaque. */
   packaging?: PackagingOption[] | null;
+  /** Tipos o sabores a elegir (sin precio). null = ninguno; ausente en backends que aún no lo mandan. */
+  options?: string[] | null;
+  /** Agregos opcionales con precio por unidad. null = ninguno; ausente en backends que aún no lo mandan. */
+  addons?: AddonOption[] | null;
+  /** Unidades por caja (se vende por caja completa). null = se vende por unidad. */
+  formato?: number | null;
   /** "Ofertas destacadas" del Home de la app — lo marca un OWNER/ADMIN a mano. */
   featured: boolean;
   /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN lo marca. */

@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { PackagingEditor } from './PackagingEditor';
+import { AddonsEditor, OptionsEditor, UnitsPerPackField } from './VariantEditors';
 import type { ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
 import {
@@ -19,6 +20,15 @@ import {
   useUpdateProductMutation,
   useUploadProductImageMutation,
 } from './businessesApi';
+
+// Los nombres no se repiten dentro de una lista (el backend los rechaza igual, sin distinguir mayúsculas).
+const uniqueNames = (rows: { name: string }[]) =>
+  new Set(rows.map((row) => row.name.trim().toLowerCase())).size === rows.length;
+
+const priceField = z
+  .string()
+  .min(1, 'Requerido')
+  .refine((v) => Number(v) >= 0, 'Debe ser ≥ 0');
 
 const schema = z.object({
   name: z.string().min(1, 'Requerido').max(150),
@@ -29,18 +39,32 @@ const schema = z.object({
     .string()
     .optional()
     .refine((v) => !v || Number(v) >= 0, 'Debe ser mayor o igual a 0'),
-  packaging: z.array(
-    z.object({
-      name: z.string().trim().min(1, 'Requerido').max(60),
-      price: z
-        .string()
-        .min(1, 'Requerido')
-        .refine((v) => Number(v) >= 0, 'Debe ser ≥ 0'),
-      capacity: z
-        .string()
-        .refine((v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 1), 'Entero ≥ 1'),
-    }),
-  ),
+  packaging: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, 'Requerido').max(60),
+        price: priceField,
+        capacity: z
+          .string()
+          .refine((v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 1), 'Entero ≥ 1'),
+      }),
+    )
+    .max(10)
+    .refine(uniqueNames, 'No repitas los nombres de empaque'),
+  options: z
+    .array(z.object({ name: z.string().trim().min(1, 'Requerido').max(60) }))
+    .max(30)
+    .refine(uniqueNames, 'No repitas los tipos o sabores'),
+  addons: z
+    .array(z.object({ name: z.string().trim().min(1, 'Requerido').max(60), price: priceField }))
+    .max(20)
+    .refine(uniqueNames, 'No repitas los nombres de agregos'),
+  formato: z
+    .string()
+    .refine(
+      (v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 2 && Number(v) <= 10000),
+      'Entero entre 2 y 10000',
+    ),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -98,6 +122,9 @@ export function EditProductModal({
         price: option.price.toString(),
         capacity: option.capacity?.toString() ?? '',
       })),
+      options: (product.options ?? []).map((name) => ({ name })),
+      addons: (product.addons ?? []).map((addon) => ({ name: addon.name, price: addon.price.toString() })),
+      formato: product.formato?.toString() ?? '',
     },
   });
   const {
@@ -122,13 +149,20 @@ export function EditProductModal({
           price: Number(option.price),
           ...(option.capacity ? { capacity: Number(option.capacity) } : {}),
         })),
+        // Solo se mandan si el backend los devolvió: así, ante un backend que aún no los conoce, guardar
+        // no borra tipos, agregos ni formato por error.
+        ...(product.options !== undefined ? { options: values.options.map((o) => o.name.trim()) } : {}),
+        ...(product.addons !== undefined
+          ? { addons: values.addons.map((a) => ({ name: a.name.trim(), price: Number(a.price) })) }
+          : {}),
+        ...(product.formato !== undefined ? { formato: values.formato ? Number(values.formato) : null } : {}),
       },
     }).unwrap();
     onClose();
   }
 
   return (
-    <Modal title="Editar producto" onClose={onClose}>
+    <Modal title="Editar producto" onClose={onClose} widthClassName="max-w-xl">
       <div className="mb-4 flex items-center gap-4">
         <ImageUploader
           currentImageUrl={product.imageUrl}
@@ -191,7 +225,10 @@ export function EditProductModal({
             error={errors.price?.message}
             {...register('price')}
           />
+          <OptionsEditor />
+          <AddonsEditor />
           <PackagingEditor />
+          <UnitsPerPackField />
           {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
           <div className="mt-2 flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onClose}>

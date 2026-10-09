@@ -8,6 +8,7 @@ import type {
   BusinessHoursDTO,
   BusinessSubscriptionDTO,
   CommissionType,
+  AddonOption,
   PackagingOption,
   ProductDTO,
   ProductOfferDTO,
@@ -76,6 +77,12 @@ export interface UpdateProductInput {
   active?: boolean;
   /** null o [] quitan el empaque; omitido no lo toca. */
   packaging?: PackagingOption[] | null;
+  /** Tipos o sabores: null o [] los quitan; omitido no los toca. */
+  options?: string[] | null;
+  /** Agregos: null o [] los quitan; omitido no los toca. */
+  addons?: AddonOption[] | null;
+  /** Unidades por caja: null lo quita; omitido no lo toca. */
+  formato?: number | null;
   /** "Ofertas destacadas" del Home de la app. */
   featured?: boolean;
   /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN. */

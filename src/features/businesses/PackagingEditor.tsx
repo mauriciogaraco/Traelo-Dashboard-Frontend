@@ -1,6 +1,8 @@
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { EditorSection } from './VariantEditors';
+import { listError } from './variantForm';
 
 export interface PackagingFormRow {
   name: string;
@@ -14,8 +16,8 @@ interface PackagingFormShape {
 
 /**
  * Debe renderizarse dentro de un <FormProvider> cuyo formulario tenga `packaging: PackagingFormRow[]`.
- * Opciones de empaque entre las que elige el cliente (Termopack, Caja, Jaba…). Precio 0 = "sin
- * empaque". Capacidad (opcional) = unidades que caben en un empaque; sin ella se cobra uno por unidad.
+ * Empaque = el envase en el que va el producto (Termopack, Caja, Jaba…), entre los que elige el cliente.
+ * Es distinto de los tipos/sabores y de los agregos (ver VariantEditors.tsx).
  */
 export function PackagingEditor() {
   const {
@@ -29,23 +31,24 @@ export function PackagingEditor() {
   });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">Empaque (opcional)</span>
+    <EditorSection
+      title="Empaque"
+      description="El envase en el que va el producto (ej. Termopack, Caja, Jaba); el cliente elige uno. Precio 0 = sin empaque. Capacidad (opcional) = cuántas unidades caben en un empaque; sin ella se cobra un empaque por unidad."
+      error={listError(errors.packaging)}
+      action={
         <Button
           type="button"
           variant="secondary"
           onClick={() => append({ name: '', price: '', capacity: '' })}
           disabled={fields.length >= 10}
         >
-          Añadir opción
+          Añadir empaque
         </Button>
-      </div>
-      {fields.length === 0 && (
-        <p className="text-xs text-slate-500">Este producto no lleva empaque.</p>
-      )}
+      }
+    >
+      {fields.length === 0 && <p className="text-xs text-slate-500">Este producto no lleva empaque.</p>}
       {fields.map((field, index) => (
-        <div key={field.id} className="grid grid-cols-[1fr_6rem_6rem_auto] items-end gap-2">
+        <div key={field.id} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-end gap-2">
           <FormField
             label="Nombre"
             placeholder="Ej. Termopack"
@@ -74,6 +77,6 @@ export function PackagingEditor() {
           </Button>
         </div>
       ))}
-    </div>
+    </EditorSection>
   );
 }
