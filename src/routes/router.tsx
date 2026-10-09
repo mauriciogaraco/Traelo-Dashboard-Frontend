@@ -17,6 +17,7 @@ import { CategoriesPage } from '@/features/categories/CategoriesPage';
 import { RafflePage } from '@/features/raffle/RafflePage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { NotificationsPage } from '@/features/notifications/NotificationsPage';
+import { ReviewsPage } from '@/features/reviews/ReviewsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
               { path: 'users', element: <UsersPage /> },
               { path: 'config', element: <ConfigPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
+              { path: 'reviews', element: <ReviewsPage /> },
               { path: 'products', element: <ProductsPage /> },
             ],
           },
