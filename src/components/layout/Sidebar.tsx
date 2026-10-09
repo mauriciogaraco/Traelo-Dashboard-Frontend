@@ -3,17 +3,13 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
-import logo from '@/assets/logo.webp';
+import isotipo from '@/assets/isotipo.png';
 import { isNavGroup, visibleNavEntries, type NavGroup, type NavItem } from './nav';
 
 function BrandMark() {
   return (
     <div className="flex h-16 items-center gap-2.5 border-b border-slate-200 px-6">
-      <img
-        src={logo}
-        alt="Tráelo"
-        className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm shadow-brand-600/30"
-      />
+      <img src={isotipo} alt="Tráelo" className="h-9 w-9 shrink-0 object-contain" />
       <div className="leading-tight">
         <p className="font-display text-[15px] font-semibold text-slate-900">Tráelo</p>
         <p className="text-xs text-slate-400">Operaciones</p>

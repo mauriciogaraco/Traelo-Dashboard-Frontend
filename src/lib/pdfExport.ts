@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoUrl from '@/assets/logo.webp';
+import logoUrl from '@/assets/isotipo-blanco.png';
 import { formatDateTime } from './formatDate';
 
 // Mismos tokens que --color-brand-* / slate-* de index.css, para que el PDF se vea como
@@ -15,8 +15,9 @@ export const WHITE = '#ffffff';
 export const PAGE_MARGIN = 32;
 export const HEADER_HEIGHT = 74;
 
-// El logo fuente es de 512×512 pero en el PDF se dibuja a ~34pt (unas 140px a 300dpi) — bajarlo
-// a este tamaño antes de convertirlo evita cargar un PNG de cientos de KB para algo minúsculo.
+// El isotipo (blanco, porque el encabezado del PDF es naranja) es de 512×512 pero en el PDF se dibuja
+// a ~34pt (unas 140px a 300dpi) — bajarlo a este tamaño antes de convertirlo evita cargar un PNG
+// grande para algo minúsculo.
 const LOGO_PX = 160;
 
 // Alias fijo para addImage: sin él, jsPDF reincrusta el PNG completo en CADA página que dibuja
@@ -24,7 +25,7 @@ const LOGO_PX = 160;
 // terminaba pesando decenas de MB — con alias, jsPDF reutiliza el mismo objeto de imagen.
 export const LOGO_ALIAS = 'traelo-logo';
 
-// El logo es .webp; jsPDF solo reconoce JPEG/PNG por firma de archivo, así que se decodifica
+// jsPDF solo reconoce JPEG/PNG por firma de archivo y el PNG se redibuja a un tamaño chico: se decodifica
 // una vez en un <canvas> oculto y se reexporta como PNG en memoria. Cacheado porque cada
 // export de cada tablita reutiliza la misma imagen.
 let logoPngPromise: Promise<string> | null = null;
