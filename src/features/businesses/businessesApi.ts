@@ -78,6 +78,8 @@ export interface UpdateProductInput {
   packaging?: PackagingOption[] | null;
   /** "Ofertas destacadas" del Home de la app. */
   featured?: boolean;
+  /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN. */
+  familiaOnly?: boolean;
 }
 
 export interface SetProductAvailabilityInput {

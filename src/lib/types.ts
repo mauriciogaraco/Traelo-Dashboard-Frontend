@@ -228,6 +228,8 @@ export interface ProductDTO {
   packaging?: PackagingOption[] | null;
   /** "Ofertas destacadas" del Home de la app — lo marca un OWNER/ADMIN a mano. */
   featured: boolean;
+  /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN lo marca. */
+  familiaOnly: boolean;
   commission: { commissionAmount: number } | null;
   createdAt: string;
   updatedAt: string;
@@ -667,6 +669,9 @@ export interface SystemConfigDTO {
   operatingHoursStart: string | null;
   operatingHoursEnd: string | null;
   operatingHoursWeekendEnd: string | null;
+  // Tráelo Familia (clientes en el exterior, pagan en USD vía Zelle) — tasa CUP por 1 USD que
+  // usa el build del catálogo de ese sub-producto. Ver también Product.familiaOnly.
+  familiaExchangeRate: number;
   updatedAt: string;
 }
 

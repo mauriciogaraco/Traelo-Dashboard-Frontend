@@ -22,6 +22,10 @@ const schema = z.object({
     .string()
     .min(1, 'Requerido')
     .refine((v) => Number(v) >= 0 && Number(v) <= 100, 'Debe estar entre 0 y 100'),
+  familiaExchangeRate: z
+    .string()
+    .min(1, 'Requerido')
+    .refine((v) => Number(v) > 0 && Number(v) <= 100000, 'Debe ser mayor que 0'),
   rafflePromoText: z.string().max(2000).optional(),
   raffleVideoUrl: z
     .string()
@@ -66,6 +70,7 @@ export function ConfigPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       defaultDelivererCommissionPercentage: '',
+      familiaExchangeRate: '',
       rafflePromoText: '',
       raffleVideoUrl: '',
       operatingHoursEnabled: false,
@@ -80,6 +85,7 @@ export function ConfigPage() {
     if (!data) return;
     reset({
       defaultDelivererCommissionPercentage: data.data.defaultDelivererCommissionPercentage.toString(),
+      familiaExchangeRate: data.data.familiaExchangeRate.toString(),
       rafflePromoText: data.data.rafflePromoText ?? '',
       raffleVideoUrl: data.data.raffleVideoUrl ?? '',
       operatingHoursEnabled: data.data.operatingHoursEnabled,
@@ -92,6 +98,7 @@ export function ConfigPage() {
   async function onSubmit(values: FormValues) {
     await updateConfig({
       defaultDelivererCommissionPercentage: Number(values.defaultDelivererCommissionPercentage),
+      familiaExchangeRate: Number(values.familiaExchangeRate),
       rafflePromoText: values.rafflePromoText || null,
       raffleVideoUrl: values.raffleVideoUrl || null,
       operatingHoursEnabled: values.operatingHoursEnabled,
@@ -136,6 +143,24 @@ export function ConfigPage() {
             disabled={!canEdit}
             error={errors.defaultDelivererCommissionPercentage?.message}
             {...register('defaultDelivererCommissionPercentage')}
+          />
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Tráelo Familia</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Tasa usada para convertir el catálogo a USD para los clientes en el exterior (pagan por
+            Zelle). Antes vivía fija en el código; el build de Tráelo Familia la lee de acá en cada
+            sincronización.
+          </p>
+          <FormField
+            label="CUP por 1 USD"
+            type="number"
+            min={1}
+            step="0.01"
+            disabled={!canEdit}
+            error={errors.familiaExchangeRate?.message}
+            {...register('familiaExchangeRate')}
           />
         </div>
 

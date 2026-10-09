@@ -10,6 +10,7 @@ export interface UpdateSystemConfigInput {
   operatingHoursStart?: string | null;
   operatingHoursEnd?: string | null;
   operatingHoursWeekendEnd?: string | null;
+  familiaExchangeRate?: number;
 }
 
 export const configApi = baseApi.injectEndpoints({
