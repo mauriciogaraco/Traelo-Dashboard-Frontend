@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import logo from '@/assets/logo.webp';
+import isotipo from '@/assets/isotipo.png';
 
 interface AuthLayoutProps {
   title: string;
@@ -12,11 +12,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <img
-            src={logo}
-            alt="Tráelo"
-            className="h-12 w-12 rounded-2xl object-cover shadow-md shadow-brand-600/30"
-          />
+          <img src={isotipo} alt="Tráelo" className="h-14 w-14 object-contain" />
           <div>
             <p className="font-display text-2xl font-semibold text-slate-900">Tráelo</p>
             <p className="text-sm text-slate-400">Operaciones</p>

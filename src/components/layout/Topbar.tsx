@@ -5,6 +5,7 @@ import { useLogoutMutation } from '@/features/auth/authApi';
 import { loggedOut } from '@/features/auth/authSlice';
 import { InboxBell } from '@/features/staffInbox/InboxBell';
 import { ROLE_LABEL } from '@/lib/labels';
+import isotipo from '@/assets/isotipo.png';
 
 interface TopbarProps {
   onOpenMobileNav: () => void;
@@ -40,9 +41,7 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-600 font-display text-xs font-bold text-white">
-          T
-        </span>
+        <img src={isotipo} alt="Tráelo" className="h-8 w-8 shrink-0 object-contain" />
       </div>
       <div className="hidden sm:block" />
       <div className="flex items-center gap-2 sm:gap-4">
