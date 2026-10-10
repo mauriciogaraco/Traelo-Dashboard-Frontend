@@ -8,6 +8,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { CronosPage } from '@/features/cronos/CronosPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
+import { AbandonedCartsPage } from '@/features/behavior/AbandonedCartsPage';
 import { AppCustomersPage } from '@/features/appCustomers/AppCustomersPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { DeliverersPage } from '@/features/deliverers/DeliverersPage';
@@ -18,6 +19,7 @@ import { RafflePage } from '@/features/raffle/RafflePage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { ReviewsPage } from '@/features/reviews/ReviewsPage';
+import { PuntosPage } from '@/features/puntos/PuntosPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
@@ -83,6 +85,7 @@ export const router = createBrowserRouter([
               { path: 'deliverers', element: <DeliverersPage /> },
               { path: 'reports', element: <ReportsPage /> },
               { path: 'analytics', element: <AnalyticsPage /> },
+              { path: 'abandoned-carts', element: <AbandonedCartsPage /> },
               { path: 'cronos', element: <CronosPage /> },
             ],
           },
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
               { path: 'categories', element: <CategoriesPage /> },
               { path: 'raffle', element: <RafflePage /> },
               { path: 'app-customers', element: <AppCustomersPage /> },
+              { path: 'puntos', element: <PuntosPage /> },
               { path: 'users', element: <UsersPage /> },
               { path: 'config', element: <ConfigPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
