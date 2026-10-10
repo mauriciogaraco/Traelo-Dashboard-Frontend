@@ -473,6 +473,35 @@ export interface OrdersTrendDTO {
   points: OrdersTrendPointDTO[];
 }
 
+// ── Analítica de comportamiento (eventos web/app) ────────────────────────
+
+export interface AbandonedCartItemDTO {
+  productId: string;
+  businessId: string | null;
+  quantity: number;
+}
+
+export interface AbandonedCartDTO {
+  customerId: string | null;
+  visitorId: string | null;
+  // 'cart' = dejó productos en el carrito; 'checkout' = llegó a iniciar el checkout.
+  stage: 'cart' | 'checkout';
+  lastActivityAt: string;
+  items: AbandonedCartItemDTO[];
+  businessIds: string[];
+  customer: { id: string; name: string; phone: string } | null;
+}
+
+export interface AbandonedCartsReportDTO {
+  from: string;
+  to: string;
+  idleMinutes: number;
+  // true = había más eventos que el tope que lee el backend por reporte: puede faltar alguno.
+  truncated: boolean;
+  total: number;
+  carts: AbandonedCartDTO[];
+}
+
 // ── Clientes de la app (cuentas Customer) ────────────────────────────────────
 
 export interface UserTypeCountDTO {
