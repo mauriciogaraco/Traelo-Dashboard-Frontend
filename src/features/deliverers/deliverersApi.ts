@@ -48,6 +48,14 @@ export interface UpdateDelivererInput {
   commissionPercentage?: number | null;
 }
 
+export interface DispatchQueueEntryDTO {
+  id: string;
+  name: string;
+  queuedAt: string;
+  busy: boolean;
+  position: number;
+}
+
 export const deliverersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     listDeliverers: builder.query<ApiPaginated<DelivererDTO>, ListDeliverersParams | void>({
@@ -62,6 +70,11 @@ export const deliverersApi = baseApi.injectEndpoints({
     }),
     getDelivererBonuses: builder.query<ApiOk<DelivererBonusesDTO>, DelivererBonusesParams | void>({
       query: (params) => ({ url: '/deliverers/bonuses', params: params ?? undefined }),
+    }),
+    // Orden real de la cola (botón "Ver orden real" en Trabajando hoy) — se pide al toque, no se
+    // deja en caché: la posición cambia apenas se asigna un pedido.
+    getDispatchQueue: builder.query<ApiOk<DispatchQueueEntryDTO[]>, void>({
+      query: () => ({ url: '/deliverers/queue' }),
     }),
     createDeliverer: builder.mutation<ApiOk<DelivererDTO>, CreateDelivererInput>({
       query: (body) => ({ url: '/deliverers', method: 'POST', body }),
@@ -98,6 +111,7 @@ export const deliverersApi = baseApi.injectEndpoints({
 export const {
   useListDeliverersQuery,
   useGetDelivererBonusesQuery,
+  useLazyGetDispatchQueueQuery,
   useCreateDelivererMutation,
   useUpdateDelivererMutation,
   useSetDelivererDutyMutation,
