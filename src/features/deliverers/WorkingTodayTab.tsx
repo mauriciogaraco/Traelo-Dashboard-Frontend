@@ -1,14 +1,19 @@
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { Radio, Moon, UserMinus, UserPlus } from 'lucide-react';
+import { ListOrdered, Radio, Moon, UserMinus, UserPlus } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { DelivererDTO } from '@/lib/types';
-import { useListDeliverersQuery, useSetDelivererDutyMutation } from './deliverersApi';
+import {
+  useLazyGetDispatchQueueQuery,
+  useListDeliverersQuery,
+  useSetDelivererDutyMutation,
+} from './deliverersApi';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -22,6 +27,13 @@ export function WorkingTodayTab() {
   const [setDuty, { isLoading: isSettingDuty }] = useSetDelivererDutyMutation();
   const [confirmOff, setConfirmOff] = useState<DelivererDTO | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showQueueModal, setShowQueueModal] = useState(false);
+  const [fetchQueue, { data: queueData, isFetching: isLoadingQueue }] = useLazyGetDispatchQueueQuery();
+
+  function openQueueModal() {
+    setShowQueueModal(true);
+    void fetchQueue();
+  }
 
   async function changeDuty(deliverer: DelivererDTO, onDuty: boolean) {
     setBusyId(deliverer.id);
@@ -65,6 +77,17 @@ export function WorkingTodayTab() {
           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
             {onDuty.length}
           </span>
+          {onDuty.length > 0 && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="ml-auto px-3 py-1.5"
+              onClick={openQueueModal}
+            >
+              <ListOrdered className="h-4 w-4" />
+              Ver orden real
+            </Button>
+          )}
         </div>
 
         {onDuty.length === 0 ? (
@@ -173,6 +196,50 @@ export function WorkingTodayTab() {
           onConfirm={() => void changeDuty(confirmOff, false)}
           onCancel={() => setConfirmOff(null)}
         />
+      )}
+
+      {showQueueModal && (
+        <Modal title="Orden real de la cola" onClose={() => setShowQueueModal(false)}>
+          <p className="mb-4 text-sm text-slate-500">
+            A quién le toca el próximo pedido: los libres van primero, en el orden en que esperan
+            su turno. Un mensajero ocupado no recibe nada mientras haya alguien libre detrás de
+            él, aunque haya entrado antes en la cola.
+          </p>
+          {isLoadingQueue && <p className="py-8 text-center text-sm text-slate-400">Cargando…</p>}
+          {!isLoadingQueue && queueData && queueData.data.length === 0 && (
+            <p className="py-8 text-center text-sm text-slate-400">
+              Ningún mensajero está en línea ahora mismo.
+            </p>
+          )}
+          {!isLoadingQueue && queueData && queueData.data.length > 0 && (
+            <ol className="flex flex-col gap-2">
+              {queueData.data.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={clsx(
+                        'flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-bold',
+                        entry.position === 1 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600',
+                      )}
+                    >
+                      {entry.position}
+                    </span>
+                    <span className="font-medium text-slate-900">{entry.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {entry.position === 1 && <Badge tone="brand">Próximo</Badge>}
+                    <Badge tone={entry.busy ? 'amber' : 'green'}>
+                      {entry.busy ? 'Ocupado' : 'Libre'}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Modal>
       )}
     </div>
   );
