@@ -1,5 +1,5 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiOk, DateRangePreset } from '@/lib/types';
+import type { ApiOk, ApiPaginated, DateRangePreset, PaginationQuery } from '@/lib/types';
 
 export type PointsTransactionType =
   | 'ORDER_COMPLETED'
@@ -39,12 +39,28 @@ export interface PointsOverviewParams {
   limit?: number;
 }
 
+export interface PointsRedemptionDTO {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  rewardName: string;
+  pointsCost: number;
+  moneyValue: number;
+  status: 'APPLIED' | 'REFUNDED';
+  orderNumber: number;
+  createdAt: string;
+  refundedAt: string | null;
+}
+
 export const puntosApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPointsOverview: builder.query<ApiOk<PointsOverviewDTO>, PointsOverviewParams | void>({
       query: (params) => ({ url: '/loyalty/points/overview', params: params ?? undefined }),
     }),
+    listPointsRedemptions: builder.query<ApiPaginated<PointsRedemptionDTO>, PaginationQuery | void>({
+      query: (params) => ({ url: '/loyalty/points/redemptions', params: params ?? undefined }),
+    }),
   }),
 });
 
-export const { useGetPointsOverviewQuery } = puntosApi;
+export const { useGetPointsOverviewQuery, useListPointsRedemptionsQuery } = puntosApi;

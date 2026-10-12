@@ -11,9 +11,11 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatDate } from '@/lib/formatDate';
 import type { DateRangePreset } from '@/lib/types';
-import { useGetPointsOverviewQuery } from './puntosApi';
+import { useGetPointsOverviewQuery, useListPointsRedemptionsQuery } from './puntosApi';
 
 type RangeTab = Exclude<DateRangePreset, 'custom'>;
 
@@ -26,6 +28,7 @@ const RANGE_TABS: { value: RangeTab; label: string }[] = [
 ];
 
 const TOP_CUSTOMERS_LIMIT = 10;
+const REDEMPTIONS_PAGE_SIZE = 10;
 
 function percent(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 100) : 0;
@@ -118,6 +121,7 @@ function BarRow({
 
 export function PuntosPage() {
   const [range, setRange] = useState<RangeTab>('month');
+  const [redemptionsPage, setRedemptionsPage] = useState(1);
 
   const { data, isLoading, isError } = useGetPointsOverviewQuery({
     range,
@@ -125,6 +129,12 @@ export function PuntosPage() {
   });
   const overview = data?.data;
   const bySourceTotal = overview ? overview.bySource.compras + overview.bySource.referidos : 0;
+
+  const { data: redemptionsData, isLoading: isLoadingRedemptions } = useListPointsRedemptionsQuery({
+    page: redemptionsPage,
+    pageSize: REDEMPTIONS_PAGE_SIZE,
+  });
+  const redemptions = redemptionsData?.data ?? [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -266,6 +276,67 @@ export function PuntosPage() {
           </Card>
         </>
       )}
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">Clientes que ya canjearon puntos</h2>
+          <p className="text-xs text-slate-400">
+            Toda la historia, sin importar el rango seleccionado arriba.
+          </p>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Cliente</th>
+                <th className="px-4 py-3 font-medium">Canjeó</th>
+                <th className="px-4 py-3 text-right font-medium">Puntos</th>
+                <th className="px-4 py-3 text-right font-medium">Valor</th>
+                <th className="px-4 py-3 font-medium">Pedido</th>
+                <th className="px-4 py-3 font-medium">Fecha</th>
+                <th className="px-4 py-3 font-medium">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isLoadingRedemptions && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                    Cargando…
+                  </td>
+                </tr>
+              )}
+              {!isLoadingRedemptions && redemptions.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                    Todavía nadie ha canjeado sus puntos.
+                  </td>
+                </tr>
+              )}
+              {redemptions.map((redemption) => (
+                <tr key={redemption.id} className="text-slate-700">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-slate-900">{redemption.customerName}</p>
+                    <p className="text-xs text-slate-400">{redemption.customerPhone}</p>
+                  </td>
+                  <td className="px-4 py-3">{redemption.rewardName}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                    {redemption.pointsCost.toLocaleString('es')}
+                  </td>
+                  <td className="px-4 py-3 text-right">{redemption.moneyValue.toLocaleString('es')} CUP</td>
+                  <td className="px-4 py-3">#{redemption.orderNumber}</td>
+                  <td className="px-4 py-3">{formatDate(redemption.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={redemption.status === 'APPLIED' ? 'green' : 'slate'}>
+                      {redemption.status === 'APPLIED' ? 'Aplicado' : 'Devuelto'}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {redemptionsData && <Pagination meta={redemptionsData.meta} onPageChange={setRedemptionsPage} />}
+        </div>
+      </div>
     </div>
   );
 }
