@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bell,
   Bike,
+  ClipboardCheck,
   Coins,
   CupSoda,
   HeartHandshake,
@@ -66,6 +67,12 @@ export const navEntries: NavEntry[] = [
       { to: '/businesses', label: 'Negocios', icon: Store, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
       { to: '/categories', label: 'Categorías', icon: Tags, roles: ['OWNER', 'ADMIN'] },
       { to: '/products', label: 'Productos', icon: ShoppingBasket, roles: ['OWNER', 'ADMIN'] },
+      {
+        to: '/product-proposals',
+        label: 'Propuestas de productos',
+        icon: ClipboardCheck,
+        roles: ['OWNER', 'ADMIN', 'COMMERCIAL'],
+      },
     ],
   },
   {

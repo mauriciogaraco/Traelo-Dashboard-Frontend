@@ -315,6 +315,18 @@ export const businessesApi = baseApi.injectEndpoints({
         { type: 'Product', id: `LIST-${businessId}` },
       ],
     }),
+    // Simétrico a deactivateProduct: reactivar es operativo, no una edición de contenido, así
+    // que sigue siendo directo (sin propuesta/aprobación) para dueño y staff por igual.
+    activateProduct: builder.mutation<ApiOk<ProductDTO>, { businessId: string; productId: string }>({
+      query: ({ businessId, productId }) => ({
+        url: `/businesses/${businessId}/products/${productId}/activate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { businessId, productId }) => [
+        { type: 'Product', id: productId },
+        { type: 'Product', id: `LIST-${businessId}` },
+      ],
+    }),
     setProductAvailability: builder.mutation<ApiOk<ProductDTO>, SetProductAvailabilityInput>({
       query: ({ businessId, productId, ...body }) => ({
         url: `/businesses/${businessId}/products/${productId}/availability`,
@@ -458,6 +470,7 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeactivateProductMutation,
+  useActivateProductMutation,
   useSetProductAvailabilityMutation,
   useUploadProductImageMutation,
   useSetProductCommissionMutation,
