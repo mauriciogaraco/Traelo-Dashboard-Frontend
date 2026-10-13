@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { COMMISSION_TYPE_LABEL, SUBSCRIPTION_STATUS_LABEL } from '@/lib/labels';
 import { EditBusinessModal } from './EditBusinessModal';
 import { HoursTab } from './HoursTab';
+import { OwnerTab } from './OwnerTab';
 import { ProductsTab } from './ProductsTab';
 import { SubscriptionsTab } from './SubscriptionsTab';
 import {
@@ -26,7 +27,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-type Tab = 'info' | 'hours' | 'products' | 'subscriptions';
+type Tab = 'info' | 'hours' | 'products' | 'subscriptions' | 'owner';
 
 export function BusinessDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +65,7 @@ export function BusinessDetailPage() {
     { key: 'hours', label: 'Horarios' },
     { key: 'products', label: 'Productos' },
     ...(canManage ? [{ key: 'subscriptions' as Tab, label: 'Suscripciones' }] : []),
+    ...(canManage ? [{ key: 'owner' as Tab, label: 'Dueño' }] : []),
   ];
 
   return (
@@ -247,6 +249,7 @@ export function BusinessDetailPage() {
       {tab === 'hours' && <HoursTab businessId={business.id} canManage={canManage} />}
       {tab === 'products' && <ProductsTab business={business} canManage={canManage} />}
       {tab === 'subscriptions' && canManage && <SubscriptionsTab businessId={business.id} />}
+      {tab === 'owner' && canManage && <OwnerTab business={business} />}
 
       {editOpen && <EditBusinessModal business={business} onClose={() => setEditOpen(false)} />}
       {deactivateOpen && (

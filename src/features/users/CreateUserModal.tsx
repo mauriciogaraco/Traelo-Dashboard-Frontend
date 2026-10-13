@@ -29,12 +29,22 @@ type FormValues = z.infer<typeof schema>;
 interface CreateUserModalProps {
   allowedRoles: Role[];
   onClose: () => void;
+  // Cuando se crea el dueño desde el detalle de un negocio puntual: fija el negocio
+  // y oculta el selector, en vez de dejar elegirlo.
+  fixedBusinessId?: string;
+  fixedBusinessName?: string;
 }
 
-export function CreateUserModal({ allowedRoles, onClose }: CreateUserModalProps) {
+export function CreateUserModal({
+  allowedRoles,
+  onClose,
+  fixedBusinessId,
+  fixedBusinessName,
+}: CreateUserModalProps) {
   const [registerUser, { isLoading, error }] = useRegisterMutation();
-  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(fixedBusinessId ?? null);
   const [businessError, setBusinessError] = useState<string | undefined>();
+  const showRoleSelect = allowedRoles.length > 1;
 
   const {
     register,
@@ -49,7 +59,7 @@ export function CreateUserModal({ allowedRoles, onClose }: CreateUserModalProps)
   const isBusinessOwner = watch('role') === Role.BUSINESS_OWNER;
   const { data: businessesData } = useListBusinessesQuery(
     { pageSize: 100, active: true },
-    { skip: !isBusinessOwner },
+    { skip: !isBusinessOwner || !!fixedBusinessId },
   );
   const businessOptions = (businessesData?.data ?? []).map((b) => ({ value: b.id, label: b.name }));
 
@@ -91,24 +101,29 @@ export function CreateUserModal({ allowedRoles, onClose }: CreateUserModalProps)
           error={errors.phone?.message}
           {...register('phone')}
         />
-        <FormSelect label="Rol" error={errors.role?.message} {...register('role')}>
-          {allowedRoles.map((role) => (
-            <option key={role} value={role}>
-              {ROLE_LABEL[role]}
-            </option>
-          ))}
-        </FormSelect>
-        {isBusinessOwner && (
-          <SearchableSelect
-            label="Negocio que administra"
-            value={businessId}
-            onChange={setBusinessId}
-            options={businessOptions}
-            placeholder="Buscar negocio…"
-            error={businessError}
-            allowClear={false}
-          />
+        {showRoleSelect && (
+          <FormSelect label="Rol" error={errors.role?.message} {...register('role')}>
+            {allowedRoles.map((role) => (
+              <option key={role} value={role}>
+                {ROLE_LABEL[role]}
+              </option>
+            ))}
+          </FormSelect>
         )}
+        {isBusinessOwner &&
+          (fixedBusinessId ? (
+            <FormField label="Negocio que administra" value={fixedBusinessName ?? ''} disabled readOnly />
+          ) : (
+            <SearchableSelect
+              label="Negocio que administra"
+              value={businessId}
+              onChange={setBusinessId}
+              options={businessOptions}
+              placeholder="Buscar negocio…"
+              error={businessError}
+              allowClear={false}
+            />
+          ))}
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>
