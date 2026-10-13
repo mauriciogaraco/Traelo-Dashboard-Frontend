@@ -17,7 +17,7 @@ import {
 import { playMergeAlarm } from './mergeAlarmSound';
 
 /** Cada cuánto se consulta si hay pedidos por decidir. */
-const POLL_MS = 15_000;
+const POLL_MS = 5 * 60_000;
 /** Mientras nadie decida, la alarma vuelve a sonar y el modal a abrirse cada 3 minutos. */
 export const ALARM_REPEAT_MS = 3 * 60_000;
 

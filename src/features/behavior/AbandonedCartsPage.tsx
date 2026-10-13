@@ -57,7 +57,9 @@ export function AbandonedCartsPage() {
   // behavior.repository.ts: businessId no tiene FK a propósito, un negocio borrado no debe
   // romper el historial). Los productos SÍ quedan como id: /products es solo OWNER/ADMIN y esta
   // página también la ve EMPLOYEE, así que no se puede resolver ahí sin bajarle el acceso.
-  const { data: businessesData } = useListBusinessesQuery({ pageSize: 200 });
+  // paginationQuerySchema del backend limita pageSize a 100 (ver shared/http/pagination.ts) —
+  // 200 siempre devuelve 400, sin importar cuántos negocios existan realmente.
+  const { data: businessesData } = useListBusinessesQuery({ pageSize: 100 });
   const businessNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const business of businessesData?.data ?? []) map.set(business.id, business.name);

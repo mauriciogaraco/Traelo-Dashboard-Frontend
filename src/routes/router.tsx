@@ -21,6 +21,7 @@ import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { ReviewsPage } from '@/features/reviews/ReviewsPage';
 import { PuntosPage } from '@/features/puntos/PuntosPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
+import { ProductProposalsPage } from '@/features/productProposals/ProductProposalsPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { CreateOrderPage } from '@/features/orders/CreateOrderPage';
@@ -102,6 +103,12 @@ export const router = createBrowserRouter([
               { path: 'reviews', element: <ReviewsPage /> },
               { path: 'products', element: <ProductsPage /> },
             ],
+          },
+          {
+            // COMMERCIAL solo ve esta pantalla — no hereda el resto de los permisos de
+            // OWNER/ADMIN (ver Role.COMMERCIAL en el backend).
+            element: <RoleGate allow={['OWNER', 'ADMIN', 'COMMERCIAL']} />,
+            children: [{ path: 'product-proposals', element: <ProductProposalsPage /> }],
           },
         ],
       },

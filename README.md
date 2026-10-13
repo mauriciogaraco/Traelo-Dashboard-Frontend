@@ -1,3 +1,20 @@
+# Traelo Dashboard Frontend
+
+## Revisión de propuestas de productos
+
+`src/features/productProposals/` — cola de revisión comercial para altas/ediciones de catálogo
+que proponen los `BUSINESS_OWNER` desde `Traelo-Business-Owner`. Ruta `/product-proposals`,
+visible para `OWNER`/`ADMIN`/`COMMERCIAL` (rol nuevo — ver `src/lib/types.ts` y el backend).
+Compara actual vs. propuesto, exige motivo para rechazar, y aprobar publica el cambio de
+inmediato en el catálogo. Ver `Traelo-Business-Owner/IMPLEMENTATION_PLAN.md` para el diseño
+completo del flujo.
+
+Cambio relacionado: `ProductsTab.tsx` ya no muestra "Nuevo producto"/"Editar" cuando
+`ownerMode` (el dueño de negocio usa el portal nuevo para eso, que pasa por aprobación);
+activar/desactivar/disponibilidad siguen siendo directos ahí.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

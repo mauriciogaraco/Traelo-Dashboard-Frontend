@@ -11,9 +11,9 @@ import { EditProductModal } from './EditProductModal';
 import { ProductCommissionModal } from './ProductCommissionModal';
 import { ProductOffersModal } from './ProductOffersModal';
 import {
+  useActivateProductMutation,
   useDeactivateProductMutation,
   useListProductsQuery,
-  useUpdateProductMutation,
 } from './businessesApi';
 
 const PAGE_SIZE = 10;
@@ -79,7 +79,7 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
     };
   }, [data, isInactiveFilter, page]);
 
-  const [reactivateProduct] = useUpdateProductMutation();
+  const [activateProduct] = useActivateProductMutation();
   const [deactivateProduct, { isLoading: isDeactivating }] = useDeactivateProductMutation();
 
   async function handleConfirmDeactivate() {
@@ -115,13 +115,21 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
             <option value="inactive">Inactivos</option>
           </select>
         </div>
-        {canManage && (
+        {canManage && !ownerMode && (
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Nuevo producto
           </Button>
         )}
       </div>
+
+      {ownerMode && (
+        <p className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-800">
+          Para crear un producto nuevo o editar nombre, precio, descripción, categoría o
+          fotografía, usá el Portal de Negocios: esos cambios pasan por revisión comercial antes
+          de publicarse. Desde aquí podés activar/desactivar productos y revisar su estado.
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
@@ -197,13 +205,15 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
                 {canManage && (
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setEditingProduct(product)}
-                      >
-                        Editar
-                      </Button>
+                      {!ownerMode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setEditingProduct(product)}
+                        >
+                          Editar
+                        </Button>
+                      )}
                       {!ownerMode && (
                         <Button
                           type="button"
@@ -228,11 +238,7 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
                           type="button"
                           variant="ghost"
                           onClick={() =>
-                            reactivateProduct({
-                              businessId: business.id,
-                              productId: product.id,
-                              body: { active: true },
-                            })
+                            activateProduct({ businessId: business.id, productId: product.id })
                           }
                         >
                           <RotateCcw className="h-4 w-4" />

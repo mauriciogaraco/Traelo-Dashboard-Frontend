@@ -14,6 +14,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   EMPLOYEE: 'Empleado',
   DELIVERER: 'Mensajero',
   BUSINESS_OWNER: 'Dueño de negocio',
+  COMMERCIAL: 'Comercial',
 };
 
 export const COMMISSION_TYPE_LABEL: Record<CommissionType, string> = {

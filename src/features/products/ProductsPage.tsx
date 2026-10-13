@@ -36,8 +36,10 @@ export function ProductsPage() {
     page,
     pageSize: PAGE_SIZE,
   });
-  const { data: businessesData } = useListBusinessesQuery({ pageSize: 200, active: true });
-  const { data: categoriesData } = useListCategoriesQuery({ pageSize: 200, active: true });
+  // paginationQuerySchema del backend limita pageSize a 100 (ver shared/http/pagination.ts) —
+  // 200 siempre devuelve 400, sin importar cuántos negocios/categorías existan realmente.
+  const { data: businessesData } = useListBusinessesQuery({ pageSize: 100, active: true });
+  const { data: categoriesData } = useListCategoriesQuery({ pageSize: 100, active: true });
 
   const businessOptions = useMemo(
     () => (businessesData?.data ?? []).map((b) => ({ value: b.id, label: b.name })),

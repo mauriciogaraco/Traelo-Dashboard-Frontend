@@ -7,6 +7,9 @@ export const Role = {
   EMPLOYEE: 'EMPLOYEE',
   DELIVERER: 'DELIVERER',
   BUSINESS_OWNER: 'BUSINESS_OWNER',
+  // Revisa y aprueba/rechaza propuestas de catálogo de los BUSINESS_OWNER — ver
+  // features/productProposals. No tiene ningún otro permiso de ADMIN/OWNER.
+  COMMERCIAL: 'COMMERCIAL',
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
@@ -250,6 +253,64 @@ export interface ProductDTO {
 /** Fila del módulo global "Productos" (GET /products, cross-business) — solo OWNER/ADMIN. */
 export interface AdminProductDTO extends ProductDTO {
   businessName: string;
+}
+
+export const ProposalType = { CREATE: 'CREATE', EDIT: 'EDIT' } as const;
+export type ProposalType = (typeof ProposalType)[keyof typeof ProposalType];
+
+export const ProposalStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type ProposalStatus = (typeof ProposalStatus)[keyof typeof ProposalStatus];
+
+/** Mismo shape para crear o editar un producto, sin featured/familiaOnly (ver schema backend). */
+export interface ProposedProductData {
+  name?: string;
+  description?: string | null;
+  category?: string;
+  categoryId?: string | null;
+  price?: number;
+  imageUrl?: string | null;
+  imageBlurhash?: string | null;
+  packaging?: PackagingOption[] | null;
+}
+
+/** Snapshot del producto publicado al momento de revisar una propuesta EDIT (null en CREATE). */
+export interface ProposalProductSnapshotDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  categoryId: string | null;
+  price: number | null;
+  active: boolean;
+  imageUrl: string | null;
+  imageBlurhash: string | null;
+  packaging: PackagingOption[] | null;
+  updatedAt: string;
+}
+
+export interface ProductProposalDTO {
+  id: string;
+  businessId: string;
+  businessName: string;
+  productId: string | null;
+  type: ProposalType;
+  status: ProposalStatus;
+  proposedData: ProposedProductData;
+  baseProductUpdatedAt: string | null;
+  createdByUserId: string;
+  createdByName: string;
+  reviewedByUserId: string | null;
+  reviewedByName: string | null;
+  rejectionReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  currentProduct: ProposalProductSnapshotDTO | null;
 }
 
 export interface ProductOfferDTO {
