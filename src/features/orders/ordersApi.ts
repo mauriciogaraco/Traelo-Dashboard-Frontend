@@ -39,7 +39,18 @@ export interface CreateOrderInput {
   platformFeeOverride?: number;
   // "🎟️ Número del Sorteo" del vale, cuando el pedido participa de una promoción vigente.
   raffleNumber?: number;
+  // Cliente registrado de la app vinculado a este pedido manual (ver "Vincular cuenta" en el
+  // formulario) — hace que el pedido cuente para puntos como si lo hubiera hecho el propio
+  // cliente. Solo se manda cuando el staff confirmó que el teléfono buscado es esta cuenta.
+  customerId?: string;
   businesses: CreateOrderBusinessInput[];
+}
+
+export interface CustomerLookupDTO {
+  id: string;
+  name: string;
+  phone: string;
+  pointsBalance: number;
 }
 
 // Fusión de pedidos: el mismo teléfono pidió otra vez a los pocos minutos y el staff decide.
@@ -101,6 +112,10 @@ export const ordersApi = baseApi.injectEndpoints({
     createOrder: builder.mutation<ApiOk<OrderDTO>, CreateOrderInput>({
       query: (body) => ({ url: '/orders', method: 'POST', body }),
       invalidatesTags: [{ type: 'Order', id: 'LIST' }],
+    }),
+    // "Nuevo pedido" → vincular cuenta: ¿ese teléfono es de un cliente registrado?
+    lookupCustomerByPhone: builder.query<ApiOk<CustomerLookupDTO | null>, string>({
+      query: (phone) => ({ url: '/orders/customer-lookup', params: { phone } }),
     }),
     updateOrder: builder.mutation<ApiOk<OrderDTO>, { id: string; body: UpdateOrderInput }>({
       query: ({ id, body }) => ({ url: `/orders/${id}`, method: 'PATCH', body }),
@@ -182,6 +197,7 @@ export const {
   useListOrdersQuery,
   useLazyListOrdersQuery,
   useGetOrderQuery,
+  useLazyLookupCustomerByPhoneQuery,
   useCreateOrderMutation,
   useUpdateOrderMutation,
   useAssignOrderMutation,
