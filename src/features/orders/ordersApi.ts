@@ -91,6 +91,9 @@ export interface UpdateOrderInput {
   raffleNumber?: number | null;
   // Reemplaza por completo los negocios/productos del pedido. Si se omite, no se tocan.
   businesses?: CreateOrderBusinessInput[];
+  // Vincular un cliente registrado que no se vinculó al crear el pedido — solo si el pedido
+  // todavía no tiene uno (es de una sola vez, ver orders.service.updateOrder en el backend).
+  customerId?: string;
 }
 
 export const ordersApi = baseApi.injectEndpoints({

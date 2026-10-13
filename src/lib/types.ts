@@ -391,6 +391,9 @@ export interface OrderDTO {
   registeredByUserId: string;
   registeredByName: string;
   raffleNumber: number | null;
+  // Cliente registrado de la app vinculado a este pedido (ver "Vincular cuenta" en Nuevo/Editar
+  // pedido) — null si es un pedido anónimo o todavía no se vinculó a nadie.
+  customerId: string | null;
   // Campos que el backend ya manda y el dashboard usa en el PDF del pedido.
   source?: 'APP' | 'WEB' | 'MANUAL' | 'TELEGRAM';
   scheduledFor?: string | null;

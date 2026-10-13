@@ -9,12 +9,14 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import {
   useAssignOrderMutation,
   useGetOrderQuery,
   useUpdateOrderMutation,
 } from './ordersApi';
+import { useCustomerLookup } from './useCustomerLookup';
 
 export function EditOrderPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +44,17 @@ export function EditOrderPage() {
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // "Vincular cuenta": igual que al crear el pedido, pero solo tiene sentido si el pedido
+  // todavía no tiene cliente vinculado (es permanente — ver orders.service.updateOrder).
+  const alreadyLinked = data?.data.customerId != null;
+  const [linkCustomer, setLinkCustomer] = useState(false);
+  const {
+    searchEligible,
+    foundCustomer,
+    isSearching: isSearchingCustomer,
+    notFound: customerNotFound,
+  } = useCustomerLookup(customerPhone, linkCustomer && !alreadyLinked);
 
   useEffect(() => {
     if (!data || initialized) return;
@@ -190,6 +203,14 @@ export function EditOrderPage() {
       setFormError('No podés repetir el mismo negocio en el pedido.');
       return;
     }
+    if (!alreadyLinked && linkCustomer && !foundCustomer) {
+      setFormError(
+        isSearchingCustomer
+          ? 'Esperá a que termine de buscar el cliente antes de guardar.'
+          : 'Activaste "Vincular cuenta" pero no se encontró ningún cliente con ese teléfono. Corregí el número o apagá el switch para guardar sin vincular.',
+      );
+      return;
+    }
 
     try {
       await updateOrder({
@@ -202,6 +223,7 @@ export function EditOrderPage() {
           deliveryFee: feeNumber,
           platformFeeOverride: platformFeeOverrideValue,
           raffleNumber: raffleNumberValue,
+          customerId: !alreadyLinked && foundCustomer ? foundCustomer.id : undefined,
           businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
         },
       }).unwrap();
@@ -265,6 +287,16 @@ export function EditOrderPage() {
             name="customerPhone"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
+          />
+          <CustomerLinkField
+            phone={customerPhone}
+            linked={linkCustomer}
+            onLinkedChange={setLinkCustomer}
+            searchEligible={searchEligible}
+            isSearching={isSearchingCustomer}
+            foundCustomer={foundCustomer}
+            notFound={customerNotFound}
+            alreadyLinked={alreadyLinked}
           />
           <FormField
             label="Dirección"

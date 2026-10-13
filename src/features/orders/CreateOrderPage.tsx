@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Search, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
@@ -9,16 +9,11 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
-import {
-  useAssignOrderMutation,
-  useCreateOrderMutation,
-  useLazyLookupCustomerByPhoneQuery,
-} from './ordersApi';
+import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
 import { parseOrderText } from './orderTextParser';
-
-// Igual que isValidPhone del backend (shared/phone.ts): no vale la pena buscar con menos dígitos.
-const MIN_PHONE_LENGTH_TO_SEARCH = 6;
+import { useCustomerLookup } from './useCustomerLookup';
 
 export function CreateOrderPage() {
   const navigate = useNavigate();
@@ -42,34 +37,8 @@ export function CreateOrderPage() {
   // pedido manual se vincula a esa cuenta y cuenta para puntos como si lo hubiera hecho el
   // propio cliente (ver orders.service.lookupCustomerByPhone en el backend).
   const [linkCustomer, setLinkCustomer] = useState(false);
-  const [lookupCustomer, lookupResult] = useLazyLookupCustomerByPhoneQuery();
-
-  useEffect(() => {
-    if (!linkCustomer || customerPhone.trim().length < MIN_PHONE_LENGTH_TO_SEARCH) {
-      return;
-    }
-    const timeout = setTimeout(() => {
-      void lookupCustomer(customerPhone.trim());
-    }, 400);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkCustomer, customerPhone]);
-
-  // No se busca más (switch apagado o teléfono muy corto), o el resultado que llegó es de un
-  // teléfono anterior (todavía no corrió el debounce de lo último que se tipeó): en ningún caso
-  // hay un match vigente — el submit nunca debe vincular una cuenta que ya no corresponde a lo
-  // escrito en este momento.
-  const searchEligible = linkCustomer && customerPhone.trim().length >= MIN_PHONE_LENGTH_TO_SEARCH;
-  const resultMatchesCurrentPhone = lookupResult.originalArgs === customerPhone.trim();
-  const foundCustomer =
-    searchEligible && resultMatchesCurrentPhone ? (lookupResult.data?.data ?? null) : null;
-  const isSearchingCustomer = searchEligible && (!resultMatchesCurrentPhone || lookupResult.isFetching);
-  const customerNotFound =
-    searchEligible &&
-    resultMatchesCurrentPhone &&
-    !lookupResult.isFetching &&
-    lookupResult.data !== undefined &&
-    !foundCustomer;
+  const { searchEligible, foundCustomer, isSearching: isSearchingCustomer, notFound: customerNotFound } =
+    useCustomerLookup(customerPhone, linkCustomer);
 
   const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
   const businesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
@@ -334,42 +303,15 @@ export function CreateOrderPage() {
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
             />
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <Switch
-                checked={linkCustomer}
-                onChange={setLinkCustomer}
-                label="Vincular cuenta de cliente registrado (le da puntos)"
-              />
-              {linkCustomer && (
-                <div className="text-sm">
-                  {customerPhone.trim().length < MIN_PHONE_LENGTH_TO_SEARCH && (
-                    <p className="flex items-center gap-1.5 text-slate-400">
-                      <Search className="h-4 w-4" />
-                      Escribí el teléfono para buscar la cuenta.
-                    </p>
-                  )}
-                  {isSearchingCustomer && (
-                    <p className="flex items-center gap-1.5 text-slate-500">
-                      <Search className="h-4 w-4 animate-pulse" />
-                      Buscando…
-                    </p>
-                  )}
-                  {foundCustomer && (
-                    <p className="flex items-center gap-1.5 text-green-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {foundCustomer.name} · {foundCustomer.pointsBalance.toLocaleString('es')} puntos —
-                      este pedido se vinculará a su cuenta.
-                    </p>
-                  )}
-                  {customerNotFound && (
-                    <p className="flex items-center gap-1.5 text-amber-700">
-                      <XCircle className="h-4 w-4" />
-                      No se encontró ningún cliente registrado con ese teléfono.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <CustomerLinkField
+              phone={customerPhone}
+              linked={linkCustomer}
+              onLinkedChange={setLinkCustomer}
+              searchEligible={searchEligible}
+              isSearching={isSearchingCustomer}
+              foundCustomer={foundCustomer}
+              notFound={customerNotFound}
+            />
             <FormField
               label="Dirección"
               name="customerAddress"
