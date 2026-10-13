@@ -31,8 +31,8 @@ import {
 } from './ordersListPdf';
 
 const PAGE_SIZE = 15;
-/** La lista se vuelve a pedir sola cada 3 minutos (además del botón de refrescar). */
-const AUTO_REFRESH_MS = 3 * 60_000;
+/** La lista se vuelve a pedir sola cada 5 minutos (además del botón de refrescar). */
+const AUTO_REFRESH_MS = 5 * 60_000;
 
 type RangeTab = DateRangePreset | 'all';
 
