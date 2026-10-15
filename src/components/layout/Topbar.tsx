@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { loggedOut } from '@/features/auth/authSlice';
 import { InboxBell } from '@/features/staffInbox/InboxBell';
+import { baseApi } from '@/lib/baseApi';
 import { ROLE_LABEL } from '@/lib/labels';
 import isotipo from '@/assets/isotipo.png';
 
@@ -27,6 +28,9 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
       }
     }
     dispatch(loggedOut());
+    // Sin esto, el caché normalizado de RTK Query sobrevive en memoria y un login
+    // posterior en la misma pestaña podría mostrar por un instante datos de la sesión anterior.
+    dispatch(baseApi.util.resetApiState());
     navigate('/login', { replace: true });
   }
 
