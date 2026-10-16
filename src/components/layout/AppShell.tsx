@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { MergeSuggestionsAlarm } from '@/features/orders/MergeSuggestionsAlarm';
+
+function PageFallback() {
+  return (
+    <div className="flex h-full items-center justify-center p-10 text-sm text-slate-400">
+      Cargando…
+    </div>
+  );
+}
 
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -19,7 +27,9 @@ export function AppShell() {
         <Topbar onOpenMobileNav={() => setMobileNavOpen(true)} />
         <MergeSuggestionsAlarm />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <Outlet />
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
