@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -6,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Modal } from '@/components/ui/Modal';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useListCitiesQuery } from '@/features/cities/citiesApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { COMMISSION_TYPE_LABEL } from '@/lib/labels';
 import { CommissionType } from '@/lib/types';
@@ -55,6 +58,13 @@ interface CreateBusinessModalProps {
 export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
   const navigate = useNavigate();
   const [createBusiness, { isLoading, error }] = useCreateBusinessMutation();
+  const [cityId, setCityId] = useState<string | null>(null);
+
+  // Con una sola ciudad activa, el backend la resuelve solo (ver resolveCreateCityId) — el
+  // selector solo hace falta a partir de la segunda.
+  const { data: citiesData } = useListCitiesQuery({ active: true, pageSize: 100 });
+  const cityOptions = (citiesData?.data ?? []).map((c) => ({ value: c.id, label: c.name }));
+  const showCityField = cityOptions.length > 1;
 
   const {
     register,
@@ -89,6 +99,7 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
           ? Number(values.defaultProductCommissionAmount)
           : undefined,
       deliveryFeeBase: values.deliveryFeeBase ? Number(values.deliveryFeeBase) : undefined,
+      ...(showCityField && cityId ? { cityId } : {}),
     }).unwrap();
     onClose();
     navigate(`/businesses/${result.data.id}`);
@@ -104,6 +115,16 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
         <FormField label="Nombre" error={errors.name?.message} {...register('name')} />
         <FormField label="Teléfono" error={errors.phone?.message} {...register('phone')} />
         <FormField label="Dirección" error={errors.address?.message} {...register('address')} />
+        {showCityField && (
+          <SearchableSelect
+            label="Ciudad"
+            value={cityId}
+            onChange={setCityId}
+            options={cityOptions}
+            placeholder="Elegir ciudad…"
+            allowClear={false}
+          />
+        )}
         <FormSelect
           label="Modelo de comisión"
           error={errors.commissionType?.message}

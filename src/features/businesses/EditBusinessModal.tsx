@@ -1,10 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Modal } from '@/components/ui/Modal';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useListCitiesQuery } from '@/features/cities/citiesApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { COMMISSION_TYPE_LABEL } from '@/lib/labels';
 import { CommissionType, type BusinessDTO } from '@/lib/types';
@@ -54,6 +57,11 @@ interface EditBusinessModalProps {
 
 export function EditBusinessModal({ business, onClose }: EditBusinessModalProps) {
   const [updateBusiness, { isLoading, error }] = useUpdateBusinessMutation();
+  const [cityId, setCityId] = useState<string | null>(business.cityId ?? null);
+
+  const { data: citiesData } = useListCitiesQuery({ active: true, pageSize: 100 });
+  const cityOptions = (citiesData?.data ?? []).map((c) => ({ value: c.id, label: c.name }));
+  const showCityField = cityOptions.length > 1;
 
   const {
     register,
@@ -92,6 +100,7 @@ export function EditBusinessModal({ business, onClose }: EditBusinessModalProps)
             ? Number(values.defaultProductCommissionAmount)
             : undefined,
         deliveryFeeBase: values.deliveryFeeBase ? Number(values.deliveryFeeBase) : undefined,
+        ...(showCityField && cityId ? { cityId } : {}),
       },
     }).unwrap();
     onClose();
@@ -103,6 +112,16 @@ export function EditBusinessModal({ business, onClose }: EditBusinessModalProps)
         <FormField label="Nombre" error={errors.name?.message} {...register('name')} />
         <FormField label="Teléfono" error={errors.phone?.message} {...register('phone')} />
         <FormField label="Dirección" error={errors.address?.message} {...register('address')} />
+        {showCityField && (
+          <SearchableSelect
+            label="Ciudad"
+            value={cityId}
+            onChange={setCityId}
+            options={cityOptions}
+            placeholder="Elegir ciudad…"
+            allowClear={false}
+          />
+        )}
         <FormSelect
           label="Modelo de comisión"
           error={errors.commissionType?.message}

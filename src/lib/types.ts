@@ -120,6 +120,20 @@ export interface ApiErrorBody {
 
 // ── DTOs de dominio ─────────────────────────────────────────────────────
 
+export interface UserCityDTO {
+  id: string;
+  name: string;
+}
+
+export interface CityDTO {
+  id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserDTO {
   id: string;
   name: string;
@@ -131,6 +145,10 @@ export interface UserDTO {
   // undefined, no null — leer siempre con `?? null`/`== null`.
   businessId?: string | null;
   businessName?: string | null;
+  // Ciudades a las que queda acotado un ADMIN/EMPLOYEE (ver UserCityAccess en el backend) — []
+  // o ausente = sin restricción, acceso global (todo el staff antes de multiciudad, y siempre
+  // para OWNER). Opcional: backends sin multiciudad todavía no lo mandan.
+  cities?: UserCityDTO[];
   createdAt: string;
   updatedAt: string;
 }
@@ -167,6 +185,10 @@ export interface BusinessDTO {
   defaultProductCommissionAmount: number | null;
   deliveryFeeBase: number;
   logoUrl: string | null;
+  // Ciudad a la que pertenece (ver Business.cityId en el backend) — null si todavía no se le
+  // asignó, o undefined si el backend todavía no manda el campo (sin multiciudad).
+  cityId?: string | null;
+  cityName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { loggedOut } from '@/features/auth/authSlice';
 import { InboxBell } from '@/features/staffInbox/InboxBell';
+import { LocationSelector } from '@/features/locations/LocationSelector';
 import { baseApi } from '@/lib/baseApi';
 import { ROLE_LABEL } from '@/lib/labels';
 import isotipo from '@/assets/isotipo.png';
@@ -49,6 +50,7 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
       </div>
       <div className="hidden sm:block" />
       <div className="flex items-center gap-2 sm:gap-4">
+        <LocationSelector />
         <InboxBell />
         {user && (
           <div className="hidden text-right leading-tight sm:block">
