@@ -8,6 +8,7 @@ import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Modal } from '@/components/ui/Modal';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { CityMultiSelect } from '@/features/cities/CityMultiSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { ROLE_LABEL } from '@/lib/labels';
@@ -43,6 +44,7 @@ export function CreateUserModal({
 }: CreateUserModalProps) {
   const [registerUser, { isLoading, error }] = useRegisterMutation();
   const [businessId, setBusinessId] = useState<string | null>(fixedBusinessId ?? null);
+  const [cityIds, setCityIds] = useState<string[]>([]);
   const [businessError, setBusinessError] = useState<string | undefined>();
   const showRoleSelect = allowedRoles.length > 1;
 
@@ -56,7 +58,9 @@ export function CreateUserModal({
     defaultValues: { name: '', email: '', password: '', phone: '', role: allowedRoles[0] },
   });
 
-  const isBusinessOwner = watch('role') === Role.BUSINESS_OWNER;
+  const role = watch('role');
+  const isBusinessOwner = role === Role.BUSINESS_OWNER;
+  const isCityScopable = role === Role.ADMIN || role === Role.EMPLOYEE;
   const { data: businessesData } = useListBusinessesQuery(
     { pageSize: 100, active: true },
     { skip: !isBusinessOwner || !!fixedBusinessId },
@@ -76,6 +80,7 @@ export function CreateUserModal({
       phone: values.phone || undefined,
       role: values.role,
       ...(values.role === Role.BUSINESS_OWNER && businessId ? { businessId } : {}),
+      ...(isCityScopable && cityIds.length > 0 ? { cityIds } : {}),
     }).unwrap();
     onClose();
   }
@@ -124,6 +129,14 @@ export function CreateUserModal({
               allowClear={false}
             />
           ))}
+        {isCityScopable && (
+          <CityMultiSelect
+            label="Ciudades que puede gestionar"
+            value={cityIds}
+            onChange={setCityIds}
+            emptyHint="Sin elegir ninguna: acceso a todas las ciudades."
+          />
+        )}
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>

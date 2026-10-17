@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { CityMultiSelect } from '@/features/cities/CityMultiSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { UserDTO } from '@/lib/types';
@@ -37,6 +38,8 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
 
   const isBusinessOwner = user.role === 'BUSINESS_OWNER';
   const [businessId, setBusinessId] = useState<string | null>(user.businessId ?? null);
+  const isCityScopable = user.role === 'ADMIN' || user.role === 'EMPLOYEE';
+  const [cityIds, setCityIds] = useState<string[]>((user.cities ?? []).map((c) => c.id));
   const { data: businessesData } = useListBusinessesQuery(
     { pageSize: 100, active: true },
     { skip: !isBusinessOwner },
@@ -60,6 +63,7 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
         name: values.name,
         phone: values.phone || undefined,
         ...(businessChanged ? { businessId } : {}),
+        ...(isCityScopable && user.cities !== undefined ? { cityIds } : {}),
       },
     }).unwrap();
     if (values.password) {
@@ -84,6 +88,14 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
             options={businessOptions}
             placeholder={user.businessName ?? 'Buscar negocio…'}
             allowClear={false}
+          />
+        )}
+        {isCityScopable && (
+          <CityMultiSelect
+            label="Ciudades que puede gestionar"
+            value={cityIds}
+            onChange={setCityIds}
+            emptyHint="Sin elegir ninguna: acceso a todas las ciudades."
           />
         )}
         <FormField

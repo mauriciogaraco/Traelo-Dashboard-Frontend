@@ -120,6 +120,35 @@ export interface ApiErrorBody {
 
 // ── DTOs de dominio ─────────────────────────────────────────────────────
 
+export interface UserCityDTO {
+  id: string;
+  name: string;
+}
+
+export interface CityDTO {
+  id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Configuración operativa por ciudad (CityConfig en el backend). Las horas llegan ancladas a
+// 1970-01-01 UTC, igual que SystemConfig.
+export interface CityConfigDTO {
+  cityId: string;
+  acceptingOrders: boolean;
+  operatingHoursEnabled: boolean;
+  operatingHoursStart: string | null;
+  operatingHoursEnd: string | null;
+  operatingHoursWeekendEnd: string | null;
+  operationalMessage: string | null;
+  // Cargo "Servicio Tráelo" en los pedidos de esta ciudad (false = se cotiza y crea en 0).
+  chargePlatformFee: boolean;
+  updatedAt: string;
+}
+
 export interface UserDTO {
   id: string;
   name: string;
@@ -131,6 +160,10 @@ export interface UserDTO {
   // undefined, no null — leer siempre con `?? null`/`== null`.
   businessId?: string | null;
   businessName?: string | null;
+  // Ciudades a las que queda acotado un ADMIN/EMPLOYEE (ver UserCityAccess en el backend) — []
+  // o ausente = sin restricción, acceso global (todo el staff antes de multiciudad, y siempre
+  // para OWNER). Opcional: backends sin multiciudad todavía no lo mandan.
+  cities?: UserCityDTO[];
   createdAt: string;
   updatedAt: string;
 }
@@ -150,6 +183,8 @@ export interface DelivererDTO {
   onDuty: boolean;
   // Timestamp del turno (null si no está en línea). El más antiguo es el próximo en la cola.
   queuedAt: string | null;
+  // Ciudades donde opera (ver DelivererCity en el backend). Ausente = backend sin multiciudad.
+  cities?: UserCityDTO[];
   createdAt: string;
   updatedAt: string;
 }
@@ -167,6 +202,10 @@ export interface BusinessDTO {
   defaultProductCommissionAmount: number | null;
   deliveryFeeBase: number;
   logoUrl: string | null;
+  // Ciudad a la que pertenece (ver Business.cityId en el backend) — null si todavía no se le
+  // asignó, o undefined si el backend todavía no manda el campo (sin multiciudad).
+  cityId?: string | null;
+  cityName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

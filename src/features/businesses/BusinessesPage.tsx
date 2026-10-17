@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
+import { useListCitiesQuery } from '@/features/cities/citiesApi';
 import { COMMISSION_TYPE_LABEL } from '@/lib/labels';
 import { CommissionType, type BusinessDTO, type PaginationMeta } from '@/lib/types';
 import { CreateBusinessModal } from './CreateBusinessModal';
@@ -75,6 +76,13 @@ export function BusinessesPage() {
   const [reactivateBusiness] = useUpdateBusinessMutation();
   const [deactivateBusiness, { isLoading: isDeactivating }] = useDeactivateBusinessMutation();
 
+  // Con una sola ciudad activa no hay nada que distinguir: la columna/selector de ciudad solo
+  // aparece en cuanto haya 2+ (ver businessesService.resolveCreateCityId en el backend, mismo
+  // criterio). Evita mostrar "Güira de Melena" en todas las filas sin que signifique nada hoy.
+  const { data: citiesData } = useListCitiesQuery({ active: true, pageSize: 100 }, { skip: !canManage });
+  const showCityColumn = (citiesData?.data.length ?? 0) > 1;
+  const columnCount = canManage ? (showCityColumn ? 7 : 6) : showCityColumn ? 6 : 5;
+
   async function handleConfirmDeactivate() {
     if (!deactivatingBusiness) return;
     await deactivateBusiness(deactivatingBusiness.id).unwrap();
@@ -134,6 +142,7 @@ export function BusinessesPage() {
               <th className="px-4 py-3 font-medium">Teléfono</th>
               <th className="px-4 py-3 font-medium">Dirección</th>
               <th className="px-4 py-3 font-medium">Comisión</th>
+              {showCityColumn && <th className="px-4 py-3 font-medium">Ciudad</th>}
               <th className="px-4 py-3 font-medium">Estado</th>
               {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
             </tr>
@@ -141,14 +150,14 @@ export function BusinessesPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-slate-400">
                   No hay negocios que coincidan con los filtros.
                 </td>
               </tr>
@@ -180,6 +189,9 @@ export function BusinessesPage() {
                     ? `${business.commissionPercentage}%`
                     : `${business.defaultProductCommissionAmount} CUP/prod.`}
                 </td>
+                {showCityColumn && (
+                  <td className="px-4 py-3">{business.cityName ?? '—'}</td>
+                )}
                 <td className="px-4 py-3">
                   <Badge tone={business.active ? 'green' : 'slate'}>
                     {business.active ? 'Activo' : 'Inactivo'}

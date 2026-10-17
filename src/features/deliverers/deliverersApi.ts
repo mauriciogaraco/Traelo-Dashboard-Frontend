@@ -39,6 +39,7 @@ export interface CreateDelivererInput {
   phone: string;
   joinedAt?: string;
   commissionPercentage?: number;
+  cityIds?: string[];
 }
 
 export interface UpdateDelivererInput {
@@ -46,6 +47,7 @@ export interface UpdateDelivererInput {
   phone?: string;
   active?: boolean;
   commissionPercentage?: number | null;
+  cityIds?: string[];
 }
 
 export interface DispatchQueueEntryDTO {

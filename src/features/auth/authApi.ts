@@ -19,6 +19,8 @@ export interface RegisterInput {
   role: Role;
   // Obligatorio cuando role = BUSINESS_OWNER (el negocio que administra esa cuenta).
   businessId?: string;
+  // Solo ADMIN/EMPLOYEE: los acota a esas ciudades (omitido = sin restricción).
+  cityIds?: string[];
 }
 
 export interface ForgotPasswordInput {

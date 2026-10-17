@@ -33,6 +33,9 @@ export interface CreateBusinessInput {
   commissionPercentage?: number;
   defaultProductCommissionAmount?: number;
   deliveryFeeBase?: number;
+  // Omitido: el backend lo resuelve solo si hay exactamente una ciudad activa (ver
+  // businessesService.resolveCreateCityId). Con 2+ ciudades activas hay que indicarlo.
+  cityId?: string;
 }
 
 export interface UpdateBusinessInput {
@@ -45,6 +48,8 @@ export interface UpdateBusinessInput {
   commissionPercentage?: number;
   defaultProductCommissionAmount?: number;
   deliveryFeeBase?: number;
+  // Reasignar la ciudad de un negocio ya existente.
+  cityId?: string;
 }
 
 export interface ListProductsParams {

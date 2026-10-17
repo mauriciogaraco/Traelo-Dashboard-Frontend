@@ -181,7 +181,14 @@ export function DeliverersPage() {
                 )}
                 {rows.map((deliverer) => (
                   <tr key={deliverer.id} className="text-slate-700">
-                    <td className="px-4 py-3 font-medium text-slate-900">{deliverer.name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {deliverer.name}
+                      {(deliverer.cities?.length ?? 0) > 0 && (
+                        <p className="text-xs font-normal text-slate-500">
+                          {deliverer.cities!.map((c) => c.name).join(', ')}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3">{deliverer.email}</td>
                     <td className="px-4 py-3">{deliverer.phone ?? '—'}</td>
                     <td className="px-4 py-3">

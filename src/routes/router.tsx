@@ -31,6 +31,9 @@ const AbandonedCartsPage = lazy(() =>
 const AppCustomersPage = lazy(() =>
   import('@/features/appCustomers/AppCustomersPage').then((m) => ({ default: m.AppCustomersPage })),
 );
+const CitiesPage = lazy(
+  () => import('@/features/cities/CitiesPage').then((m) => ({ default: m.CitiesPage })),
+);
 const UsersPage = lazy(() =>
   import('@/features/users/UsersPage').then((m) => ({ default: m.UsersPage })),
 );
@@ -164,6 +167,7 @@ export const router = createBrowserRouter([
               { path: 'app-customers', element: <AppCustomersPage /> },
               { path: 'puntos', element: <PuntosPage /> },
               { path: 'users', element: <UsersPage /> },
+              { path: 'cities', element: <CitiesPage /> },
               { path: 'config', element: <ConfigPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'reviews', element: <ReviewsPage /> },
