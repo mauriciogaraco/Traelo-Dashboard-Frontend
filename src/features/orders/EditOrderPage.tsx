@@ -23,9 +23,18 @@ export function EditOrderPage() {
   const navigate = useNavigate();
 
   const { data, isLoading, error } = useGetOrderQuery(id ?? '', { skip: !id });
-  const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
+  // Negocios y mensajeros salen de la ciudad del pedido (no de la activa del topbar: con "Todas"
+  // se puede editar un pedido de cualquier ciudad). Pedidos sin ciudad: sin filtro extra.
+  const orderCityId = data?.data.cityId ?? undefined;
+  const { data: businessesData } = useListBusinessesQuery(
+    { active: true, pageSize: 100, ...(orderCityId ? { cityId: orderCityId } : {}) },
+    { skip: !data },
+  );
   const businesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
-  const { data: deliverersData } = useListDeliverersQuery({ active: true, pageSize: 100 });
+  const { data: deliverersData } = useListDeliverersQuery(
+    { active: true, pageSize: 100, ...(orderCityId ? { cityId: orderCityId } : {}) },
+    { skip: !data },
+  );
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
     label: d.name,

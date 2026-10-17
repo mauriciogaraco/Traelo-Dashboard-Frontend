@@ -11,6 +11,8 @@ export interface ListDeliverersParams {
   // A diferencia de `active`, este sí admite false de forma confiable (usa booleanQueryParam
   // en el backend).
   onDuty?: boolean;
+  // Solo mensajeros que operan en esa ciudad (pisa la ciudad activa del topbar).
+  cityId?: string;
 }
 
 export interface DelivererBonusDTO {
