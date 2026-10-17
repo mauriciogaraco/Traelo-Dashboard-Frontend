@@ -59,6 +59,7 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
   const navigate = useNavigate();
   const [createBusiness, { isLoading, error }] = useCreateBusinessMutation();
   const [cityId, setCityId] = useState<string | null>(null);
+  const [cityError, setCityError] = useState<string | undefined>();
 
   // Con una sola ciudad activa, el backend la resuelve solo (ver resolveCreateCityId) — el
   // selector solo hace falta a partir de la segunda.
@@ -87,6 +88,12 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
   const commissionType = watch('commissionType');
 
   async function onSubmit(values: FormValues) {
+    // Con 2+ ciudades activas el backend exige la ciudad (resolveCreateCityId).
+    if (showCityField && !cityId) {
+      setCityError('Elegí la ciudad del negocio');
+      return;
+    }
+    setCityError(undefined);
     const result = await createBusiness({
       name: values.name,
       phone: values.phone,
@@ -122,6 +129,7 @@ export function CreateBusinessModal({ onClose }: CreateBusinessModalProps) {
             onChange={setCityId}
             options={cityOptions}
             placeholder="Elegir ciudad…"
+            error={cityError}
             allowClear={false}
           />
         )}
