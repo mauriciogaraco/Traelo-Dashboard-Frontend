@@ -17,6 +17,8 @@ export interface UpdateUserInput {
   active?: boolean;
   // Solo para dueños de negocio: reasigna el negocio que administran.
   businessId?: string;
+  // Solo ADMIN/EMPLOYEE: reemplaza sus ciudades ([] = sin restricción).
+  cityIds?: string[];
 }
 
 export const usersApi = baseApi.injectEndpoints({

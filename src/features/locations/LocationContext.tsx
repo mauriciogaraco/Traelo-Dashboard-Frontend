@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAppSelector } from '@/app/hooks';
 
@@ -26,7 +26,9 @@ const LocationContext = createContext<LocationContextValue | null>(null);
  */
 export function LocationProvider({ children }: { children: ReactNode }) {
   const user = useAppSelector((state) => state.auth.user);
-  const authorizedLocations = user?.cities ?? [];
+  // Memoizado por `user`: un `?? []` nuevo en cada render haría cambiar el efecto de abajo y el
+  // value del contexto en cada render, pisando la selección del usuario.
+  const authorizedLocations = useMemo(() => user?.cities ?? [], [user]);
   const canViewAll = authorizedLocations.length === 0;
 
   const [activeLocationId, setActiveLocationIdState] = useState<ActiveLocationId | null>(null);
@@ -51,18 +53,18 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setActiveLocationIdState(isValid ? (saved as ActiveLocationId) : authorizedLocations[0]?.id ?? null);
   }, [user, canViewAll, authorizedLocations]);
 
-  function setActiveLocationId(id: ActiveLocationId) {
+  const setActiveLocationId = useCallback((id: ActiveLocationId) => {
     setActiveLocationIdState(id);
     try {
       localStorage.setItem(STORAGE_KEY, id);
     } catch {
       // Sin persistencia no se rompe nada: la próxima carga vuelve a validar y elige una por defecto.
     }
-  }
+  }, []);
 
   const value = useMemo<LocationContextValue>(
     () => ({ authorizedLocations, canViewAll, activeLocationId, setActiveLocationId }),
-    [authorizedLocations, canViewAll, activeLocationId],
+    [authorizedLocations, canViewAll, activeLocationId, setActiveLocationId],
   );
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

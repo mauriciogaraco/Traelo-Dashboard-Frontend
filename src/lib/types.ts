@@ -134,6 +134,21 @@ export interface CityDTO {
   updatedAt: string;
 }
 
+// Configuración operativa por ciudad (CityConfig en el backend). Las horas llegan ancladas a
+// 1970-01-01 UTC, igual que SystemConfig.
+export interface CityConfigDTO {
+  cityId: string;
+  acceptingOrders: boolean;
+  operatingHoursEnabled: boolean;
+  operatingHoursStart: string | null;
+  operatingHoursEnd: string | null;
+  operatingHoursWeekendEnd: string | null;
+  operationalMessage: string | null;
+  // Cargo "Servicio Tráelo" en los pedidos de esta ciudad (false = se cotiza y crea en 0).
+  chargePlatformFee: boolean;
+  updatedAt: string;
+}
+
 export interface UserDTO {
   id: string;
   name: string;
@@ -168,6 +183,8 @@ export interface DelivererDTO {
   onDuty: boolean;
   // Timestamp del turno (null si no está en línea). El más antiguo es el próximo en la cola.
   queuedAt: string | null;
+  // Ciudades donde opera (ver DelivererCity en el backend). Ausente = backend sin multiciudad.
+  cities?: UserCityDTO[];
   createdAt: string;
   updatedAt: string;
 }

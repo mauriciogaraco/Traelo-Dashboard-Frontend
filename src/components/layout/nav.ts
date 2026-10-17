@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBasket,
+  MapPin,
   Settings,
   Shield,
   ShoppingCart,
@@ -129,6 +130,7 @@ export const navEntries: NavEntry[] = [
     icon: Shield,
     children: [
       { to: '/users', label: 'Usuarios', icon: Users, roles: ['OWNER', 'ADMIN'] },
+      { to: '/cities', label: 'Ciudades', icon: MapPin, roles: ['OWNER'] },
       { to: '/config', label: 'Configuración', icon: Settings, roles: ['OWNER', 'ADMIN'] },
     ],
   },

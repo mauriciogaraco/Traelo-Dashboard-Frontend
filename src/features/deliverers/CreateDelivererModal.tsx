@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { CityMultiSelect } from '@/features/cities/CityMultiSelect';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { useCreateDelivererMutation } from './deliverersApi';
 
@@ -26,6 +28,7 @@ interface CreateDelivererModalProps {
 
 export function CreateDelivererModal({ onClose }: CreateDelivererModalProps) {
   const [createDeliverer, { isLoading, error }] = useCreateDelivererMutation();
+  const [cityIds, setCityIds] = useState<string[]>([]);
 
   const {
     register,
@@ -45,6 +48,7 @@ export function CreateDelivererModal({ onClose }: CreateDelivererModalProps) {
       commissionPercentage: values.commissionPercentage
         ? Number(values.commissionPercentage)
         : undefined,
+      ...(cityIds.length > 0 ? { cityIds } : {}),
     }).unwrap();
     onClose();
   }
@@ -75,6 +79,12 @@ export function CreateDelivererModal({ onClose }: CreateDelivererModalProps) {
           placeholder="Usa el % por defecto del sistema si se deja vacío"
           error={errors.commissionPercentage?.message}
           {...register('commissionPercentage')}
+        />
+        <CityMultiSelect
+          label="Ciudades donde opera"
+          value={cityIds}
+          onChange={setCityIds}
+          emptyHint="Sin elegir ninguna: sin ciudad asignada todavía."
         />
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
