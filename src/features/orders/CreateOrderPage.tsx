@@ -40,9 +40,24 @@ export function CreateOrderPage() {
   const { searchEligible, foundCustomer, isSearching: isSearchingCustomer, notFound: customerNotFound } =
     useCustomerLookup(customerPhone, linkCustomer);
 
+  // Con una ciudad activa la lista ya viene filtrada. Con "Todas", en cuanto se elige el primer
+  // negocio el pedido queda en su ciudad: los demás negocios y los mensajeros se acotan a ella
+  // (el backend rechaza pedidos con negocios de ciudades distintas).
   const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
-  const businesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
-  const { data: deliverersData } = useListDeliverersQuery({ active: true, pageSize: 100 });
+  const allBusinesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
+  const orderCityId = useMemo(() => {
+    const firstId = groups.find((g) => g.businessId)?.businessId;
+    return allBusinesses.find((b) => b.id === firstId)?.cityId ?? undefined;
+  }, [groups, allBusinesses]);
+  const businesses = useMemo(
+    () => (orderCityId ? allBusinesses.filter((b) => b.cityId === orderCityId) : allBusinesses),
+    [allBusinesses, orderCityId],
+  );
+  const { data: deliverersData } = useListDeliverersQuery({
+    active: true,
+    pageSize: 100,
+    ...(orderCityId ? { cityId: orderCityId } : {}),
+  });
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
     label: d.name,

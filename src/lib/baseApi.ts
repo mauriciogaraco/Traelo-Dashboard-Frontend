@@ -31,13 +31,17 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Con una ciudad activa, los listados del dashboard se piden filtrados (?cityId=). "Todas las
 // ciudades" no manda nada. El backend solo estrecha el scope del usuario, nunca lo ensancha.
+// Un `cityId` ya presente en los params (p. ej. el de un pedido que se está editando) manda sobre
+// la ciudad activa y se respeta incluso con "Todas las ciudades".
 function withCityFilter(args: string | FetchArgs): string | FetchArgs {
   const cityId = getActiveCityId();
   if (!cityId) return args;
   const request: FetchArgs = typeof args === 'string' ? { url: args } : args;
   const method = (request.method ?? 'GET').toUpperCase();
   if (method !== 'GET' || !isCityFilteredPath(request.url)) return args;
-  return { ...request, params: { ...(request.params as Record<string, unknown>), cityId } };
+  const params = (request.params ?? {}) as Record<string, unknown>;
+  if (params.cityId) return args;
+  return { ...request, params: { ...params, cityId } };
 }
 
 // Evita disparar varios refresh en paralelo cuando varias queries fallan con 401 a la vez.

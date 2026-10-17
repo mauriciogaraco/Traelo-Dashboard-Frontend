@@ -412,6 +412,8 @@ export interface OrderBusinessDTO {
 
 export interface OrderDTO {
   id: string;
+  // Ciudad donde se creó el pedido (snapshot; null en pedidos previos a multiciudad).
+  cityId?: string | null;
   orderNumber: number;
   customerName: string;
   customerAddress: string;

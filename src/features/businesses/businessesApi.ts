@@ -22,6 +22,8 @@ export interface ListBusinessesParams {
   commissionType?: CommissionType;
   // "active" solo admite el valor true: ver la nota en usersApi.ts.
   active?: true;
+  // Solo negocios de esa ciudad (pisa la ciudad activa del topbar).
+  cityId?: string;
 }
 
 export interface CreateBusinessInput {
