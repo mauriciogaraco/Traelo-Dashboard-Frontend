@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { KeyRound, Plus, RotateCcw, Search, UserX } from 'lucide-react';
+import { Ban, KeyRound, Plus, RotateCcw, Search, UserX } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import type { DelivererDTO, PaginationMeta } from '@/lib/types';
+import { BannedBusinessesModal } from './BannedBusinessesModal';
 import { ChangeDelivererPasswordModal } from './ChangeDelivererPasswordModal';
 import { CreateDelivererModal } from './CreateDelivererModal';
 import { EditDelivererModal } from './EditDelivererModal';
@@ -46,6 +47,7 @@ export function DeliverersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingDeliverer, setEditingDeliverer] = useState<DelivererDTO | null>(null);
   const [passwordDeliverer, setPasswordDeliverer] = useState<DelivererDTO | null>(null);
+  const [bansDeliverer, setBansDeliverer] = useState<DelivererDTO | null>(null);
   const [deactivatingDeliverer, setDeactivatingDeliverer] = useState<DelivererDTO | null>(null);
 
   useEffect(() => {
@@ -219,6 +221,14 @@ export function DeliverersPage() {
                           <Button
                             type="button"
                             variant="ghost"
+                            onClick={() => setBansDeliverer(deliverer)}
+                          >
+                            <Ban className="h-4 w-4" />
+                            Vetos
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
                             onClick={() => setPasswordDeliverer(deliverer)}
                           >
                             <KeyRound className="h-4 w-4" />
@@ -261,6 +271,9 @@ export function DeliverersPage() {
       {createOpen && <CreateDelivererModal onClose={() => setCreateOpen(false)} />}
       {editingDeliverer && (
         <EditDelivererModal deliverer={editingDeliverer} onClose={() => setEditingDeliverer(null)} />
+      )}
+      {bansDeliverer && (
+        <BannedBusinessesModal deliverer={bansDeliverer} onClose={() => setBansDeliverer(null)} />
       )}
       {passwordDeliverer && (
         <ChangeDelivererPasswordModal

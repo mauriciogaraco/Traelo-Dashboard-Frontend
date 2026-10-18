@@ -60,6 +60,15 @@ export interface DispatchQueueEntryDTO {
   position: number;
 }
 
+// Veto de un mensajero a un negocio (solo OWNER/ADMIN): no recibe pedidos de ese local por el
+// despacho automático y conserva su turno en la cola.
+export interface DelivererBusinessBanDTO {
+  businessId: string;
+  businessName: string;
+  reason: string | null;
+  createdAt: string;
+}
+
 export const deliverersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     listDeliverers: builder.query<ApiPaginated<DelivererDTO>, ListDeliverersParams | void>({
@@ -102,6 +111,28 @@ export const deliverersApi = baseApi.injectEndpoints({
         { type: 'Deliverer', id: 'LIST' },
       ],
     }),
+    listDelivererBans: builder.query<ApiOk<DelivererBusinessBanDTO[]>, string>({
+      query: (id) => `/deliverers/${id}/banned-businesses`,
+      providesTags: (_result, _error, id) => [{ type: 'Deliverer' as const, id: `BANS-${id}` }],
+    }),
+    banDelivererFromBusiness: builder.mutation<
+      ApiOk<DelivererBusinessBanDTO>,
+      { id: string; businessId: string; reason?: string }
+    >({
+      query: ({ id, businessId, reason }) => ({
+        url: `/deliverers/${id}/banned-businesses/${businessId}`,
+        method: 'PUT',
+        body: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Deliverer', id: `BANS-${id}` }],
+    }),
+    unbanDelivererFromBusiness: builder.mutation<void, { id: string; businessId: string }>({
+      query: ({ id, businessId }) => ({
+        url: `/deliverers/${id}/banned-businesses/${businessId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Deliverer', id: `BANS-${id}` }],
+    }),
     deactivateDeliverer: builder.mutation<ApiOk<DelivererDTO>, string>({
       query: (id) => ({ url: `/deliverers/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, _error, id) => [
@@ -120,4 +151,7 @@ export const {
   useUpdateDelivererMutation,
   useSetDelivererDutyMutation,
   useDeactivateDelivererMutation,
+  useListDelivererBansQuery,
+  useBanDelivererFromBusinessMutation,
+  useUnbanDelivererFromBusinessMutation,
 } = deliverersApi;
