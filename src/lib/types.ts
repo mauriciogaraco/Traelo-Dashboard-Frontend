@@ -627,6 +627,61 @@ export interface AbandonedCartsReportDTO {
   carts: AbandonedCartDTO[];
 }
 
+// ── Comportamiento por ciudad (GET /behavior/insights) ───────────────────────
+
+export interface InsightsSearchRowDTO {
+  query: string;
+  searches: number;
+  visitors: number;
+  withoutResults: number;
+}
+
+export interface InsightsBusinessRowDTO {
+  businessId: string;
+  name: string;
+  cityName: string;
+  views: number;
+  searchClicks: number;
+  visitors: number;
+}
+
+export interface InsightsProductRowDTO {
+  productId: string;
+  name: string;
+  businessName: string;
+  views: number;
+  addToCart: number;
+  searchClicks: number;
+  visitors: number;
+}
+
+export interface InsightsPromoDTO {
+  viewers: number;
+  views: number;
+  clickers: number;
+  landed: number;
+  orders: number;
+  conversion: number | null;
+}
+
+export interface BehaviorInsightsDTO {
+  from: string;
+  to: string;
+  // Ciudades que cubre el resumen. Vacío = todas.
+  cities: { id: string; code: string; name: string }[];
+  searches: {
+    total: number;
+    visitors: number;
+    withoutResults: number;
+    top: InsightsSearchRowDTO[];
+    notFound: InsightsSearchRowDTO[];
+  };
+  businesses: InsightsBusinessRowDTO[];
+  products: InsightsProductRowDTO[];
+  // Solo viene cuando el resumen incluye San Antonio (o todas las ciudades).
+  promo: InsightsPromoDTO | null;
+}
+
 // ── Clientes de la app (cuentas Customer) ────────────────────────────────────
 
 export interface UserTypeCountDTO {

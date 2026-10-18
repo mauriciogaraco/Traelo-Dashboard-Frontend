@@ -31,6 +31,7 @@ const FILTERED_PATHS = new Set([
   '/settlements',
   '/reviews',
   '/behavior/abandoned-carts',
+  '/behavior/insights',
 ]);
 
 export function isCityFilteredPath(url: string): boolean {
