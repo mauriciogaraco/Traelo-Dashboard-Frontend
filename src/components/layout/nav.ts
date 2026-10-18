@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   Coins,
   CupSoda,
+  Eye,
   HeartHandshake,
   LayoutDashboard,
   Package,
@@ -114,6 +115,12 @@ export const navEntries: NavEntry[] = [
         to: '/analytics',
         label: 'Analytics',
         icon: TrendingUp,
+        roles: ['OWNER', 'ADMIN', 'EMPLOYEE'],
+      },
+      {
+        to: '/behavior',
+        label: 'Comportamiento',
+        icon: Eye,
         roles: ['OWNER', 'ADMIN', 'EMPLOYEE'],
       },
       {

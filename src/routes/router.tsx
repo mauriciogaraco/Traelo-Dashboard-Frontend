@@ -28,6 +28,9 @@ const AnalyticsPage = lazy(() =>
 const AbandonedCartsPage = lazy(() =>
   import('@/features/behavior/AbandonedCartsPage').then((m) => ({ default: m.AbandonedCartsPage })),
 );
+const BehaviorInsightsPage = lazy(() =>
+  import('@/features/behavior/BehaviorInsightsPage').then((m) => ({ default: m.BehaviorInsightsPage })),
+);
 const AppCustomersPage = lazy(() =>
   import('@/features/appCustomers/AppCustomersPage').then((m) => ({ default: m.AppCustomersPage })),
 );
@@ -156,6 +159,7 @@ export const router = createBrowserRouter([
               { path: 'reports', element: <ReportsPage /> },
               { path: 'analytics', element: <AnalyticsPage /> },
               { path: 'abandoned-carts', element: <AbandonedCartsPage /> },
+              { path: 'behavior', element: <BehaviorInsightsPage /> },
               { path: 'cronos', element: <CronosPage /> },
             ],
           },
