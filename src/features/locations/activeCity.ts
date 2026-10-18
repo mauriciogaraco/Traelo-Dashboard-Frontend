@@ -28,6 +28,9 @@ const FILTERED_PATHS = new Set([
   '/reports/businesses',
   '/reports/deliverers',
   '/reports/customers',
+  '/settlements',
+  '/reviews',
+  '/behavior/abandoned-carts',
 ]);
 
 export function isCityFilteredPath(url: string): boolean {
