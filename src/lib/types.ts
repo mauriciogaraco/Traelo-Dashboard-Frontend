@@ -53,6 +53,10 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 // ellos (o nunca haber usado la app y seguir en ASSIGNED). El staff puede completar un pedido
 // directo desde cualquiera de estos, sin pasar por los intermedios (ver
 // ordersService.bulkCompleteOrders / STAFF_STATUS_TRANSITIONS en el backend).
+// Estados en los que el staff puede pausar un pedido (tiene mensajero pero todavía no salió hacia el
+// cliente). Igual que PAUSABLE_STATUSES en el backend (order-phases.ts).
+export const PAUSABLE_ORDER_STATUSES: OrderStatus[] = ['ASSIGNED', 'CONFIRMED', 'HEADING_OUT', 'PICKING_UP'];
+
 export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'ASSIGNED',
   'CONFIRMED',
@@ -423,6 +427,10 @@ export interface OrderDTO {
   status: OrderStatus;
   orderDate: string;
   assignedAt: string | null;
+  // Pausa interna del staff (nunca visible para el cliente): null = no está pausado.
+  pausedAt?: string | null;
+  pausedReason?: string | null;
+  pausedByName?: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
   /** Motivo que dio el mensajero al cancelar desde la app (null si no lo mandó o cancela el staff). */

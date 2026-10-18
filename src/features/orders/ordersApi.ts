@@ -146,6 +146,26 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+    // Pausa interna: el pedido deja de tapar el turno del mensajero en la cola (solo staff, y solo
+    // mientras el mensajero aún no salió hacia el cliente).
+    pauseOrder: builder.mutation<ApiOk<OrderDTO>, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/orders/${id}/pause`,
+        method: 'PATCH',
+        body: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Order', id },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
+    unpauseOrder: builder.mutation<ApiOk<OrderDTO>, string>({
+      query: (id) => ({ url: `/orders/${id}/unpause`, method: 'PATCH' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Order', id },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
     updateOrderStatus: builder.mutation<
       ApiOk<OrderDTO>,
       { id: string; status: 'COMPLETED' | 'CANCELLED' }
@@ -205,6 +225,8 @@ export const {
   useUpdateOrderMutation,
   useAssignOrderMutation,
   usePassOrderMutation,
+  usePauseOrderMutation,
+  useUnpauseOrderMutation,
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
   useBulkCompleteOrdersMutation,
