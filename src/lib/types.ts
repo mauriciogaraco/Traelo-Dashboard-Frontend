@@ -714,6 +714,15 @@ export interface AppCustomerRowDTO {
   createdAt: string;
 }
 
+/** Código de un solo uso para que un cliente restablezca su contraseña (lo genera el staff). */
+export interface PasswordResetCodeDTO {
+  /** "ABCD-EFGH": se muestra una sola vez. */
+  code: string;
+  expiresAt: string;
+  expiresInMinutes: number;
+  customer: { id: string; name: string; phone: string };
+}
+
 export interface BusinessSalesDetailDTO {
   businessId: string;
   businessName: string;
