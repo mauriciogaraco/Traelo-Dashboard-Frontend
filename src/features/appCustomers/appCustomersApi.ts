@@ -6,6 +6,7 @@ import type {
   AppCustomerRowDTO,
   AppCustomersOverviewDTO,
   DateRangePreset,
+  PasswordResetCodeDTO,
 } from '@/lib/types';
 
 export interface AppCustomersOverviewParams {
@@ -30,7 +31,18 @@ export const appCustomersApi = baseApi.injectEndpoints({
     listAppCustomers: builder.query<ApiPaginated<AppCustomerRowDTO>, ListAppCustomersParams | void>({
       query: (params) => ({ url: '/analytics/app-customers/list', params: params ?? undefined }),
     }),
+    // Código de un solo uso (60 min) para que la cuenta elija una contraseña nueva; solo OWNER/ADMIN.
+    createPasswordResetCode: builder.mutation<ApiOk<PasswordResetCodeDTO>, string>({
+      query: (customerId) => ({
+        url: `/analytics/app-customers/${customerId}/password-reset-code`,
+        method: 'POST',
+      }),
+    }),
   }),
 });
 
-export const { useGetAppCustomersOverviewQuery, useListAppCustomersQuery } = appCustomersApi;
+export const {
+  useGetAppCustomersOverviewQuery,
+  useListAppCustomersQuery,
+  useCreatePasswordResetCodeMutation,
+} = appCustomersApi;
