@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, ArrowRightLeft, Check, Copy, FileDown, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, Copy, FileDown, FileText, Pause, Play } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
+import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
@@ -12,13 +14,15 @@ import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
-import { ACTIVE_ORDER_STATUSES } from '@/lib/types';
+import { ACTIVE_ORDER_STATUSES, PAUSABLE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
 import {
   useAssignOrderMutation,
   useDeleteOrderMutation,
   useGetOrderQuery,
   usePassOrderMutation,
+  usePauseOrderMutation,
+  useUnpauseOrderMutation,
   useUpdateOrderStatusMutation,
 } from './ordersApi';
 
@@ -38,6 +42,9 @@ export function OrderDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [passOpen, setPassOpen] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [pauseReason, setPauseReason] = useState('');
+  const [pauseError, setPauseError] = useState<string | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -56,6 +63,8 @@ export function OrderDetailPage() {
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
   const [passOrder, { isLoading: isPassing }] = usePassOrderMutation();
+  const [pauseOrder, { isLoading: isPausing }] = usePauseOrderMutation();
+  const [unpauseOrder, { isLoading: isUnpausing }] = useUnpauseOrderMutation();
 
   if (isLoading) {
     return <p className="text-slate-400">Cargando…</p>;
@@ -78,6 +87,10 @@ export function OrderDetailPage() {
   // Pasar al siguiente mensajero de la cola: solo mientras el que lo tiene aún no lo confirmó
   // (ver ordersService.passOrder en el backend).
   const canPass = canManage && order.status === 'ASSIGNED' && order.delivererId !== null;
+  // Pausa interna (ver ordersService.pauseOrder): mientras el mensajero aún no salió hacia el cliente.
+  const isPaused = !!order.pausedAt;
+  const canPause = canManage && !isPaused && PAUSABLE_ORDER_STATUSES.includes(order.status);
+  const canUnpause = canManage && isPaused;
 
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
@@ -117,6 +130,28 @@ export function OrderDetailPage() {
       setPassOpen(false);
     } catch (error) {
       setPassError(getErrorMessage(error as Parameters<typeof getErrorMessage>[0]));
+    }
+  }
+
+  async function handlePause() {
+    if (!id) return;
+    setPauseError(null);
+    try {
+      await pauseOrder({ id, reason: pauseReason.trim() || undefined }).unwrap();
+      setPauseOpen(false);
+      setPauseReason('');
+    } catch (error) {
+      setPauseError(getErrorMessage(error as Parameters<typeof getErrorMessage>[0]));
+    }
+  }
+
+  async function handleUnpause() {
+    if (!id) return;
+    setPauseError(null);
+    try {
+      await unpauseOrder(id).unwrap();
+    } catch (error) {
+      setPauseError(getErrorMessage(error as Parameters<typeof getErrorMessage>[0]));
     }
   }
 
@@ -180,6 +215,7 @@ export function OrderDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold text-slate-900">Pedido #{order.orderNumber}</h1>
             <Badge tone={ORDER_STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+            {isPaused && <Badge tone="amber">Pausado</Badge>}
           </div>
           <p className="mt-1 text-sm text-slate-500">
             Registrado por {order.registeredByName} · {formatDateTime(order.orderDate)}
@@ -209,6 +245,25 @@ export function OrderDetailPage() {
             >
               <ArrowRightLeft className="h-4 w-4" />
               Pasar pedido
+            </Button>
+          )}
+          {canPause && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setPauseError(null);
+                setPauseOpen(true);
+              }}
+            >
+              <Pause className="h-4 w-4" />
+              Pausar
+            </Button>
+          )}
+          {canUnpause && (
+            <Button type="button" variant="secondary" isLoading={isUnpausing} onClick={handleUnpause}>
+              <Play className="h-4 w-4" />
+              Reanudar
             </Button>
           )}
           {canEdit && (
@@ -396,6 +451,46 @@ export function OrderDetailPage() {
           )}
         </dl>
       </div>
+
+      {isPaused && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">
+            Pedido pausado{order.pausedByName ? ` por ${order.pausedByName}` : ''}
+            {order.pausedAt ? ` · ${formatDateTime(order.pausedAt)}` : ''}
+          </p>
+          {order.pausedReason && <p className="mt-0.5">Motivo: {order.pausedReason}</p>}
+          <p className="mt-0.5 text-amber-700">
+            Es una pausa interna: el cliente no la ve y el mensajero no queda ocupado en la cola.
+          </p>
+          {pauseError && <p className="mt-1 text-red-600">{pauseError}</p>}
+        </div>
+      )}
+
+      {pauseOpen && (
+        <Modal title={`Pausar pedido #${order.orderNumber}`} onClose={() => setPauseOpen(false)}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-slate-500">
+              Es una pausa interna para un pedido que demora: el cliente no la ve y mientras esté
+              pausado no tapa el turno del mensajero en la cola. Puedes reanudarlo cuando quieras.
+            </p>
+            <Textarea
+              label="Motivo (opcional)"
+              value={pauseReason}
+              maxLength={300}
+              onChange={(e) => setPauseReason(e.target.value)}
+            />
+            {pauseError && <p className="text-sm text-red-600">{pauseError}</p>}
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={() => setPauseOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" isLoading={isPausing} onClick={handlePause}>
+                Pausar pedido
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {completeOpen && (
         <ConfirmDialog
