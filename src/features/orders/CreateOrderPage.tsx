@@ -186,6 +186,7 @@ export function CreateOrderPage() {
         items: g.items
           .filter((it) => it.productName.trim() && it.unitPrice !== '')
           .map((it) => ({
+            ...(it.productId ? { productId: it.productId } : {}),
             productName: it.productName.trim(),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
