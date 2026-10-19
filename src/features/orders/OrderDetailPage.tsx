@@ -14,6 +14,7 @@ import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
 import { ACTIVE_ORDER_STATUSES, PAUSABLE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
 import { ReviewLinkCard } from './ReviewLinkCard';
@@ -217,6 +218,9 @@ export function OrderDetailPage() {
             <h1 className="text-xl font-semibold text-slate-900">Pedido #{order.orderNumber}</h1>
             <Badge tone={ORDER_STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
             {isPaused && <Badge tone="amber">Pausado</Badge>}
+            {scheduledDeliveryLabel(order.scheduledFor) && (
+              <Badge tone="brand">Para: {scheduledDeliveryLabel(order.scheduledFor)}</Badge>
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-500">
             Registrado por {order.registeredByName} · {formatDateTime(order.orderDate)}
@@ -340,6 +344,12 @@ export function OrderDetailPage() {
               <dt className="text-slate-500">Dirección</dt>
               <dd className="text-right font-medium text-slate-900">{order.customerAddress}</dd>
             </div>
+            {order.scheduledFor && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Entrega elegida</dt>
+                <dd className="text-right font-medium text-slate-900">{order.scheduledFor}</dd>
+              </div>
+            )}
             {order.addressReference && (
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Referencia</dt>
