@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
@@ -9,6 +8,7 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import {
@@ -285,7 +285,7 @@ export function EditOrderPage() {
       )}
 
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
-        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+        <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:grid-cols-2 sm:gap-4">
           <FormField
             label="Cliente"
             name="customerName"
@@ -350,7 +350,7 @@ export function EditOrderPage() {
           removeItem={removeItem}
         />
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:max-w-sm sm:self-end">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:max-w-sm sm:self-end">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-500">Subtotal productos</dt>
@@ -396,16 +396,12 @@ export function EditOrderPage() {
 
         {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-        <div className="flex justify-end gap-3">
-          <Link to={`/orders/${id}`}>
-            <Button type="button" variant="secondary">
-              Cancelar
-            </Button>
-          </Link>
-          <Button type="submit" isLoading={isSubmitting}>
-            Guardar cambios
-          </Button>
-        </div>
+        <OrderFormActions
+          cancelTo={`/orders/${id}`}
+          submitLabel="Guardar cambios"
+          isSubmitting={isSubmitting}
+          total={subtotal + feeNumber}
+        />
       </form>
     </div>
   );

@@ -9,6 +9,7 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
@@ -269,7 +270,7 @@ export function CreateOrderPage() {
       </div>
 
       {mode === 'paste' && (
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <p className="text-sm text-slate-500">
             Pegá el pedido tal como lo recibiste (WhatsApp, notas, etc). El sistema intenta
             separar cliente, teléfono, dirección, mensajería y los productos por negocio — vas a
@@ -293,7 +294,7 @@ export function CreateOrderPage() {
       )}
 
       {mode === 'manual' && (
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+        <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit} noValidate>
           {unmatchedLines.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <p className="font-medium">No se pudieron interpretar estas líneas:</p>
@@ -306,7 +307,7 @@ export function CreateOrderPage() {
             </div>
           )}
 
-          <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+          <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:grid-cols-2 sm:gap-4">
             <FormField
               label="Cliente"
               name="customerName"
@@ -369,7 +370,7 @@ export function CreateOrderPage() {
             removeItem={removeItem}
           />
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:max-w-sm sm:self-end">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:max-w-sm sm:self-end">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Subtotal productos</dt>
@@ -415,16 +416,12 @@ export function CreateOrderPage() {
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-          <div className="flex justify-end gap-3">
-            <Link to="/orders">
-              <Button type="button" variant="secondary">
-                Cancelar
-              </Button>
-            </Link>
-            <Button type="submit" isLoading={isSubmitting}>
-              Crear pedido
-            </Button>
-          </div>
+          <OrderFormActions
+            cancelTo="/orders"
+            submitLabel="Crear pedido"
+            isSubmitting={isSubmitting}
+            total={subtotal + feeNumber}
+          />
         </form>
       )}
     </div>
