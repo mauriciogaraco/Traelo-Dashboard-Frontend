@@ -14,6 +14,7 @@ import { useResetUserPasswordMutation, useUpdateUserMutation } from './usersApi'
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres').max(120),
+  email: z.string().trim().email('Escribe un correo válido'),
   phone: z
     .string()
     .optional()
@@ -52,7 +53,7 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: user.name, phone: user.phone ?? '', password: '' },
+    defaultValues: { name: user.name, email: user.email, phone: user.phone ?? '', password: '' },
   });
 
   async function onSubmit(values: FormValues) {
@@ -61,6 +62,8 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
       id: user.id,
       body: {
         name: values.name,
+        // Solo si cambió: así no se manda (ni se valida en el servidor) un correo que sigue igual.
+        ...(values.email !== user.email ? { email: values.email } : {}),
         phone: values.phone || undefined,
         ...(businessChanged ? { businessId } : {}),
         ...(isCityScopable && user.cities !== undefined ? { cityIds } : {}),
@@ -79,6 +82,18 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
     <Modal title="Editar usuario" onClose={onClose}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormField label="Nombre" error={errors.name?.message} {...register('name')} />
+        <div>
+          <FormField
+            label="Correo"
+            type="email"
+            autoComplete="off"
+            error={errors.email?.message}
+            {...register('email')}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Es el correo con el que inicia sesión: si lo cambias, desde ahora debe entrar con el nuevo.
+          </p>
+        </div>
         <FormField label="Teléfono" error={errors.phone?.message} {...register('phone')} />
         {isBusinessOwner && (
           <SearchableSelect
