@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { ProductNameInput } from './ProductNameInput';
 import type { BusinessDTO } from '@/lib/types';
 import type { GroupDraft, ItemDraft } from './orderDraftTypes';
 
@@ -68,11 +69,21 @@ export function BusinessGroupsEditor({
             <div className="flex flex-col gap-2">
               {group.items.map((item) => (
                 <div key={item.key} className="flex items-center gap-2">
-                  <input
+                  <ProductNameInput
+                    businessId={group.businessId}
                     value={item.productName}
-                    onChange={(e) => updateItem(group.key, item.key, { productName: e.target.value })}
-                    placeholder="Producto"
-                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    // Texto a mano: el producto es libre y deja de estar atado al catálogo.
+                    onTextChange={(text) =>
+                      updateItem(group.key, item.key, { productName: text, productId: null })
+                    }
+                    // Del catálogo: se completa el nombre y, si tiene precio, el precio.
+                    onPick={(product) =>
+                      updateItem(group.key, item.key, {
+                        productName: product.name,
+                        productId: product.id,
+                        ...(product.price != null ? { unitPrice: String(product.price) } : {}),
+                      })
+                    }
                   />
                   <input
                     type="number"
