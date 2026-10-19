@@ -100,7 +100,7 @@ export function ProductNameInput({ businessId, value, onTextChange, onPick }: Pr
         onKeyDown={onKeyDown}
         placeholder={businessId ? 'Producto (escribe para buscar en el negocio)' : 'Producto'}
         autoComplete="off"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:text-sm"
       />
       {open && businessId && suggestions.length > 0 && (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
