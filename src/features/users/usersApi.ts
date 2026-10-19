@@ -12,6 +12,7 @@ export interface ListUsersParams {
 }
 
 export interface UpdateUserInput {
+  email?: string;
   name?: string;
   phone?: string;
   active?: boolean;
