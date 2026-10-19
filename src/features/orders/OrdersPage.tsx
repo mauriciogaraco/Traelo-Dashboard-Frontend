@@ -12,6 +12,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
 import { exportReportPdf } from '@/lib/pdfExport';
 import { ACTIVE_ORDER_STATUSES, OrderStatus, type OrderDTO } from '@/lib/types';
 import type { DateRangePreset, ListOrdersParams } from './ordersApi';
@@ -462,6 +463,9 @@ export function OrdersPage() {
                       {ORDER_STATUS_LABEL[order.status]}
                     </Badge>
                     {order.pausedAt && <Badge tone="amber">Pausado</Badge>}
+                    {scheduledDeliveryLabel(order.scheduledFor) && (
+                      <Badge tone="brand">Para: {scheduledDeliveryLabel(order.scheduledFor)}</Badge>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3">{order.deliveryFee} CUP</td>

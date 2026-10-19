@@ -248,6 +248,9 @@ export function generateOrderVoucherText(
   if (order.addressReference) {
     lines.push(`Referencia: ${order.addressReference}`);
   }
+  if (order.scheduledFor) {
+    lines.push(`Entrega: ${order.scheduledFor}`);
+  }
 
   for (const business of order.businesses) {
     lines.push('');
