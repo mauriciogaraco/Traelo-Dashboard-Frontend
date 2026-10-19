@@ -16,6 +16,7 @@ import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { ACTIVE_ORDER_STATUSES, PAUSABLE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
+import { ReviewLinkCard } from './ReviewLinkCard';
 import {
   useAssignOrderMutation,
   useDeleteOrderMutation,
@@ -320,6 +321,8 @@ export function OrderDetailPage() {
           {copyError && <p className="mt-2 text-sm text-red-600">{copyError}</p>}
         </div>
       )}
+
+      <ReviewLinkCard order={order} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
