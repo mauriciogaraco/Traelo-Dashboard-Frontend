@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
+import { describeDeliveryFeeSuggestion, suggestDeliveryFee } from '@/lib/deliveryFeeSuggestion';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFormActions } from './OrderFormActions';
@@ -27,6 +28,14 @@ export function CreateOrderPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [addressReference, setAddressReference] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  // Mientras el staff no toque la mensajería, se rellena sola con la sugerida (ver deliveryFeeSuggestion).
+  const [feeTouched, setFeeTouched] = useState(false);
+  // La hora cuenta para el recargo nocturno: se refresca cada minuto con el formulario abierto.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
@@ -75,7 +84,10 @@ export function CreateOrderPage() {
     if (draft.customerPhone) setCustomerPhone(draft.customerPhone);
     if (draft.customerAddress) setCustomerAddress(draft.customerAddress);
     if (draft.addressReference) setAddressReference(draft.addressReference);
-    if (draft.deliveryFee !== null) setDeliveryFee(String(draft.deliveryFee));
+    if (draft.deliveryFee !== null) {
+      setDeliveryFee(String(draft.deliveryFee));
+      setFeeTouched(true);
+    }
     if (draft.platformFeeOverride !== null) {
       setPlatformFeeOverride(String(draft.platformFeeOverride));
       // Si el vale trae "Servicio Tráelo: 0", asumimos que este pedido puntual no lo cobra.
@@ -147,6 +159,22 @@ export function CreateOrderPage() {
     0,
   );
   const feeNumber = Number(deliveryFee) || 0;
+
+  // Mensajería sugerida según los negocios elegidos, la hora (La Habana) y el subtotal.
+  const suggestion = useMemo(() => {
+    const chosen = groups
+      .map((g) => businesses.find((b) => b.id === g.businessId))
+      .filter((b): b is NonNullable<typeof b> => !!b);
+    return suggestDeliveryFee({
+      deliveryFeeBases: chosen.map((b) => Number(b.deliveryFeeBase) || 0),
+      productsSubtotal: subtotal,
+      now,
+    });
+  }, [groups, businesses, subtotal, now]);
+  const suggestedFee = suggestion?.total ?? null;
+  useEffect(() => {
+    if (!feeTouched && suggestedFee !== null) setDeliveryFee(String(suggestedFee));
+  }, [feeTouched, suggestedFee]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -341,15 +369,41 @@ export function CreateOrderPage() {
               value={addressReference}
               onChange={(e) => setAddressReference(e.target.value)}
             />
-            <FormField
-              label="Mensajería (CUP)"
-              name="deliveryFee"
-              type="number"
-              min={0}
-              step="0.01"
-              value={deliveryFee}
-              onChange={(e) => setDeliveryFee(e.target.value)}
-            />
+            <div className="flex flex-col gap-1">
+              <FormField
+                label="Mensajería (CUP)"
+                name="deliveryFee"
+                type="number"
+                min={0}
+                step="0.01"
+                value={deliveryFee}
+                onChange={(e) => {
+                  setDeliveryFee(e.target.value);
+                  setFeeTouched(true);
+                }}
+              />
+              {suggestion && (
+                <p className="text-xs text-slate-500">
+                  Sugerida: <span className="font-medium text-slate-700">{suggestion.total} CUP</span> (
+                  {describeDeliveryFeeSuggestion(suggestion)}).
+                  {feeTouched && Number(deliveryFee) !== suggestion.total && (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeliveryFee(String(suggestion.total));
+                          setFeeTouched(false);
+                        }}
+                        className="font-medium text-brand-700 hover:underline"
+                      >
+                        Usar la sugerida
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
             <SearchableSelect
               label="Mensajero (opcional)"
               value={delivererId}
