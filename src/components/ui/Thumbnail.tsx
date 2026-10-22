@@ -5,20 +5,18 @@ import clsx from 'clsx';
 interface ThumbnailProps {
   src?: string | null;
   alt: string;
-  /** Lado en px (se usa también para pedir a Cloudinary una versión pequeña). */
+  /** Lado en px con que se dibuja la miniatura. */
   size?: number;
   shape?: 'square' | 'circle';
   className?: string;
 }
 
-// Las imágenes de Cloudinary se piden ya recortadas y comprimidas (una lista puede tener 100+
-// filas). Si la transformación no está permitida o falla, se cae a la URL original.
-function cloudinaryThumb(url: string, size: number): string {
-  const marker = '/upload/';
-  const index = url.indexOf(marker);
-  if (index === -1 || !url.includes('res.cloudinary.com')) return url;
-  const px = size * 2; // pantallas de alta densidad
-  return `${url.slice(0, index + marker.length)}c_fill,w_${px},h_${px},q_auto,f_auto/${url.slice(index + marker.length)}`;
+// Antes se pedía a Cloudinary cada miniatura recortada al vuelo (c_fill,w_N,q_auto,f_auto), pero cada variante
+// cuenta como una "transformación" y consumió casi la mitad de los créditos del plan gratuito. Las fotos ya son
+// livianas (~30 KB), así que se muestran tal cual hasta migrarlas a un almacenamiento con tamaños pregenerados.
+// Si la imagen falla, cae a un ícono.
+function cloudinaryThumb(url: string, _size: number): string {
+  return url;
 }
 
 export function Thumbnail({ src, alt, size = 40, shape = 'square', className }: ThumbnailProps) {
