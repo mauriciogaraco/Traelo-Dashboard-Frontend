@@ -1,5 +1,5 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiOk, ApiPaginated, DateRangePreset, DelivererDTO } from '@/lib/types';
+import type { ApiOk, ApiPaginated, DateRangePreset, DelivererDTO, DelivererVehicle } from '@/lib/types';
 
 export interface ListDeliverersParams {
   page?: number;
@@ -41,6 +41,7 @@ export interface CreateDelivererInput {
   phone: string;
   joinedAt?: string;
   commissionPercentage?: number;
+  vehicle?: DelivererVehicle;
   cityIds?: string[];
 }
 
@@ -49,6 +50,7 @@ export interface UpdateDelivererInput {
   phone?: string;
   active?: boolean;
   commissionPercentage?: number | null;
+  vehicle?: DelivererVehicle;
   cityIds?: string[];
 }
 
