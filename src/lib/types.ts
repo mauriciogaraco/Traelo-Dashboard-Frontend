@@ -134,6 +134,10 @@ export interface CityDTO {
   name: string;
   code: string;
   active: boolean;
+  // Centro del pueblo: desde aquí se mide la mensajería por km de la entrega en "otra ubicación".
+  // null/ausente = sin configurar (esa opción no se ofrece para pedidos de esta ciudad).
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -150,6 +154,8 @@ export interface CityConfigDTO {
   operationalMessage: string | null;
   // Cargo "Servicio Tráelo" en los pedidos de esta ciudad (false = se cotiza y crea en 0).
   chargePlatformFee: boolean;
+  // CUP por kilómetro de la mensajería de "otra ubicación" (desde el centro del pueblo). Ausente en un backend anterior.
+  outOfTownFeePerKm?: number;
   updatedAt: string;
 }
 
@@ -172,6 +178,26 @@ export interface UserDTO {
   updatedAt: string;
 }
 
+// Vehículo con el que reparte un mensajero (por defecto bicicleta).
+export type DelivererVehicle = 'BICYCLE' | 'ELECTRIC_MOTO' | 'TRICYCLE' | 'CAR';
+
+export const DELIVERER_VEHICLE_LABELS: Record<DelivererVehicle, string> = {
+  BICYCLE: 'Bicicleta',
+  ELECTRIC_MOTO: 'Moto eléctrica',
+  TRICYCLE: 'Triciclo',
+  CAR: 'Carro',
+};
+
+export const DELIVERER_VEHICLES = Object.keys(DELIVERER_VEHICLE_LABELS) as DelivererVehicle[];
+
+// Tarifa FIJA de mensajería cuando los negocios son de `originCity` y el pedido se entrega en `destinationCity`.
+export interface DeliveryRouteDTO {
+  originCity: { id: string; name: string; code: string };
+  destinationCity: { id: string; name: string; code: string };
+  fee: number;
+  updatedAt: string;
+}
+
 export interface DelivererDTO {
   id: string;
   userId: string;
@@ -182,6 +208,8 @@ export interface DelivererDTO {
   joinedAt: string;
   commissionPercentage: number | null;
   effectiveCommissionPercentage: number;
+  // Ausente en un backend anterior (equivale a bicicleta).
+  vehicle?: DelivererVehicle;
   // "En turno hoy": en línea en la cola de despacho automático de la app de mensajero.
   // Distinto de `active` (alta/baja administrativa de la cuenta).
   onDuty: boolean;
@@ -418,6 +446,12 @@ export interface OrderDTO {
   id: string;
   // Ciudad donde se creó el pedido (snapshot; null en pedidos previos a multiciudad).
   cityId?: string | null;
+  // Localidad donde se ENTREGA cuando es distinta a la de los negocios (mensajería fija entre localidades).
+  deliveryCityId?: string | null;
+  deliveryCityName?: string | null;
+  // Entrega en "otra ubicación": la mensajería se cobró por km desde el centro del pueblo.
+  deliveryElsewhere?: boolean;
+  deliveryDistanceKm?: number | null;
   orderNumber: number;
   customerName: string;
   customerAddress: string;

@@ -4,10 +4,11 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { FormSelect } from '@/components/ui/FormSelect';
 import { Modal } from '@/components/ui/Modal';
 import { CityMultiSelect } from '@/features/cities/CityMultiSelect';
 import { getErrorMessage } from '@/lib/getErrorMessage';
-import type { DelivererDTO } from '@/lib/types';
+import { DELIVERER_VEHICLES, DELIVERER_VEHICLE_LABELS, type DelivererDTO, type DelivererVehicle } from '@/lib/types';
 import { useUpdateDelivererMutation } from './deliverersApi';
 
 const schema = z.object({
@@ -16,6 +17,7 @@ const schema = z.object({
     .string()
     .optional()
     .refine((v) => !v || (v.length >= 6 && v.length <= 30), 'Debe tener entre 6 y 30 caracteres'),
+  vehicle: z.enum(['BICYCLE', 'ELECTRIC_MOTO', 'TRICYCLE', 'CAR']),
   commissionPercentage: z
     .string()
     .optional()
@@ -42,6 +44,7 @@ export function EditDelivererModal({ deliverer, onClose }: EditDelivererModalPro
     defaultValues: {
       name: deliverer.name,
       phone: deliverer.phone ?? '',
+      vehicle: deliverer.vehicle ?? 'BICYCLE',
       commissionPercentage: deliverer.commissionPercentage?.toString() ?? '',
     },
   });
@@ -52,6 +55,7 @@ export function EditDelivererModal({ deliverer, onClose }: EditDelivererModalPro
       body: {
         name: values.name,
         phone: values.phone || undefined,
+        vehicle: values.vehicle as DelivererVehicle,
         commissionPercentage: values.commissionPercentage
           ? Number(values.commissionPercentage)
           : null,
@@ -66,6 +70,13 @@ export function EditDelivererModal({ deliverer, onClose }: EditDelivererModalPro
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormField label="Nombre" error={errors.name?.message} {...register('name')} />
         <FormField label="Teléfono" error={errors.phone?.message} {...register('phone')} />
+        <FormSelect label="Vehículo" error={errors.vehicle?.message} {...register('vehicle')}>
+          {DELIVERER_VEHICLES.map((vehicle) => (
+            <option key={vehicle} value={vehicle}>
+              {DELIVERER_VEHICLE_LABELS[vehicle]}
+            </option>
+          ))}
+        </FormSelect>
         <FormField
           label="% Comisión propio"
           type="number"

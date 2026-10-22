@@ -344,6 +344,22 @@ export function OrderDetailPage() {
               <dt className="text-slate-500">Dirección</dt>
               <dd className="text-right font-medium text-slate-900">{order.customerAddress}</dd>
             </div>
+            {order.deliveryElsewhere && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Entrega fuera del pueblo</dt>
+                <dd className="text-right font-medium text-amber-700">
+                  {order.deliveryDistanceKm != null ? `${order.deliveryDistanceKm.toLocaleString('es')} km desde el centro` : 'Mensajería por km'}
+                </dd>
+              </div>
+            )}
+            {order.deliveryCityName && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Entrega en</dt>
+                <dd className="text-right font-medium text-amber-700">
+                  {order.deliveryCityName} (entre localidades)
+                </dd>
+              </div>
+            )}
             {order.scheduledFor && (
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Entrega elegida</dt>

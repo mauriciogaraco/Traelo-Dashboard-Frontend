@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
-import type { DelivererDTO, PaginationMeta } from '@/lib/types';
+import { DELIVERER_VEHICLE_LABELS, type DelivererDTO, type PaginationMeta } from '@/lib/types';
 import { BannedBusinessesModal } from './BannedBusinessesModal';
 import { ChangeDelivererPasswordModal } from './ChangeDelivererPasswordModal';
 import { CreateDelivererModal } from './CreateDelivererModal';
@@ -160,6 +160,7 @@ export function DeliverersPage() {
                   <th className="px-4 py-3 font-medium">Nombre</th>
                   <th className="px-4 py-3 font-medium">Correo</th>
                   <th className="px-4 py-3 font-medium">Teléfono</th>
+                  <th className="px-4 py-3 font-medium">Vehículo</th>
                   <th className="px-4 py-3 font-medium">% Comisión</th>
                   <th className="px-4 py-3 font-medium">Ingreso</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
@@ -169,14 +170,14 @@ export function DeliverersPage() {
               <tbody className="divide-y divide-slate-100">
                 {isLoading && (
                   <tr>
-                    <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={canManage ? 8 : 7} className="px-4 py-8 text-center text-slate-400">
                       Cargando…
                     </td>
                   </tr>
                 )}
                 {!isLoading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={canManage ? 8 : 7} className="px-4 py-8 text-center text-slate-400">
                       No hay mensajeros que coincidan con los filtros.
                     </td>
                   </tr>
@@ -193,6 +194,7 @@ export function DeliverersPage() {
                     </td>
                     <td className="px-4 py-3">{deliverer.email}</td>
                     <td className="px-4 py-3">{deliverer.phone ?? '—'}</td>
+                    <td className="px-4 py-3">{DELIVERER_VEHICLE_LABELS[deliverer.vehicle ?? 'BICYCLE']}</td>
                     <td className="px-4 py-3">
                       {deliverer.commissionPercentage !== null ? (
                         `${deliverer.commissionPercentage}%`
