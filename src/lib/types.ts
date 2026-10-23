@@ -312,6 +312,9 @@ export interface ProductDTO {
   addons?: AddonOption[] | null;
   /** Unidades por caja (se vende por caja completa). null = se vende por unidad. */
   formato?: number | null;
+  /** Precio por cantidad: desde `bulkMinQuantity` unidades, cada una cuesta `bulkPrice`. null = desactivado. */
+  bulkMinQuantity?: number | null;
+  bulkPrice?: number | null;
   /** "Ofertas destacadas" del Home de la app — lo marca un OWNER/ADMIN a mano. */
   featured: boolean;
   /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN lo marca. */

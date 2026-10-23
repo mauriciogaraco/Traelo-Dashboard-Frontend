@@ -73,6 +73,8 @@ export interface CreateProductInput {
   price?: number;
   externalId?: string;
   packaging?: PackagingOption[];
+  bulkMinQuantity?: number | null;
+  bulkPrice?: number | null;
 }
 
 export interface UpdateProductInput {
@@ -90,6 +92,9 @@ export interface UpdateProductInput {
   addons?: AddonOption[] | null;
   /** Unidades por caja: null lo quita; omitido no lo toca. */
   formato?: number | null;
+  /** Precio por cantidad: null en ambos lo desactiva; omitido no lo toca. */
+  bulkMinQuantity?: number | null;
+  bulkPrice?: number | null;
   /** "Ofertas destacadas" del Home de la app. */
   featured?: boolean;
   /** Tráelo Familia — excluye el producto del catálogo normal, solo OWNER/ADMIN. */
