@@ -9,7 +9,8 @@ import { FormField } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
-import type { ProductDTO, ProductOfferDTO } from '@/lib/types';
+import { formatPrice } from '@/lib/money';
+import type { PriceCurrency, ProductDTO, ProductOfferDTO } from '@/lib/types';
 import {
   useCreateProductOfferMutation,
   useListProductOffersQuery,
@@ -64,10 +65,12 @@ interface OfferFormProps {
   businessId: string;
   productId: string;
   offer: ProductOfferDTO | null;
+  // La oferta está en la moneda del producto.
+  currency: PriceCurrency;
   onDone: () => void;
 }
 
-function OfferForm({ businessId, productId, offer, onDone }: OfferFormProps) {
+function OfferForm({ businessId, productId, offer, currency, onDone }: OfferFormProps) {
   const [createOffer, { isLoading: isCreating, error: createError }] =
     useCreateProductOfferMutation();
   const [updateOffer, { isLoading: isUpdating, error: updateError }] =
@@ -107,7 +110,7 @@ function OfferForm({ businessId, productId, offer, onDone }: OfferFormProps) {
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <FormField
-        label="Precio de oferta (CUP)"
+        label={`Precio de oferta (${currency})`}
         type="number"
         min={0}
         step="0.01"
@@ -174,14 +177,15 @@ export function ProductOffersModal({ businessId, product, onClose }: ProductOffe
           businessId={businessId}
           productId={product.id}
           offer={formTarget}
+          currency={product.priceCurrency ?? 'CUP'}
           onDone={() => setFormTarget(undefined)}
         />
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-slate-500">
-              Precio normal: {product.price !== null ? `${product.price} CUP` : 'sin precio'}. Una
-              oferta es un precio promocional temporal; no reemplaza el precio normal.
+              Precio normal: {product.price !== null ? formatPrice(product.price, product.priceCurrency) : 'sin precio'}.
+              Una oferta es un precio promocional temporal (en {product.priceCurrency ?? 'CUP'}); no reemplaza el precio normal.
             </p>
             <Button type="button" onClick={() => setFormTarget(null)}>
               <Plus className="h-4 w-4" />
@@ -218,7 +222,7 @@ export function ProductOffersModal({ businessId, product, onClose }: ProductOffe
                   const status = getOfferStatus(offer);
                   return (
                     <tr key={offer.id} className="text-slate-700">
-                      <td className="px-4 py-3 font-medium text-slate-900">{offer.price} CUP</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{formatPrice(offer.price, product.priceCurrency)}</td>
                       <td className="px-4 py-3 text-xs">
                         {formatDateTime(offer.startsAt)}
                         <br />

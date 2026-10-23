@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { PackagingEditor } from './PackagingEditor';
 import { AddonsEditor, OptionsEditor, UnitsPerPackField } from './VariantEditors';
-import type { ProductDTO } from '@/lib/types';
+import type { PriceCurrency, ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
 import {
   useSetProductAvailabilityMutation,
@@ -86,6 +86,8 @@ export function EditProductModal({
 }: EditProductModalProps) {
   const { showToast } = useToast();
   const [featured, setFeatured] = useState(product.featured);
+  // Moneda del precio (price, precio por cantidad, ofertas y agregos). Solo el personal la cambia.
+  const [currency, setCurrency] = useState<PriceCurrency>(product.priceCurrency ?? 'CUP');
   const [updateProduct, { isLoading, error }] = useUpdateProductMutation();
   const [setAvailability] = useSetProductAvailabilityMutation();
   const [uploadImage] = useUploadProductImageMutation();
@@ -144,6 +146,9 @@ export function EditProductModal({
         category: values.category || undefined,
         categoryId: values.categoryId,
         price: values.price ? Number(values.price) : undefined,
+        ...(canFeature && product.priceCurrency !== undefined && currency !== product.priceCurrency
+          ? { priceCurrency: currency }
+          : {}),
         packaging: values.packaging.map((option) => ({
           name: option.name.trim(),
           price: Number(option.price),
@@ -182,6 +187,13 @@ export function EditProductModal({
           />
           {canFeature && (
             <Switch
+              checked={currency === 'USD'}
+              onChange={(usd) => setCurrency(usd ? 'USD' : 'CUP')}
+              label="El precio está en USD"
+            />
+          )}
+          {canFeature && (
+            <Switch
               checked={featured}
               onChange={handleFeaturedChange}
               label="Destacado (Home de la app)"
@@ -218,15 +230,21 @@ export function EditProductModal({
             {...register('category')}
           />
           <FormField
-            label="Precio referencial (opcional)"
+            label={`Precio referencial (opcional) — ${currency}`}
             type="number"
             min={0}
             step="0.01"
             error={errors.price?.message}
             {...register('price')}
           />
+          {currency !== (product.priceCurrency ?? 'CUP') && (
+            <p className="-mt-2 text-xs text-amber-700">
+              Cambiaste la moneda: los números NO se convierten solos. Escribe de nuevo el precio (y el de los agregos y las ofertas) en {currency}.
+              Para pasar todo un negocio con conversión usa «Moneda» en su lista de productos.
+            </p>
+          )}
           <OptionsEditor />
-          <AddonsEditor />
+          <AddonsEditor currency={currency} />
           <PackagingEditor />
           <UnitsPerPackField />
           {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}

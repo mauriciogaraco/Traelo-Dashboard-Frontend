@@ -73,7 +73,7 @@ export function OptionsEditor() {
   );
 }
 
-export function AddonsEditor() {
+export function AddonsEditor({ currency = 'CUP' }: { currency?: 'CUP' | 'USD' }) {
   const {
     control,
     register,
@@ -107,7 +107,7 @@ export function AddonsEditor() {
             {...register(`addons.${index}.name`)}
           />
           <FormField
-            label="Precio por unidad"
+            label={`Precio por unidad (${currency})`}
             type="number"
             min={0}
             step="0.01"

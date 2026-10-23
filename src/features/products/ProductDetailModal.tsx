@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { useToast } from '@/components/ui/ToastProvider';
+import { formatPrice } from '@/lib/money';
 import type { AdminProductDTO } from '@/lib/types';
 import { useUpdateProductMutation } from '@/features/businesses/businessesApi';
 
@@ -98,7 +99,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
           <div>
             <dt className="text-slate-500">Precio</dt>
             <dd className="font-medium text-slate-900">
-              {product.price !== null ? `${product.price} CUP` : '—'}
+              {formatPrice(product.price, product.priceCurrency)}
             </dd>
           </div>
           <div>

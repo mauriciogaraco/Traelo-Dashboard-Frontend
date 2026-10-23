@@ -221,6 +221,9 @@ export interface DelivererDTO {
   updatedAt: string;
 }
 
+/** Moneda en la que está escrito el precio de un producto. Lo que se cobra al cliente siempre es CUP. */
+export type PriceCurrency = 'CUP' | 'USD';
+
 export interface BusinessDTO {
   id: string;
   name: string;
@@ -233,6 +236,8 @@ export interface BusinessDTO {
   commissionPercentage: number | null;
   defaultProductCommissionAmount: number | null;
   deliveryFeeBase: number;
+  // Moneda con la que nacen sus productos nuevos (ausente en un backend anterior = CUP).
+  defaultPriceCurrency?: PriceCurrency;
   logoUrl: string | null;
   // Ciudad a la que pertenece (ver Business.cityId en el backend) — null si todavía no se le
   // asignó, o undefined si el backend todavía no manda el campo (sin multiciudad).
@@ -299,6 +304,8 @@ export interface ProductDTO {
   category: string | null;
   categoryId: string | null;
   price: number | null;
+  // Moneda de price, bulkPrice, ofertas y agregos (el empaque siempre es CUP). Ausente = CUP.
+  priceCurrency?: PriceCurrency;
   active: boolean;
   available: boolean;
   lowStock: boolean;
@@ -423,6 +430,9 @@ export interface OrderItemDTO {
   unitsPerPack?: number;
   pointsUnits?: number;
   pointsDiscount?: number;
+  // Producto en USD: su precio en USD y la tasa con que se convirtió a CUP (unitPrice ya está en CUP).
+  unitPriceUsd?: number | null;
+  exchangeRate?: number | null;
 }
 
 /** Un cambio de una línea del vale (ver lastEditSummary del pedido). */
@@ -923,6 +933,8 @@ export interface SystemConfigDTO {
   operatingHoursWeekendEnd: string | null;
   // Tráelo Familia (clientes en el exterior, pagan en USD vía Zelle) — tasa CUP por 1 USD que
   // usa el build del catálogo de ese sub-producto. Ver también Product.familiaOnly.
+  // Tasa de cambio GLOBAL (CUP por 1 USD): convierte a CUP los productos en USD. familiaExchangeRate es su alias.
+  exchangeRate: number;
   familiaExchangeRate: number;
   updatedAt: string;
 }

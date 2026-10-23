@@ -440,7 +440,14 @@ export function OrderDetailPage() {
                   )}
                   <td className="px-4 py-3">{item.productName}</td>
                   <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">{item.unitPrice} CUP</td>
+                  <td className="px-4 py-3">
+                    {item.unitPrice} CUP
+                    {item.unitPriceUsd != null && item.exchangeRate != null && (
+                      <p className="text-xs text-slate-500">
+                        ${item.unitPriceUsd} USD × {item.exchangeRate}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{item.subtotal} CUP</td>
                 </tr>
               )),
