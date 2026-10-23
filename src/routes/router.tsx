@@ -75,6 +75,9 @@ const ProductProposalsPage = lazy(() =>
     default: m.ProductProposalsPage,
   })),
 );
+const FamiliaPage = lazy(() =>
+  import('@/features/familia/FamiliaPage').then((m) => ({ default: m.FamiliaPage })),
+);
 const OrdersPage = lazy(() =>
   import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })),
 );
@@ -151,6 +154,7 @@ export const router = createBrowserRouter([
           {
             element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE']} />,
             children: [
+              { path: 'familia', element: <FamiliaPage /> },
               { path: 'orders/new', element: <CreateOrderPage /> },
               { path: 'orders/:id/edit', element: <EditOrderPage /> },
               { path: 'businesses', element: <BusinessesPage /> },
