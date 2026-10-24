@@ -56,7 +56,7 @@ export function PackagingEditor() {
             {...register(`packaging.${index}.name`)}
           />
           <FormField
-            label="Precio"
+            label="Precio (CUP)"
             type="number"
             min={0}
             step="0.01"

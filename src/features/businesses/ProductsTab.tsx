@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, RotateCcw, Search, Tag, UserX } from 'lucide-react';
+import { Coins, Plus, RotateCcw, Search, Tag, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { Thumbnail } from '@/components/ui/Thumbnail';
+import { formatPrice } from '@/lib/money';
 import type { BusinessDTO, PaginationMeta, ProductDTO } from '@/lib/types';
+import { BusinessCurrencyModal } from './BusinessCurrencyModal';
 import { CreateProductModal } from './CreateProductModal';
 import { EditProductModal } from './EditProductModal';
 import { ProductCommissionModal } from './ProductCommissionModal';
@@ -21,7 +23,7 @@ const PAGE_SIZE = 10;
 interface ProductsTabProps {
   // Un dueño de negocio no recibe comisión ni tarifas del backend, por eso son opcionales.
   business: Pick<BusinessDTO, 'id'> &
-    Partial<Pick<BusinessDTO, 'commissionType' | 'defaultProductCommissionAmount'>>;
+    Partial<Pick<BusinessDTO, 'commissionType' | 'defaultProductCommissionAmount' | 'defaultPriceCurrency' | 'name'>>;
   canManage: boolean;
   // Dueño de negocio: edita su catálogo pero nunca ve comisiones ni ofertas de Tráelo.
   ownerMode?: boolean;
@@ -33,6 +35,7 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const [offersProduct, setOffersProduct] = useState<ProductDTO | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
   const [commissionProduct, setCommissionProduct] = useState<ProductDTO | null>(null);
@@ -116,10 +119,16 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
           </select>
         </div>
         {canManage && !ownerMode && (
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nuevo producto
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" onClick={() => setCurrencyOpen(true)}>
+              <Coins className="h-4 w-4" />
+              Moneda: {business.defaultPriceCurrency ?? 'CUP'}
+            </Button>
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nuevo producto
+            </Button>
+          </div>
         )}
       </div>
 
@@ -169,7 +178,7 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
                   </div>
                 </td>
                 <td className="px-4 py-3">{product.category ?? '—'}</td>
-                <td className="px-4 py-3">{product.price !== null ? `${product.price} CUP` : '—'}</td>
+                <td className="px-4 py-3">{formatPrice(product.price, product.priceCurrency)}</td>
                 {isFixedPerProduct && (
                   <td className="px-4 py-3">
                     {product.commission ? (
@@ -258,10 +267,19 @@ export function ProductsTab({ business, canManage, ownerMode = false }: Products
       {createOpen && (
         <CreateProductModal
           businessId={business.id}
+          defaultCurrency={business.defaultPriceCurrency ?? 'CUP'}
           onClose={() => setCreateOpen(false)}
           // Abre directo la edición del producto recién creado: es el único momento en que se le
           // puede subir una imagen (ver el comentario en CreateProductModal).
           onCreated={(product) => setEditingProduct(product)}
+        />
+      )}
+      {currencyOpen && (
+        <BusinessCurrencyModal
+          businessId={business.id}
+          businessName={business.name}
+          currentCurrency={business.defaultPriceCurrency ?? 'CUP'}
+          onClose={() => setCurrencyOpen(false)}
         />
       )}
       {editingProduct && (

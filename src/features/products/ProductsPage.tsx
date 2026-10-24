@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Thumbnail } from '@/components/ui/Thumbnail';
+import { formatPrice } from '@/lib/money';
 import type { AdminProductDTO } from '@/lib/types';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
@@ -137,7 +138,7 @@ export function ProductsPage() {
                 </td>
                 <td className="px-4 py-3">{product.businessName}</td>
                 <td className="px-4 py-3">{product.category ?? '—'}</td>
-                <td className="px-4 py-3">{product.price !== null ? `${product.price} CUP` : '—'}</td>
+                <td className="px-4 py-3">{formatPrice(product.price, product.priceCurrency)}</td>
                 <td className="px-4 py-3">
                   <Badge tone={product.active ? 'green' : 'slate'}>
                     {product.active ? 'Activo' : 'Inactivo'}

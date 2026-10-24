@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Modal } from '@/components/ui/Modal';
+import { Switch } from '@/components/ui/Switch';
 import { Textarea } from '@/components/ui/Textarea';
 import { getErrorMessage } from '@/lib/getErrorMessage';
-import type { ProductDTO } from '@/lib/types';
+import type { PriceCurrency, ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
 import { useCreateProductMutation } from './businessesApi';
 
@@ -26,6 +28,8 @@ type FormValues = z.infer<typeof schema>;
 
 interface CreateProductModalProps {
   businessId: string;
+  // Moneda con la que nace el producto: la de su negocio (CUP por defecto).
+  defaultCurrency?: PriceCurrency;
   onClose: () => void;
   // El alta no acepta imagen (el backend solo recibe el archivo vía POST .../products/:id/image,
   // que necesita un producto ya creado) — se la pasamos al que abre este modal para que, si
@@ -34,8 +38,9 @@ interface CreateProductModalProps {
   onCreated?: (product: ProductDTO) => void;
 }
 
-export function CreateProductModal({ businessId, onClose, onCreated }: CreateProductModalProps) {
+export function CreateProductModal({ businessId, defaultCurrency = 'CUP', onClose, onCreated }: CreateProductModalProps) {
   const [createProduct, { isLoading, error }] = useCreateProductMutation();
+  const [currency, setCurrency] = useState<PriceCurrency>(defaultCurrency);
   const { data: categoriesData } = useListCategoriesQuery({ active: true, pageSize: 100 });
 
   const {
@@ -56,6 +61,7 @@ export function CreateProductModal({ businessId, onClose, onCreated }: CreatePro
       category: values.category || undefined,
       categoryId: values.categoryId ?? undefined,
       price: values.price ? Number(values.price) : undefined,
+      priceCurrency: currency,
     }).unwrap();
     onCreated?.(created.data);
     onClose();
@@ -89,14 +95,20 @@ export function CreateProductModal({ businessId, onClose, onCreated }: CreatePro
           error={errors.category?.message}
           {...register('category')}
         />
+        <Switch checked={currency === 'USD'} onChange={(usd) => setCurrency(usd ? 'USD' : 'CUP')} label="El precio está en USD" />
         <FormField
-          label="Precio referencial (opcional)"
+          label={`Precio referencial (opcional) — ${currency}`}
           type="number"
           min={0}
           step="0.01"
           error={errors.price?.message}
           {...register('price')}
         />
+        {currency === 'USD' && (
+          <p className="-mt-2 text-xs text-slate-500">
+            Al cliente se le muestra y cobra en CUP, convertido con la tasa de cambio (Configuración).
+          </p>
+        )}
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>
