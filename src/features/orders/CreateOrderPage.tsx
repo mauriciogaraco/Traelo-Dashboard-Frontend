@@ -14,11 +14,7 @@ import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
-import {
-  useAssignOrderMutation,
-  useCreateOrderMutation,
-  useUpdateOrderStatusMutation,
-} from './ordersApi';
+import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
 import { parseOrderText } from './orderTextParser';
 import { useCustomerLookup } from './useCustomerLookup';
 
@@ -86,8 +82,7 @@ export function CreateOrderPage() {
 
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
   const [assignOrder, { isLoading: isAssigning }] = useAssignOrderMutation();
-  const [updateOrderStatus, { isLoading: isAdvancing }] = useUpdateOrderStatusMutation();
-  const isSubmitting = isCreating || isAssigning || isAdvancing;
+  const isSubmitting = isCreating || isAssigning;
 
   function handleParse() {
     const draft = parseOrderText(pasteText, businesses);
@@ -273,16 +268,9 @@ export function CreateOrderPage() {
       }).unwrap();
 
       if (delivererId) {
+        // El estado (Confirmado / Marchando) lo mueve el backend según las marcas apenas el pedido
+        // tiene mensajero: acá, o por la cola si no se elige ninguno.
         await assignOrder({ id: created.data.id, delivererId }).unwrap();
-        // Con mensajero ya elegido (queda aceptado), las marcas también mueven el estado: "ya se
-        // encargó" = Marchando, "ya se confirmó" = Confirmado. Sin mensajero solo se guardan los
-        // avisos: el estado cambia cuando el mensajero de la cola acepte el pedido.
-        if (flags.orderedWithBusiness || flags.customerConfirmed) {
-          await updateOrderStatus({
-            id: created.data.id,
-            status: flags.orderedWithBusiness ? 'HEADING_OUT' : 'CONFIRMED',
-          }).unwrap();
-        }
       }
 
       navigate(`/orders/${created.data.id}`, { replace: true });
@@ -436,7 +424,7 @@ export function CreateOrderPage() {
             />
           </div>
 
-          <OrderFlagsFields value={flags} onChange={setFlags} willAdvanceStatus={!!delivererId} />
+          <OrderFlagsFields value={flags} onChange={setFlags} />
 
           <BusinessGroupsEditor
             groups={groups}

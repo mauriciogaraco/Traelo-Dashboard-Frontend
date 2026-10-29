@@ -7,30 +7,24 @@ export interface OrderFlags {
 interface OrderFlagsFieldsProps {
   value: OrderFlags;
   onChange: (next: OrderFlags) => void;
-  /** Al crear: ¿hay mensajero elegido? Con mensajero, además de avisar se cambia el estado del pedido. */
-  willAdvanceStatus?: boolean;
 }
 
 /**
  * Avisos del staff para el mensajero en un pedido armado a mano: el vale los muestra para que sepa
- * qué ya está hecho. Son informativos, salvo que al crear el pedido ya se elija mensajero: entonces
- * "Ya se confirmó" lo deja Confirmado y "Ya se encargó" lo deja Marchando.
+ * qué ya está hecho. No hace falta elegir mensajero: en cuanto el pedido tiene uno (por la cola o
+ * asignado a mano), "Ya se confirmó" lo deja Confirmado y "Ya se encargó" lo deja Marchando.
  */
-export function OrderFlagsFields({ value, onChange, willAdvanceStatus }: OrderFlagsFieldsProps) {
+export function OrderFlagsFields({ value, onChange }: OrderFlagsFieldsProps) {
   const options: { key: keyof OrderFlags; label: string; hint: string }[] = [
     {
       key: 'customerConfirmed',
       label: 'Ya se confirmó',
-      hint: willAdvanceStatus
-        ? 'El cliente ya confirmó. El pedido queda como Confirmado y el vale se lo avisa al mensajero.'
-        : 'El cliente ya confirmó. El vale se lo avisa al mensajero.',
+      hint: 'El cliente ya confirmó. En cuanto tenga mensajero queda como Confirmado y el vale se lo avisa.',
     },
     {
       key: 'orderedWithBusiness',
       label: 'Ya se encargó',
-      hint: willAdvanceStatus
-        ? 'Ya se le pidió al negocio. El pedido queda como Marchando y el vale le dice al mensajero que solo hay que recogerlo.'
-        : 'Ya se le pidió al negocio. El vale le dice al mensajero que solo hay que recogerlo.',
+      hint: 'Ya se le pidió al negocio. En cuanto tenga mensajero queda como Marchando y el vale le dice que solo hay que recogerlo.',
     },
     {
       key: 'inviteToApp',

@@ -252,7 +252,7 @@ export function EditOrderPage() {
         },
       }).unwrap();
 
-      if (!isFinal && delivererId && delivererId !== data.data.delivererId) {
+      if (!isCancelled && delivererId && delivererId !== data.data.delivererId) {
         await assignOrder({ id, delivererId }).unwrap();
       }
 
@@ -270,8 +270,7 @@ export function EditOrderPage() {
   }
   const isCompleted = data.data.status === 'COMPLETED';
   const isCancelled = data.data.status === 'CANCELLED';
-  // Completado o cancelado: se corrigen los datos, pero el mensajero ya no se puede cambiar.
-  const isFinal = isCompleted || isCancelled;
+  // Cancelado: se corrigen los datos, pero ya no se le puede asignar mensajero (completado sí: ver abajo).
 
   return (
     <div className="flex flex-col gap-5">
@@ -287,8 +286,8 @@ export function EditOrderPage() {
 
       {isCompleted && (
         <p className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-700">
-          Este pedido ya está completado. Podés corregir sus datos, pero el mensajero asignado no
-          se puede cambiar desde acá.
+          Este pedido ya está completado. Podés corregir sus datos y también el mensajero que lo
+          entregó (se recalcula lo que gana cada uno; si ya está en un cuadre, hay que rehacerlo antes).
         </p>
       )}
       {isCancelled && (
@@ -349,7 +348,7 @@ export function EditOrderPage() {
             onChange={setDelivererId}
             options={delivererOptions}
             placeholder="Sin asignar"
-            disabled={isFinal}
+            disabled={isCancelled}
           />
         </div>
 
