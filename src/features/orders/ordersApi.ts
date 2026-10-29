@@ -21,6 +21,14 @@ export interface CreateOrderItemInput {
   productName?: string;
   quantity: number;
   unitPrice: number;
+  // Variantes ya resueltas por quien arma el pedido (el backend no las recalcula): tipo/sabor, agrego
+  // (precio POR UNIDAD, ya sumado en unitPrice), envase (costo total de la línea) y unidades por caja.
+  optionName?: string;
+  addonName?: string;
+  addonPrice?: number;
+  packagingName?: string;
+  packagingFee?: number;
+  unitsPerPack?: number;
 }
 
 export interface CreateOrderBusinessInput {
