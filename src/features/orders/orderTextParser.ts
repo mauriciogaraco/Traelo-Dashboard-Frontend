@@ -1,4 +1,5 @@
 import type { BusinessDTO, OrderDTO, SystemConfigDTO } from '@/lib/types';
+import { withPackagingSuffix } from '@/lib/itemName';
 import { REGISTER_URL } from './registerInvite';
 
 export interface ParsedOrderItem {
@@ -266,7 +267,7 @@ export function generateOrderVoucherText(
     lines.push('');
     lines.push(business.businessName);
     for (const item of business.items) {
-      lines.push(`${item.quantity}x ${item.productName} - ${item.subtotal}`);
+      lines.push(`${item.quantity}x ${withPackagingSuffix(item.productName, item.packagingName)} - ${item.subtotal}`);
     }
   }
 
