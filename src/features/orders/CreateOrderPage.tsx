@@ -10,10 +10,15 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { describeDeliveryFeeSuggestion, suggestDeliveryFee } from '@/lib/deliveryFeeSuggestion';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
-import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
+import {
+  useAssignOrderMutation,
+  useCreateOrderMutation,
+  useUpdateOrderStatusMutation,
+} from './ordersApi';
 import { parseOrderText } from './orderTextParser';
 import { useCustomerLookup } from './useCustomerLookup';
 
@@ -39,6 +44,11 @@ export function CreateOrderPage() {
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
+  const [flags, setFlags] = useState<OrderFlags>({
+    customerConfirmed: false,
+    orderedWithBusiness: false,
+    inviteToApp: false,
+  });
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -76,7 +86,8 @@ export function CreateOrderPage() {
 
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
   const [assignOrder, { isLoading: isAssigning }] = useAssignOrderMutation();
-  const isSubmitting = isCreating || isAssigning;
+  const [updateOrderStatus, { isLoading: isAdvancing }] = useUpdateOrderStatusMutation();
+  const isSubmitting = isCreating || isAssigning || isAdvancing;
 
   function handleParse() {
     const draft = parseOrderText(pasteText, businesses);
@@ -254,12 +265,24 @@ export function CreateOrderPage() {
         deliveryFee: feeNumber,
         platformFeeOverride: platformFeeOverrideValue,
         raffleNumber: raffleNumberValue,
+        ...(flags.customerConfirmed ? { customerConfirmed: true } : {}),
+        ...(flags.orderedWithBusiness ? { orderedWithBusiness: true } : {}),
+        ...(flags.inviteToApp ? { inviteToApp: true } : {}),
         customerId: foundCustomer?.id,
         businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
       }).unwrap();
 
       if (delivererId) {
         await assignOrder({ id: created.data.id, delivererId }).unwrap();
+        // Con mensajero ya elegido (queda aceptado), las marcas también mueven el estado: "ya se
+        // encargó" = Marchando, "ya se confirmó" = Confirmado. Sin mensajero solo se guardan los
+        // avisos: el estado cambia cuando el mensajero de la cola acepte el pedido.
+        if (flags.orderedWithBusiness || flags.customerConfirmed) {
+          await updateOrderStatus({
+            id: created.data.id,
+            status: flags.orderedWithBusiness ? 'HEADING_OUT' : 'CONFIRMED',
+          }).unwrap();
+        }
       }
 
       navigate(`/orders/${created.data.id}`, { replace: true });
@@ -412,6 +435,8 @@ export function CreateOrderPage() {
               placeholder="Asignar después"
             />
           </div>
+
+          <OrderFlagsFields value={flags} onChange={setFlags} willAdvanceStatus={!!delivererId} />
 
           <BusinessGroupsEditor
             groups={groups}

@@ -8,6 +8,7 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
@@ -50,6 +51,11 @@ export function EditOrderPage() {
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
+  const [flags, setFlags] = useState<OrderFlags>({
+    customerConfirmed: false,
+    orderedWithBusiness: false,
+    inviteToApp: false,
+  });
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -80,6 +86,11 @@ export function EditOrderPage() {
     // `undefined`, no `null` — un check estricto lo confundía con "tiene un valor".
     setRaffleNumber(order.raffleNumber == null ? '' : String(order.raffleNumber));
     setDelivererId(order.delivererId);
+    setFlags({
+      customerConfirmed: !!order.customerConfirmed,
+      orderedWithBusiness: !!order.orderedWithBusiness,
+      inviteToApp: !!order.inviteToApp,
+    });
     setGroups(
       order.businesses.map((ob) => ({
         key: makeId(),
@@ -233,6 +244,9 @@ export function EditOrderPage() {
           deliveryFee: feeNumber,
           platformFeeOverride: platformFeeOverrideValue,
           raffleNumber: raffleNumberValue,
+          customerConfirmed: flags.customerConfirmed,
+          orderedWithBusiness: flags.orderedWithBusiness,
+          inviteToApp: flags.inviteToApp,
           customerId: !alreadyLinked && foundCustomer ? foundCustomer.id : undefined,
           businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
         },
@@ -338,6 +352,8 @@ export function EditOrderPage() {
             disabled={isFinal}
           />
         </div>
+
+        <OrderFlagsFields value={flags} onChange={setFlags} />
 
         <BusinessGroupsEditor
           groups={groups}
