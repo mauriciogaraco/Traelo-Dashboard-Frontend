@@ -473,6 +473,11 @@ export interface OrderDTO {
   assignedAt: string | null;
   // Pausa interna del staff (nunca visible para el cliente): null = no está pausado.
   pausedAt?: string | null;
+  // Avisos del staff para el mensajero (pedidos a mano): cliente confirmó / ya se encargó al negocio /
+  // cliente nuevo (pasarle la app). Ausentes en un backend que aún no los manda.
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
   pausedReason?: string | null;
   pausedByName?: string | null;
   completedAt: string | null;

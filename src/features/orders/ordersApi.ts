@@ -39,6 +39,10 @@ export interface CreateOrderInput {
   platformFeeOverride?: number;
   // "🎟️ Número del Sorteo" del vale, cuando el pedido participa de una promoción vigente.
   raffleNumber?: number;
+  // Avisos para el mensajero (ver OrderDTO.customerConfirmed / orderedWithBusiness / inviteToApp).
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
   // Cliente registrado de la app vinculado a este pedido manual (ver "Vincular cuenta" en el
   // formulario) — hace que el pedido cuente para puntos como si lo hubiera hecho el propio
   // cliente. Solo se manda cuando el staff confirmó que el teléfono buscado es esta cuenta.
@@ -89,6 +93,9 @@ export interface UpdateOrderInput {
   deliveryFee?: number;
   platformFeeOverride?: number;
   raffleNumber?: number | null;
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
   // Reemplaza por completo los negocios/productos del pedido. Si se omite, no se tocan.
   businesses?: CreateOrderBusinessInput[];
   // Vincular un cliente registrado que no se vinculó al crear el pedido — solo si el pedido
@@ -168,7 +175,7 @@ export const ordersApi = baseApi.injectEndpoints({
     }),
     updateOrderStatus: builder.mutation<
       ApiOk<OrderDTO>,
-      { id: string; status: 'COMPLETED' | 'CANCELLED' }
+      { id: string; status: 'CONFIRMED' | 'HEADING_OUT' | 'COMPLETED' | 'CANCELLED' }
     >({
       query: ({ id, status }) => ({
         url: `/orders/${id}/status`,

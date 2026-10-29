@@ -17,6 +17,7 @@ import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
 import { ACTIVE_ORDER_STATUSES, PAUSABLE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
+import { RegisterInviteCard } from './RegisterInviteCard';
 import { ReviewLinkCard } from './ReviewLinkCard';
 import {
   useAssignOrderMutation,
@@ -325,6 +326,15 @@ export function OrderDetailPage() {
           {copyError && <p className="mt-2 text-sm text-red-600">{copyError}</p>}
         </div>
       )}
+
+      {(order.customerConfirmed || order.orderedWithBusiness) && (
+        <div className="flex flex-wrap gap-2">
+          {order.customerConfirmed && <Badge tone="green">Cliente confirmó</Badge>}
+          {order.orderedWithBusiness && <Badge tone="brand">Ya se encargó: solo recoger</Badge>}
+        </div>
+      )}
+
+      <RegisterInviteCard order={order} />
 
       <ReviewLinkCard order={order} />
 
