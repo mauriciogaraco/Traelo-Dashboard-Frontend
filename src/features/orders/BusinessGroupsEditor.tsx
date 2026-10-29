@@ -1,7 +1,11 @@
 import { Plus, Trash2 } from 'lucide-react';
+import { useAppSelector } from '@/app/hooks';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useGetConfigQuery } from '@/features/config/configApi';
 import type { BusinessDTO } from '@/lib/types';
+import { ItemVariants } from './ItemVariants';
+import { itemLineTotal, toCup } from './orderDraftTypes';
 import type { GroupDraft, ItemDraft } from './orderDraftTypes';
 import { ProductNameInput } from './ProductNameInput';
 
@@ -35,6 +39,14 @@ export function BusinessGroupsEditor({
   addItem,
   removeItem,
 }: BusinessGroupsEditorProps) {
+  // La tasa (CUP por 1 USD) convierte los productos en USD; solo OWNER/ADMIN pueden leerla. Sin ella, un
+  // producto en USD no rellena el precio solo: se escribe a mano.
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const { data: configData } = useGetConfigQuery(undefined, {
+    skip: role !== 'OWNER' && role !== 'ADMIN',
+  });
+  const rate = configData?.data.exchangeRate ?? configData?.data.familiaExchangeRate ?? null;
+
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       {groups.map((group) => {
@@ -45,10 +57,7 @@ export function BusinessGroupsEditor({
         const businessOptions = businesses
           .filter((b) => !usedElsewhere.includes(b.id))
           .map((b) => ({ value: b.id, label: b.name }));
-        const groupSubtotal = group.items.reduce(
-          (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
-          0,
-        );
+        const groupSubtotal = group.items.reduce((sum, it) => sum + itemLineTotal(it), 0);
 
         return (
           <div
@@ -82,24 +91,57 @@ export function BusinessGroupsEditor({
               {group.items.map((item) => (
                 <div
                   key={item.key}
-                  className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] items-center gap-2 rounded-lg bg-slate-50 p-2 sm:flex sm:bg-transparent sm:p-0"
+                  className="flex flex-col gap-2 rounded-lg bg-slate-50 p-2 sm:bg-transparent sm:p-0"
                 >
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] items-center gap-2 sm:flex">
                   <div className="col-span-3 sm:flex sm:flex-1">
                     <ProductNameInput
                       businessId={group.businessId}
                       value={item.productName}
                       // Texto a mano: el producto es libre y deja de estar atado al catálogo.
+                      // Corregir una letra del nombre no debe perder el envase ni el tipo del ítem: las
+                      // variantes solo se limpian si se borra todo el texto (o se elige otro producto).
                       onTextChange={(text) =>
-                        updateItem(group.key, item.key, { productName: text, productId: null })
+                        updateItem(
+                          group.key,
+                          item.key,
+                          text.trim() === ''
+                            ? {
+                                productName: text,
+                                productId: null,
+                                catalogProductId: null,
+                                optionName: null,
+                                addonName: null,
+                                addonPrice: null,
+                                packagingName: null,
+                                packagingPrice: null,
+                                packagingCapacity: null,
+                                packagingFee: null,
+                                unitsPerPack: null,
+                              }
+                            : { productName: text, productId: null },
+                        )
                       }
-                      // Del catálogo: se completa el nombre y, si tiene precio, el precio.
-                      onPick={(product) =>
+                      // Del catálogo: se completa el nombre y el precio (en CUP) y se habilitan sus
+                      // variantes (tipo, agrego, envase), que arrancan sin elegir.
+                      onPick={(product) => {
+                        const cup =
+                          product.price != null ? toCup(product.price, product.priceCurrency, rate) : null;
                         updateItem(group.key, item.key, {
                           productName: product.name,
                           productId: product.id,
-                          ...(product.price != null ? { unitPrice: String(product.price) } : {}),
-                        })
-                      }
+                          catalogProductId: product.id,
+                          optionName: null,
+                          addonName: null,
+                          addonPrice: null,
+                          packagingName: null,
+                          packagingPrice: null,
+                          packagingCapacity: null,
+                          packagingFee: null,
+                          unitsPerPack: product.formato && product.formato >= 2 ? product.formato : null,
+                          ...(cup !== null ? { unitPrice: String(cup) } : {}),
+                        });
+                      }}
                     />
                   </div>
                   <input
@@ -132,6 +174,13 @@ export function BusinessGroupsEditor({
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
+                </div>
+                  <ItemVariants
+                    businessId={group.businessId}
+                    item={item}
+                    rate={rate}
+                    onChange={(patch) => updateItem(group.key, item.key, patch)}
+                  />
                 </div>
               ))}
             </div>

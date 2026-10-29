@@ -11,7 +11,14 @@ import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
-import { emptyGroup, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
+import {
+  emptyGroup,
+  itemLineTotal,
+  itemVariantPayload,
+  makeId,
+  type GroupDraft,
+  type ItemDraft,
+} from './orderDraftTypes';
 import {
   useAssignOrderMutation,
   useGetOrderQuery,
@@ -101,6 +108,14 @@ export function EditOrderPage() {
             productName: item.productName,
             quantity: String(item.quantity),
             unitPrice: String(item.unitPrice),
+            // Lo que el ítem ya trae (tipo, agrego, envase, caja) se conserva al guardar; el producto del
+            // catálogo solo sirve para mostrar y recalcular sus variantes, no se manda como productId.
+            catalogProductId: item.productId,
+            optionName: item.optionName ?? null,
+            addonName: item.addonName ?? null,
+            packagingName: item.packagingName ?? null,
+            packagingFee: item.packagingName ? (item.packagingFee ?? 0) : null,
+            unitsPerPack: item.unitsPerPack && item.unitsPerPack > 1 ? item.unitsPerPack : null,
           }),
         ),
       })),
@@ -154,9 +169,9 @@ export function EditOrderPage() {
     );
   }
 
+  // Productos + envases (el envase también suma al subtotal del negocio).
   const subtotal = groups.reduce(
-    (acc, g) =>
-      acc + g.items.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0),
+    (acc, g) => acc + g.items.reduce((sum, it) => sum + itemLineTotal(it), 0),
     0,
   );
   const feeNumber = Number(deliveryFee) || 0;
@@ -207,6 +222,7 @@ export function EditOrderPage() {
             productName: it.productName.trim(),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
+            ...itemVariantPayload(it),
           })),
       }))
       .filter((g) => g.items.length > 0);

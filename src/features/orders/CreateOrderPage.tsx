@@ -13,7 +13,15 @@ import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
-import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
+import {
+  emptyGroup,
+  emptyItem,
+  itemLineTotal,
+  itemVariantPayload,
+  makeId,
+  type GroupDraft,
+  type ItemDraft,
+} from './orderDraftTypes';
 import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
 import { parseOrderText } from './orderTextParser';
 import { useCustomerLookup } from './useCustomerLookup';
@@ -159,9 +167,9 @@ export function CreateOrderPage() {
     );
   }
 
+  // Productos + envases (el envase también suma al subtotal del negocio).
   const subtotal = groups.reduce(
-    (acc, g) =>
-      acc + g.items.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0),
+    (acc, g) => acc + g.items.reduce((sum, it) => sum + itemLineTotal(it), 0),
     0,
   );
   const feeNumber = Number(deliveryFee) || 0;
@@ -225,6 +233,7 @@ export function CreateOrderPage() {
             productName: it.productName.trim(),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
+            ...itemVariantPayload(it),
           })),
       }))
       .filter((g) => g.items.length > 0);
