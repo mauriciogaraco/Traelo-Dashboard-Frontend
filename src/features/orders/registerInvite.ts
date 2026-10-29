@@ -4,14 +4,21 @@ const WEB_URL = 'https://www.traelo-market.com';
 /** Enlace para que un cliente nuevo cree su cuenta en la web. */
 export const REGISTER_URL = `${WEB_URL}/registro`;
 
-/** Mensaje de WhatsApp para un cliente nuevo: la app y el enlace para registrarse. */
+/** Mensaje de WhatsApp para un cliente nuevo: por qué conviene registrarse y el enlace ya escrito. */
 export function buildRegisterInviteMessage(params: { name: string }): string {
   return [
-    `Hola ${params.name}, gracias por tu pedido en Tráelo.`,
+    `Hola ${params.name}, gracias por tu pedido en Tráelo 🛵`,
     '',
-    'Con tu cuenta puedes hacer tus próximos pedidos desde la app, ver el estado de tu entrega y ganar puntos. Regístrate aquí (toma un minuto):',
+    'Te invitamos a crear tu cuenta: es gratis y toma un minuto. Con ella puedes:',
+    '• Ganar puntos con cada pedido y canjearlos por recompensas',
+    '• Seguir tu pedido en vivo hasta tu puerta',
+    '• Repetir tus pedidos favoritos en segundos',
+    '• Invitar a tus amigos y ganar más puntos',
+    '',
+    'Regístrate aquí:',
     REGISTER_URL,
-  ].join('\n');
+  ].join('
+');
 }
 
 /**
