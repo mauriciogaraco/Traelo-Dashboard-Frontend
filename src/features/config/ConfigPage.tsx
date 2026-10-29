@@ -22,7 +22,7 @@ const schema = z.object({
     .string()
     .min(1, 'Requerido')
     .refine((v) => Number(v) >= 0 && Number(v) <= 100, 'Debe estar entre 0 y 100'),
-  familiaExchangeRate: z
+  exchangeRate: z
     .string()
     .min(1, 'Requerido')
     .refine((v) => Number(v) > 0 && Number(v) <= 100000, 'Debe ser mayor que 0'),
@@ -70,7 +70,7 @@ export function ConfigPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       defaultDelivererCommissionPercentage: '',
-      familiaExchangeRate: '',
+      exchangeRate: '',
       rafflePromoText: '',
       raffleVideoUrl: '',
       operatingHoursEnabled: false,
@@ -85,7 +85,7 @@ export function ConfigPage() {
     if (!data) return;
     reset({
       defaultDelivererCommissionPercentage: data.data.defaultDelivererCommissionPercentage.toString(),
-      familiaExchangeRate: data.data.familiaExchangeRate.toString(),
+      exchangeRate: (data.data.exchangeRate ?? data.data.familiaExchangeRate).toString(),
       rafflePromoText: data.data.rafflePromoText ?? '',
       raffleVideoUrl: data.data.raffleVideoUrl ?? '',
       operatingHoursEnabled: data.data.operatingHoursEnabled,
@@ -98,7 +98,7 @@ export function ConfigPage() {
   async function onSubmit(values: FormValues) {
     await updateConfig({
       defaultDelivererCommissionPercentage: Number(values.defaultDelivererCommissionPercentage),
-      familiaExchangeRate: Number(values.familiaExchangeRate),
+      exchangeRate: Number(values.exchangeRate),
       rafflePromoText: values.rafflePromoText || null,
       raffleVideoUrl: values.raffleVideoUrl || null,
       operatingHoursEnabled: values.operatingHoursEnabled,
@@ -147,11 +147,12 @@ export function ConfigPage() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-1 text-sm font-semibold text-slate-900">Tráelo Familia</h2>
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Tasa de cambio</h2>
           <p className="mb-3 text-sm text-slate-500">
-            Tasa usada para convertir el catálogo a USD para los clientes en el exterior (pagan por
-            Zelle). Antes vivía fija en el código; el build de Tráelo Familia la lee de acá en cada
-            sincronización.
+            CUP por 1 USD. Los productos marcados en USD se convierten a CUP con esta tasa al mostrarlos y al cobrarlos
+            (el Servicio Tráelo se calcula sobre ese monto en CUP; la mensajería y el empaque siempre son CUP). Al
+            cambiarla, los precios de esos productos se actualizan solos en la web y la app; los pedidos ya hechos no
+            cambian. Tráelo Familia usa esta misma tasa.
           </p>
           <FormField
             label="CUP por 1 USD"
@@ -159,8 +160,8 @@ export function ConfigPage() {
             min={1}
             step="0.01"
             disabled={!canEdit}
-            error={errors.familiaExchangeRate?.message}
-            {...register('familiaExchangeRate')}
+            error={errors.exchangeRate?.message}
+            {...register('exchangeRate')}
           />
         </div>
 

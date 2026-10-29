@@ -1,6 +1,8 @@
 export interface ItemDraft {
   key: string;
   productName: string;
+  // Solo si se eligió del catálogo del negocio; texto libre = null (el producto no tiene que existir).
+  productId?: string | null;
   quantity: string;
   unitPrice: string;
 }

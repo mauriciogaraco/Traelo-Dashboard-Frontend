@@ -1,5 +1,5 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiOk, ApiPaginated, DateRangePreset, DelivererDTO } from '@/lib/types';
+import type { ApiOk, ApiPaginated, DateRangePreset, DelivererDTO, DelivererVehicle } from '@/lib/types';
 
 export interface ListDeliverersParams {
   page?: number;
@@ -11,6 +11,8 @@ export interface ListDeliverersParams {
   // A diferencia de `active`, este sí admite false de forma confiable (usa booleanQueryParam
   // en el backend).
   onDuty?: boolean;
+  // Solo mensajeros que operan en esa ciudad (pisa la ciudad activa del topbar).
+  cityId?: string;
 }
 
 export interface DelivererBonusDTO {
@@ -39,6 +41,7 @@ export interface CreateDelivererInput {
   phone: string;
   joinedAt?: string;
   commissionPercentage?: number;
+  vehicle?: DelivererVehicle;
   cityIds?: string[];
 }
 
@@ -47,6 +50,7 @@ export interface UpdateDelivererInput {
   phone?: string;
   active?: boolean;
   commissionPercentage?: number | null;
+  vehicle?: DelivererVehicle;
   cityIds?: string[];
 }
 
@@ -56,6 +60,15 @@ export interface DispatchQueueEntryDTO {
   queuedAt: string;
   busy: boolean;
   position: number;
+}
+
+// Veto de un mensajero a un negocio (solo OWNER/ADMIN): no recibe pedidos de ese local por el
+// despacho automático y conserva su turno en la cola.
+export interface DelivererBusinessBanDTO {
+  businessId: string;
+  businessName: string;
+  reason: string | null;
+  createdAt: string;
 }
 
 export const deliverersApi = baseApi.injectEndpoints({
@@ -100,6 +113,28 @@ export const deliverersApi = baseApi.injectEndpoints({
         { type: 'Deliverer', id: 'LIST' },
       ],
     }),
+    listDelivererBans: builder.query<ApiOk<DelivererBusinessBanDTO[]>, string>({
+      query: (id) => `/deliverers/${id}/banned-businesses`,
+      providesTags: (_result, _error, id) => [{ type: 'Deliverer' as const, id: `BANS-${id}` }],
+    }),
+    banDelivererFromBusiness: builder.mutation<
+      ApiOk<DelivererBusinessBanDTO>,
+      { id: string; businessId: string; reason?: string }
+    >({
+      query: ({ id, businessId, reason }) => ({
+        url: `/deliverers/${id}/banned-businesses/${businessId}`,
+        method: 'PUT',
+        body: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Deliverer', id: `BANS-${id}` }],
+    }),
+    unbanDelivererFromBusiness: builder.mutation<void, { id: string; businessId: string }>({
+      query: ({ id, businessId }) => ({
+        url: `/deliverers/${id}/banned-businesses/${businessId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Deliverer', id: `BANS-${id}` }],
+    }),
     deactivateDeliverer: builder.mutation<ApiOk<DelivererDTO>, string>({
       query: (id) => ({ url: `/deliverers/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, _error, id) => [
@@ -118,4 +153,7 @@ export const {
   useUpdateDelivererMutation,
   useSetDelivererDutyMutation,
   useDeactivateDelivererMutation,
+  useListDelivererBansQuery,
+  useBanDelivererFromBusinessMutation,
+  useUnbanDelivererFromBusinessMutation,
 } = deliverersApi;

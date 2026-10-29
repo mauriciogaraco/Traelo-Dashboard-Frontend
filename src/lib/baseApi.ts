@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/app/store';
 import { authTokensUpdated, loggedOut, type AuthTokens } from '@/features/auth/authSlice';
+import { getActiveCityId, isCityFilteredPath } from '@/features/locations/activeCity';
 import type { ApiOk } from './types';
 
 /**
@@ -28,6 +29,21 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+// Con una ciudad activa, los listados del dashboard se piden filtrados (?cityId=). "Todas las
+// ciudades" no manda nada. El backend solo estrecha el scope del usuario, nunca lo ensancha.
+// Un `cityId` ya presente en los params (p. ej. el de un pedido que se está editando) manda sobre
+// la ciudad activa y se respeta incluso con "Todas las ciudades".
+function withCityFilter(args: string | FetchArgs): string | FetchArgs {
+  const cityId = getActiveCityId();
+  if (!cityId) return args;
+  const request: FetchArgs = typeof args === 'string' ? { url: args } : args;
+  const method = (request.method ?? 'GET').toUpperCase();
+  if (method !== 'GET' || !isCityFilteredPath(request.url)) return args;
+  const params = (request.params ?? {}) as Record<string, unknown>;
+  if (params.cityId) return args;
+  return { ...request, params: { ...params, cityId } };
+}
+
 // Evita disparar varios refresh en paralelo cuando varias queries fallan con 401 a la vez.
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -36,7 +52,8 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
   api,
   extraOptions,
 ) => {
-  let result = await rawBaseQuery(args, api, extraOptions);
+  const scopedArgs = withCityFilter(args);
+  let result = await rawBaseQuery(scopedArgs, api, extraOptions);
 
   if (result.error?.status === 401) {
     const url = typeof args === 'string' ? args : args.url;
@@ -65,7 +82,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 
       const refreshed = await refreshPromise;
       if (refreshed) {
-        result = await rawBaseQuery(args, api, extraOptions);
+        result = await rawBaseQuery(scopedArgs, api, extraOptions);
       }
     } else {
       api.dispatch(loggedOut());
@@ -96,6 +113,7 @@ export const baseApi = createApi({
     'StaffInbox',
     'ProductProposal',
     'City',
+    'FamiliaOrder',
   ],
   endpoints: () => ({}),
 });

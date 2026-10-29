@@ -28,6 +28,9 @@ const AnalyticsPage = lazy(() =>
 const AbandonedCartsPage = lazy(() =>
   import('@/features/behavior/AbandonedCartsPage').then((m) => ({ default: m.AbandonedCartsPage })),
 );
+const BehaviorInsightsPage = lazy(() =>
+  import('@/features/behavior/BehaviorInsightsPage').then((m) => ({ default: m.BehaviorInsightsPage })),
+);
 const AppCustomersPage = lazy(() =>
   import('@/features/appCustomers/AppCustomersPage').then((m) => ({ default: m.AppCustomersPage })),
 );
@@ -71,6 +74,9 @@ const ProductProposalsPage = lazy(() =>
   import('@/features/productProposals/ProductProposalsPage').then((m) => ({
     default: m.ProductProposalsPage,
   })),
+);
+const FamiliaPage = lazy(() =>
+  import('@/features/familia/FamiliaPage').then((m) => ({ default: m.FamiliaPage })),
 );
 const OrdersPage = lazy(() =>
   import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })),
@@ -148,6 +154,7 @@ export const router = createBrowserRouter([
           {
             element: <RoleGate allow={['OWNER', 'ADMIN', 'EMPLOYEE']} />,
             children: [
+              { path: 'familia', element: <FamiliaPage /> },
               { path: 'orders/new', element: <CreateOrderPage /> },
               { path: 'orders/:id/edit', element: <EditOrderPage /> },
               { path: 'businesses', element: <BusinessesPage /> },
@@ -156,6 +163,7 @@ export const router = createBrowserRouter([
               { path: 'reports', element: <ReportsPage /> },
               { path: 'analytics', element: <AnalyticsPage /> },
               { path: 'abandoned-carts', element: <AbandonedCartsPage /> },
+              { path: 'behavior', element: <BehaviorInsightsPage /> },
               { path: 'cronos', element: <CronosPage /> },
             ],
           },

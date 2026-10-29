@@ -1,4 +1,5 @@
 import type { BusinessDTO, OrderDTO, SystemConfigDTO } from '@/lib/types';
+import { REGISTER_URL } from './registerInvite';
 
 export interface ParsedOrderItem {
   productName: string;
@@ -247,6 +248,18 @@ export function generateOrderVoucherText(
 
   if (order.addressReference) {
     lines.push(`Referencia: ${order.addressReference}`);
+  }
+  if (order.scheduledFor) {
+    lines.push(`Entrega: ${order.scheduledFor}`);
+  }
+  if (order.customerConfirmed) {
+    lines.push('✅ Cliente confirmó el pedido');
+  }
+  if (order.orderedWithBusiness) {
+    lines.push('🍽️ Ya se encargó al negocio: solo hay que recogerlo');
+  }
+  if (order.inviteToApp) {
+    lines.push(`📱 Cliente nuevo: pasarle la app y el enlace para registrarse: ${REGISTER_URL}`);
   }
 
   for (const business of order.businesses) {

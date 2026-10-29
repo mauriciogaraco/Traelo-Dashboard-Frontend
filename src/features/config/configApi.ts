@@ -10,6 +10,8 @@ export interface UpdateSystemConfigInput {
   operatingHoursStart?: string | null;
   operatingHoursEnd?: string | null;
   operatingHoursWeekendEnd?: string | null;
+  // Tasa de cambio global (CUP por 1 USD). familiaExchangeRate es su nombre anterior.
+  exchangeRate?: number;
   familiaExchangeRate?: number;
 }
 

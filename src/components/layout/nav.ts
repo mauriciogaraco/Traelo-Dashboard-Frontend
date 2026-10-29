@@ -5,6 +5,8 @@ import {
   ClipboardCheck,
   Coins,
   CupSoda,
+  Eye,
+  Gift,
   HeartHandshake,
   LayoutDashboard,
   Package,
@@ -59,6 +61,8 @@ export const navEntries: NavEntry[] = [
     icon: Package,
     roles: ['OWNER', 'ADMIN', 'EMPLOYEE', 'DELIVERER', 'BUSINESS_OWNER'],
   },
+  // Pedidos de la diáspora (USD / Zelle): lista propia, asignación manual, nunca mezclados con "Pedidos".
+  { to: '/familia', label: 'Familia', icon: Gift, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
   { to: '/customers', label: 'Clientes', icon: HeartHandshake, roles: ['BUSINESS_OWNER'] },
   { to: '/my-business', label: 'Mi negocio', icon: Store, roles: ['BUSINESS_OWNER'] },
   {
@@ -114,6 +118,12 @@ export const navEntries: NavEntry[] = [
         to: '/analytics',
         label: 'Analytics',
         icon: TrendingUp,
+        roles: ['OWNER', 'ADMIN', 'EMPLOYEE'],
+      },
+      {
+        to: '/behavior',
+        label: 'Comportamiento',
+        icon: Eye,
         roles: ['OWNER', 'ADMIN', 'EMPLOYEE'],
       },
       {

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
@@ -9,6 +8,8 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
+import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import {
@@ -23,9 +24,18 @@ export function EditOrderPage() {
   const navigate = useNavigate();
 
   const { data, isLoading, error } = useGetOrderQuery(id ?? '', { skip: !id });
-  const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
+  // Negocios y mensajeros salen de la ciudad del pedido (no de la activa del topbar: con "Todas"
+  // se puede editar un pedido de cualquier ciudad). Pedidos sin ciudad: sin filtro extra.
+  const orderCityId = data?.data.cityId ?? undefined;
+  const { data: businessesData } = useListBusinessesQuery(
+    { active: true, pageSize: 100, ...(orderCityId ? { cityId: orderCityId } : {}) },
+    { skip: !data },
+  );
   const businesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
-  const { data: deliverersData } = useListDeliverersQuery({ active: true, pageSize: 100 });
+  const { data: deliverersData } = useListDeliverersQuery(
+    { active: true, pageSize: 100, ...(orderCityId ? { cityId: orderCityId } : {}) },
+    { skip: !data },
+  );
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
     label: d.name,
@@ -41,6 +51,11 @@ export function EditOrderPage() {
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
+  const [flags, setFlags] = useState<OrderFlags>({
+    customerConfirmed: false,
+    orderedWithBusiness: false,
+    inviteToApp: false,
+  });
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -71,6 +86,11 @@ export function EditOrderPage() {
     // `undefined`, no `null` — un check estricto lo confundía con "tiene un valor".
     setRaffleNumber(order.raffleNumber == null ? '' : String(order.raffleNumber));
     setDelivererId(order.delivererId);
+    setFlags({
+      customerConfirmed: !!order.customerConfirmed,
+      orderedWithBusiness: !!order.orderedWithBusiness,
+      inviteToApp: !!order.inviteToApp,
+    });
     setGroups(
       order.businesses.map((ob) => ({
         key: makeId(),
@@ -183,6 +203,7 @@ export function EditOrderPage() {
         items: g.items
           .filter((it) => it.productName.trim() && it.unitPrice !== '')
           .map((it) => ({
+            ...(it.productId ? { productId: it.productId } : {}),
             productName: it.productName.trim(),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
@@ -223,12 +244,15 @@ export function EditOrderPage() {
           deliveryFee: feeNumber,
           platformFeeOverride: platformFeeOverrideValue,
           raffleNumber: raffleNumberValue,
+          customerConfirmed: flags.customerConfirmed,
+          orderedWithBusiness: flags.orderedWithBusiness,
+          inviteToApp: flags.inviteToApp,
           customerId: !alreadyLinked && foundCustomer ? foundCustomer.id : undefined,
           businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
         },
       }).unwrap();
 
-      if (!isFinal && delivererId && delivererId !== data.data.delivererId) {
+      if (!isCancelled && delivererId && delivererId !== data.data.delivererId) {
         await assignOrder({ id, delivererId }).unwrap();
       }
 
@@ -246,8 +270,7 @@ export function EditOrderPage() {
   }
   const isCompleted = data.data.status === 'COMPLETED';
   const isCancelled = data.data.status === 'CANCELLED';
-  // Completado o cancelado: se corrigen los datos, pero el mensajero ya no se puede cambiar.
-  const isFinal = isCompleted || isCancelled;
+  // Cancelado: se corrigen los datos, pero ya no se le puede asignar mensajero (completado sí: ver abajo).
 
   return (
     <div className="flex flex-col gap-5">
@@ -263,8 +286,8 @@ export function EditOrderPage() {
 
       {isCompleted && (
         <p className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-700">
-          Este pedido ya está completado. Podés corregir sus datos, pero el mensajero asignado no
-          se puede cambiar desde acá.
+          Este pedido ya está completado. Podés corregir sus datos y también el mensajero que lo
+          entregó (se recalcula lo que gana cada uno; si ya está en un cuadre, hay que rehacerlo antes).
         </p>
       )}
       {isCancelled && (
@@ -275,7 +298,7 @@ export function EditOrderPage() {
       )}
 
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
-        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+        <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:grid-cols-2 sm:gap-4">
           <FormField
             label="Cliente"
             name="customerName"
@@ -325,9 +348,11 @@ export function EditOrderPage() {
             onChange={setDelivererId}
             options={delivererOptions}
             placeholder="Sin asignar"
-            disabled={isFinal}
+            disabled={isCancelled}
           />
         </div>
+
+        <OrderFlagsFields value={flags} onChange={setFlags} />
 
         <BusinessGroupsEditor
           groups={groups}
@@ -340,7 +365,7 @@ export function EditOrderPage() {
           removeItem={removeItem}
         />
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:max-w-sm sm:self-end">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:max-w-sm sm:self-end">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-500">Subtotal productos</dt>
@@ -386,16 +411,12 @@ export function EditOrderPage() {
 
         {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-        <div className="flex justify-end gap-3">
-          <Link to={`/orders/${id}`}>
-            <Button type="button" variant="secondary">
-              Cancelar
-            </Button>
-          </Link>
-          <Button type="submit" isLoading={isSubmitting}>
-            Guardar cambios
-          </Button>
-        </div>
+        <OrderFormActions
+          cancelTo={`/orders/${id}`}
+          submitLabel="Guardar cambios"
+          isSubmitting={isSubmitting}
+          total={subtotal + feeNumber}
+        />
       </form>
     </div>
   );

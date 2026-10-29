@@ -1,5 +1,5 @@
 import { baseApi } from '@/lib/baseApi';
-import type { ApiOk, ApiPaginated, CityConfigDTO, CityDTO } from '@/lib/types';
+import type { ApiOk, ApiPaginated, CityConfigDTO, CityDTO, DeliveryRouteDTO } from '@/lib/types';
 
 export interface ListCitiesParams {
   page?: number;
@@ -16,6 +16,7 @@ export interface CityConfigInput {
   operatingHoursWeekendEnd?: string | null;
   operationalMessage?: string | null;
   chargePlatformFee?: boolean;
+  outOfTownFeePerKm?: number;
 }
 
 export const citiesApi = baseApi.injectEndpoints({
@@ -27,16 +28,38 @@ export const citiesApi = baseApi.injectEndpoints({
       query: (params) => ({ url: '/cities', params: params ?? undefined }),
       providesTags: [{ type: 'City' as const, id: 'LIST' }],
     }),
-    createCity: builder.mutation<ApiOk<CityDTO>, { name: string; code: string }>({
+    createCity: builder.mutation<
+      ApiOk<CityDTO>,
+      { name: string; code: string; latitude?: number; longitude?: number }
+    >({
       query: (body) => ({ url: '/cities', method: 'POST', body }),
       invalidatesTags: [{ type: 'City', id: 'LIST' }],
     }),
     updateCity: builder.mutation<
       ApiOk<CityDTO>,
-      { id: string; body: { name?: string; active?: boolean } }
+      { id: string; body: { name?: string; active?: boolean; latitude?: number | null; longitude?: number | null } }
     >({
       query: ({ id, body }) => ({ url: `/cities/${id}`, method: 'PATCH', body }),
       invalidatesTags: [{ type: 'City', id: 'LIST' }],
+    }),
+    // Mensajería fija entre localidades (un sentido por fila). Editar: OWNER/ADMIN.
+    listDeliveryRoutes: builder.query<ApiOk<DeliveryRouteDTO[]>, void>({
+      query: () => '/cities/delivery-routes',
+      providesTags: [{ type: 'City' as const, id: 'ROUTES' }],
+    }),
+    setDeliveryRoute: builder.mutation<
+      ApiOk<DeliveryRouteDTO>,
+      { originCityId: string; destinationCityId: string; fee: number }
+    >({
+      query: (body) => ({ url: '/cities/delivery-routes', method: 'PUT', body }),
+      invalidatesTags: [{ type: 'City', id: 'ROUTES' }],
+    }),
+    removeDeliveryRoute: builder.mutation<
+      ApiOk<{ removed: boolean }>,
+      { originCityId: string; destinationCityId: string }
+    >({
+      query: (body) => ({ url: '/cities/delivery-routes', method: 'DELETE', body }),
+      invalidatesTags: [{ type: 'City', id: 'ROUTES' }],
     }),
     getCityConfig: builder.query<ApiOk<CityConfigDTO>, string>({
       query: (id) => `/cities/${id}/config`,
@@ -58,4 +81,7 @@ export const {
   useUpdateCityMutation,
   useGetCityConfigQuery,
   useUpdateCityConfigMutation,
+  useListDeliveryRoutesQuery,
+  useSetDeliveryRouteMutation,
+  useRemoveDeliveryRouteMutation,
 } = citiesApi;

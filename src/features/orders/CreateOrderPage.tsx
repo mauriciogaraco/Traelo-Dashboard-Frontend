@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
@@ -7,8 +7,11 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
+import { describeDeliveryFeeSuggestion, suggestDeliveryFee } from '@/lib/deliveryFeeSuggestion';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
+import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
+import { OrderFormActions } from './OrderFormActions';
 import { CustomerLinkField } from './CustomerLinkField';
 import { emptyGroup, emptyItem, makeId, type GroupDraft, type ItemDraft } from './orderDraftTypes';
 import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
@@ -26,9 +29,22 @@ export function CreateOrderPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [addressReference, setAddressReference] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  // Mientras el staff no toque la mensajería, se rellena sola con la sugerida (ver deliveryFeeSuggestion).
+  const [feeTouched, setFeeTouched] = useState(false);
+  // La hora cuenta para el recargo nocturno: se refresca cada minuto con el formulario abierto.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
+  const [flags, setFlags] = useState<OrderFlags>({
+    customerConfirmed: false,
+    orderedWithBusiness: false,
+    inviteToApp: false,
+  });
   const [delivererId, setDelivererId] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupDraft[]>([emptyGroup()]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -40,9 +56,24 @@ export function CreateOrderPage() {
   const { searchEligible, foundCustomer, isSearching: isSearchingCustomer, notFound: customerNotFound } =
     useCustomerLookup(customerPhone, linkCustomer);
 
+  // Con una ciudad activa la lista ya viene filtrada. Con "Todas", en cuanto se elige el primer
+  // negocio el pedido queda en su ciudad: los demás negocios y los mensajeros se acotan a ella
+  // (el backend rechaza pedidos con negocios de ciudades distintas).
   const { data: businessesData } = useListBusinessesQuery({ active: true, pageSize: 100 });
-  const businesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
-  const { data: deliverersData } = useListDeliverersQuery({ active: true, pageSize: 100 });
+  const allBusinesses = useMemo(() => businessesData?.data ?? [], [businessesData]);
+  const orderCityId = useMemo(() => {
+    const firstId = groups.find((g) => g.businessId)?.businessId;
+    return allBusinesses.find((b) => b.id === firstId)?.cityId ?? undefined;
+  }, [groups, allBusinesses]);
+  const businesses = useMemo(
+    () => (orderCityId ? allBusinesses.filter((b) => b.cityId === orderCityId) : allBusinesses),
+    [allBusinesses, orderCityId],
+  );
+  const { data: deliverersData } = useListDeliverersQuery({
+    active: true,
+    pageSize: 100,
+    ...(orderCityId ? { cityId: orderCityId } : {}),
+  });
   const delivererOptions = (deliverersData?.data ?? []).map((d) => ({
     value: d.id,
     label: d.name,
@@ -59,7 +90,10 @@ export function CreateOrderPage() {
     if (draft.customerPhone) setCustomerPhone(draft.customerPhone);
     if (draft.customerAddress) setCustomerAddress(draft.customerAddress);
     if (draft.addressReference) setAddressReference(draft.addressReference);
-    if (draft.deliveryFee !== null) setDeliveryFee(String(draft.deliveryFee));
+    if (draft.deliveryFee !== null) {
+      setDeliveryFee(String(draft.deliveryFee));
+      setFeeTouched(true);
+    }
     if (draft.platformFeeOverride !== null) {
       setPlatformFeeOverride(String(draft.platformFeeOverride));
       // Si el vale trae "Servicio Tráelo: 0", asumimos que este pedido puntual no lo cobra.
@@ -132,6 +166,22 @@ export function CreateOrderPage() {
   );
   const feeNumber = Number(deliveryFee) || 0;
 
+  // Mensajería sugerida según los negocios elegidos, la hora (La Habana) y el subtotal.
+  const suggestion = useMemo(() => {
+    const chosen = groups
+      .map((g) => businesses.find((b) => b.id === g.businessId))
+      .filter((b): b is NonNullable<typeof b> => !!b);
+    return suggestDeliveryFee({
+      deliveryFeeBases: chosen.map((b) => Number(b.deliveryFeeBase) || 0),
+      productsSubtotal: subtotal,
+      now,
+    });
+  }, [groups, businesses, subtotal, now]);
+  const suggestedFee = suggestion?.total ?? null;
+  useEffect(() => {
+    if (!feeTouched && suggestedFee !== null) setDeliveryFee(String(suggestedFee));
+  }, [feeTouched, suggestedFee]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -171,6 +221,7 @@ export function CreateOrderPage() {
         items: g.items
           .filter((it) => it.productName.trim() && it.unitPrice !== '')
           .map((it) => ({
+            ...(it.productId ? { productId: it.productId } : {}),
             productName: it.productName.trim(),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
@@ -209,11 +260,16 @@ export function CreateOrderPage() {
         deliveryFee: feeNumber,
         platformFeeOverride: platformFeeOverrideValue,
         raffleNumber: raffleNumberValue,
+        ...(flags.customerConfirmed ? { customerConfirmed: true } : {}),
+        ...(flags.orderedWithBusiness ? { orderedWithBusiness: true } : {}),
+        ...(flags.inviteToApp ? { inviteToApp: true } : {}),
         customerId: foundCustomer?.id,
         businesses: cleanedGroups.map((g) => ({ businessId: g.businessId as string, items: g.items })),
       }).unwrap();
 
       if (delivererId) {
+        // El estado (Confirmado / Marchando) lo mueve el backend según las marcas apenas el pedido
+        // tiene mensajero: acá, o por la cola si no se elige ninguno.
         await assignOrder({ id: created.data.id, delivererId }).unwrap();
       }
 
@@ -253,7 +309,7 @@ export function CreateOrderPage() {
       </div>
 
       {mode === 'paste' && (
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <p className="text-sm text-slate-500">
             Pegá el pedido tal como lo recibiste (WhatsApp, notas, etc). El sistema intenta
             separar cliente, teléfono, dirección, mensajería y los productos por negocio — vas a
@@ -277,7 +333,7 @@ export function CreateOrderPage() {
       )}
 
       {mode === 'manual' && (
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+        <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit} noValidate>
           {unmatchedLines.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <p className="font-medium">No se pudieron interpretar estas líneas:</p>
@@ -290,7 +346,7 @@ export function CreateOrderPage() {
             </div>
           )}
 
-          <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+          <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:grid-cols-2 sm:gap-4">
             <FormField
               label="Cliente"
               name="customerName"
@@ -324,15 +380,41 @@ export function CreateOrderPage() {
               value={addressReference}
               onChange={(e) => setAddressReference(e.target.value)}
             />
-            <FormField
-              label="Mensajería (CUP)"
-              name="deliveryFee"
-              type="number"
-              min={0}
-              step="0.01"
-              value={deliveryFee}
-              onChange={(e) => setDeliveryFee(e.target.value)}
-            />
+            <div className="flex flex-col gap-1">
+              <FormField
+                label="Mensajería (CUP)"
+                name="deliveryFee"
+                type="number"
+                min={0}
+                step="0.01"
+                value={deliveryFee}
+                onChange={(e) => {
+                  setDeliveryFee(e.target.value);
+                  setFeeTouched(true);
+                }}
+              />
+              {suggestion && (
+                <p className="text-xs text-slate-500">
+                  Sugerida: <span className="font-medium text-slate-700">{suggestion.total} CUP</span> (
+                  {describeDeliveryFeeSuggestion(suggestion)}).
+                  {feeTouched && Number(deliveryFee) !== suggestion.total && (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeliveryFee(String(suggestion.total));
+                          setFeeTouched(false);
+                        }}
+                        className="font-medium text-brand-700 hover:underline"
+                      >
+                        Usar la sugerida
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
             <SearchableSelect
               label="Mensajero (opcional)"
               value={delivererId}
@@ -341,6 +423,8 @@ export function CreateOrderPage() {
               placeholder="Asignar después"
             />
           </div>
+
+          <OrderFlagsFields value={flags} onChange={setFlags} />
 
           <BusinessGroupsEditor
             groups={groups}
@@ -353,7 +437,7 @@ export function CreateOrderPage() {
             removeItem={removeItem}
           />
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:max-w-sm sm:self-end">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 sm:max-w-sm sm:self-end">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Subtotal productos</dt>
@@ -399,16 +483,12 @@ export function CreateOrderPage() {
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-          <div className="flex justify-end gap-3">
-            <Link to="/orders">
-              <Button type="button" variant="secondary">
-                Cancelar
-              </Button>
-            </Link>
-            <Button type="submit" isLoading={isSubmitting}>
-              Crear pedido
-            </Button>
-          </div>
+          <OrderFormActions
+            cancelTo="/orders"
+            submitLabel="Crear pedido"
+            isSubmitting={isSubmitting}
+            total={subtotal + feeNumber}
+          />
         </form>
       )}
     </div>

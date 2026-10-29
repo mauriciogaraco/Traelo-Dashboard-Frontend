@@ -53,6 +53,10 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 // ellos (o nunca haber usado la app y seguir en ASSIGNED). El staff puede completar un pedido
 // directo desde cualquiera de estos, sin pasar por los intermedios (ver
 // ordersService.bulkCompleteOrders / STAFF_STATUS_TRANSITIONS en el backend).
+// Estados en los que el staff puede pausar un pedido (tiene mensajero pero todavía no salió hacia el
+// cliente). Igual que PAUSABLE_STATUSES en el backend (order-phases.ts).
+export const PAUSABLE_ORDER_STATUSES: OrderStatus[] = ['ASSIGNED', 'CONFIRMED', 'HEADING_OUT', 'PICKING_UP'];
+
 export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'ASSIGNED',
   'CONFIRMED',
@@ -130,6 +134,10 @@ export interface CityDTO {
   name: string;
   code: string;
   active: boolean;
+  // Centro del pueblo: desde aquí se mide la mensajería por km de la entrega en "otra ubicación".
+  // null/ausente = sin configurar (esa opción no se ofrece para pedidos de esta ciudad).
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,6 +154,8 @@ export interface CityConfigDTO {
   operationalMessage: string | null;
   // Cargo "Servicio Tráelo" en los pedidos de esta ciudad (false = se cotiza y crea en 0).
   chargePlatformFee: boolean;
+  // CUP por kilómetro de la mensajería de "otra ubicación" (desde el centro del pueblo). Ausente en un backend anterior.
+  outOfTownFeePerKm?: number;
   updatedAt: string;
 }
 
@@ -168,6 +178,26 @@ export interface UserDTO {
   updatedAt: string;
 }
 
+// Vehículo con el que reparte un mensajero (por defecto bicicleta).
+export type DelivererVehicle = 'BICYCLE' | 'ELECTRIC_MOTO' | 'TRICYCLE' | 'CAR';
+
+export const DELIVERER_VEHICLE_LABELS: Record<DelivererVehicle, string> = {
+  BICYCLE: 'Bicicleta',
+  ELECTRIC_MOTO: 'Moto eléctrica',
+  TRICYCLE: 'Triciclo',
+  CAR: 'Carro',
+};
+
+export const DELIVERER_VEHICLES = Object.keys(DELIVERER_VEHICLE_LABELS) as DelivererVehicle[];
+
+// Tarifa FIJA de mensajería cuando los negocios son de `originCity` y el pedido se entrega en `destinationCity`.
+export interface DeliveryRouteDTO {
+  originCity: { id: string; name: string; code: string };
+  destinationCity: { id: string; name: string; code: string };
+  fee: number;
+  updatedAt: string;
+}
+
 export interface DelivererDTO {
   id: string;
   userId: string;
@@ -178,6 +208,8 @@ export interface DelivererDTO {
   joinedAt: string;
   commissionPercentage: number | null;
   effectiveCommissionPercentage: number;
+  // Ausente en un backend anterior (equivale a bicicleta).
+  vehicle?: DelivererVehicle;
   // "En turno hoy": en línea en la cola de despacho automático de la app de mensajero.
   // Distinto de `active` (alta/baja administrativa de la cuenta).
   onDuty: boolean;
@@ -188,6 +220,9 @@ export interface DelivererDTO {
   createdAt: string;
   updatedAt: string;
 }
+
+/** Moneda en la que está escrito el precio de un producto. Lo que se cobra al cliente siempre es CUP. */
+export type PriceCurrency = 'CUP' | 'USD';
 
 export interface BusinessDTO {
   id: string;
@@ -201,6 +236,8 @@ export interface BusinessDTO {
   commissionPercentage: number | null;
   defaultProductCommissionAmount: number | null;
   deliveryFeeBase: number;
+  // Moneda con la que nacen sus productos nuevos (ausente en un backend anterior = CUP).
+  defaultPriceCurrency?: PriceCurrency;
   logoUrl: string | null;
   // Ciudad a la que pertenece (ver Business.cityId en el backend) — null si todavía no se le
   // asignó, o undefined si el backend todavía no manda el campo (sin multiciudad).
@@ -267,6 +304,8 @@ export interface ProductDTO {
   category: string | null;
   categoryId: string | null;
   price: number | null;
+  // Moneda de price, bulkPrice, ofertas y agregos (el empaque siempre es CUP). Ausente = CUP.
+  priceCurrency?: PriceCurrency;
   active: boolean;
   available: boolean;
   lowStock: boolean;
@@ -394,6 +433,9 @@ export interface OrderItemDTO {
   unitsPerPack?: number;
   pointsUnits?: number;
   pointsDiscount?: number;
+  // Producto en USD: su precio en USD y la tasa con que se convirtió a CUP (unitPrice ya está en CUP).
+  unitPriceUsd?: number | null;
+  exchangeRate?: number | null;
 }
 
 /** Un cambio de una línea del vale (ver lastEditSummary del pedido). */
@@ -415,6 +457,14 @@ export interface OrderBusinessDTO {
 
 export interface OrderDTO {
   id: string;
+  // Ciudad donde se creó el pedido (snapshot; null en pedidos previos a multiciudad).
+  cityId?: string | null;
+  // Localidad donde se ENTREGA cuando es distinta a la de los negocios (mensajería fija entre localidades).
+  deliveryCityId?: string | null;
+  deliveryCityName?: string | null;
+  // Entrega en "otra ubicación": la mensajería se cobró por km desde el centro del pueblo.
+  deliveryElsewhere?: boolean;
+  deliveryDistanceKm?: number | null;
   orderNumber: number;
   customerName: string;
   customerAddress: string;
@@ -424,6 +474,15 @@ export interface OrderDTO {
   status: OrderStatus;
   orderDate: string;
   assignedAt: string | null;
+  // Pausa interna del staff (nunca visible para el cliente): null = no está pausado.
+  pausedAt?: string | null;
+  // Avisos del staff para el mensajero (pedidos a mano): cliente confirmó / ya se encargó al negocio /
+  // cliente nuevo (pasarle la app). Ausentes en un backend que aún no los manda.
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
+  pausedReason?: string | null;
+  pausedByName?: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
   /** Motivo que dio el mensajero al cancelar desde la app (null si no lo mandó o cancela el staff). */
@@ -620,6 +679,61 @@ export interface AbandonedCartsReportDTO {
   carts: AbandonedCartDTO[];
 }
 
+// ── Comportamiento por ciudad (GET /behavior/insights) ───────────────────────
+
+export interface InsightsSearchRowDTO {
+  query: string;
+  searches: number;
+  visitors: number;
+  withoutResults: number;
+}
+
+export interface InsightsBusinessRowDTO {
+  businessId: string;
+  name: string;
+  cityName: string;
+  views: number;
+  searchClicks: number;
+  visitors: number;
+}
+
+export interface InsightsProductRowDTO {
+  productId: string;
+  name: string;
+  businessName: string;
+  views: number;
+  addToCart: number;
+  searchClicks: number;
+  visitors: number;
+}
+
+export interface InsightsPromoDTO {
+  viewers: number;
+  views: number;
+  clickers: number;
+  landed: number;
+  orders: number;
+  conversion: number | null;
+}
+
+export interface BehaviorInsightsDTO {
+  from: string;
+  to: string;
+  // Ciudades que cubre el resumen. Vacío = todas.
+  cities: { id: string; code: string; name: string }[];
+  searches: {
+    total: number;
+    visitors: number;
+    withoutResults: number;
+    top: InsightsSearchRowDTO[];
+    notFound: InsightsSearchRowDTO[];
+  };
+  businesses: InsightsBusinessRowDTO[];
+  products: InsightsProductRowDTO[];
+  // Solo viene cuando el resumen incluye San Antonio (o todas las ciudades).
+  promo: InsightsPromoDTO | null;
+}
+
 // ── Clientes de la app (cuentas Customer) ────────────────────────────────────
 
 export interface UserTypeCountDTO {
@@ -705,6 +819,15 @@ export interface AppCustomerRowDTO {
   pointsBalance: number;
   lastOrderAt: string | null;
   createdAt: string;
+}
+
+/** Código de un solo uso para que un cliente restablezca su contraseña (lo genera el staff). */
+export interface PasswordResetCodeDTO {
+  /** "ABCD-EFGH": se muestra una sola vez. */
+  code: string;
+  expiresAt: string;
+  expiresInMinutes: number;
+  customer: { id: string; name: string; phone: string };
 }
 
 export interface BusinessSalesDetailDTO {
@@ -818,6 +941,8 @@ export interface SystemConfigDTO {
   operatingHoursWeekendEnd: string | null;
   // Tráelo Familia (clientes en el exterior, pagan en USD vía Zelle) — tasa CUP por 1 USD que
   // usa el build del catálogo de ese sub-producto. Ver también Product.familiaOnly.
+  // Tasa de cambio GLOBAL (CUP por 1 USD): convierte a CUP los productos en USD. familiaExchangeRate es su alias.
+  exchangeRate: number;
   familiaExchangeRate: number;
   updatedAt: string;
 }

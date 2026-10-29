@@ -5,6 +5,7 @@ import {
   Bell,
   Bike,
   Heart,
+  KeyRound,
   PackageCheck,
   Search,
   ShieldCheck,
@@ -20,6 +21,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { formatDate } from '@/lib/formatDate';
 import type { AppCustomerListFilter, DateRangePreset, Role } from '@/lib/types';
 import { useGetAppCustomersOverviewQuery, useListAppCustomersQuery } from './appCustomersApi';
+import { PasswordResetCodeModal } from './PasswordResetCodeModal';
 import { RegistrationsBarChart } from './RegistrationsBarChart';
 
 type RangeTab = Exclude<DateRangePreset, 'custom'>;
@@ -151,6 +153,8 @@ export function AppCustomersPage() {
   const [filter, setFilter] = useState<AppCustomerListFilter>('all');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  // Cliente al que se le está generando el código para restablecer su contraseña.
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string; phone: string } | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -547,19 +551,20 @@ export function AppCustomersPage() {
                 <th className="px-4 py-3 font-medium">Pedidos</th>
                 <th className="px-4 py-3 font-medium">Último pedido</th>
                 <th className="px-4 py-3 font-medium">Puntos</th>
+                <th className="px-4 py-3 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoadingList && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                     Cargando…
                   </td>
                 </tr>
               )}
               {!isLoadingList && rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                     No hay clientes que coincidan con los filtros.
                   </td>
                 </tr>
@@ -583,6 +588,21 @@ export function AppCustomersPage() {
                     {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : '—'}
                   </td>
                   <td className="px-4 py-3">{customer.pointsBalance}</td>
+                  <td className="px-4 py-3">
+                    {customer.hasPassword && customer.active ? (
+                      <button
+                        type="button"
+                        onClick={() => setResetTarget({ id: customer.id, name: customer.name, phone: customer.phone })}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        title="Generar un código para que el cliente elija una contraseña nueva"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Restablecer contraseña
+                      </button>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -590,6 +610,7 @@ export function AppCustomersPage() {
           {listData && <Pagination meta={listData.meta} onPageChange={setPage} />}
         </div>
       </div>
+      {resetTarget && <PasswordResetCodeModal customer={resetTarget} onClose={() => setResetTarget(null)} />}
     </div>
   );
 }

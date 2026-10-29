@@ -39,6 +39,10 @@ export interface CreateOrderInput {
   platformFeeOverride?: number;
   // "🎟️ Número del Sorteo" del vale, cuando el pedido participa de una promoción vigente.
   raffleNumber?: number;
+  // Avisos para el mensajero (ver OrderDTO.customerConfirmed / orderedWithBusiness / inviteToApp).
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
   // Cliente registrado de la app vinculado a este pedido manual (ver "Vincular cuenta" en el
   // formulario) — hace que el pedido cuente para puntos como si lo hubiera hecho el propio
   // cliente. Solo se manda cuando el staff confirmó que el teléfono buscado es esta cuenta.
@@ -89,6 +93,9 @@ export interface UpdateOrderInput {
   deliveryFee?: number;
   platformFeeOverride?: number;
   raffleNumber?: number | null;
+  customerConfirmed?: boolean;
+  orderedWithBusiness?: boolean;
+  inviteToApp?: boolean;
   // Reemplaza por completo los negocios/productos del pedido. Si se omite, no se tocan.
   businesses?: CreateOrderBusinessInput[];
   // Vincular un cliente registrado que no se vinculó al crear el pedido — solo si el pedido
@@ -146,9 +153,29 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+    // Pausa interna: el pedido deja de tapar el turno del mensajero en la cola (solo staff, y solo
+    // mientras el mensajero aún no salió hacia el cliente).
+    pauseOrder: builder.mutation<ApiOk<OrderDTO>, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/orders/${id}/pause`,
+        method: 'PATCH',
+        body: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Order', id },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
+    unpauseOrder: builder.mutation<ApiOk<OrderDTO>, string>({
+      query: (id) => ({ url: `/orders/${id}/unpause`, method: 'PATCH' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Order', id },
+        { type: 'Order', id: 'LIST' },
+      ],
+    }),
     updateOrderStatus: builder.mutation<
       ApiOk<OrderDTO>,
-      { id: string; status: 'COMPLETED' | 'CANCELLED' }
+      { id: string; status: 'CONFIRMED' | 'HEADING_OUT' | 'COMPLETED' | 'CANCELLED' }
     >({
       query: ({ id, status }) => ({
         url: `/orders/${id}/status`,
@@ -205,6 +232,8 @@ export const {
   useUpdateOrderMutation,
   useAssignOrderMutation,
   usePassOrderMutation,
+  usePauseOrderMutation,
+  useUnpauseOrderMutation,
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
   useBulkCompleteOrdersMutation,

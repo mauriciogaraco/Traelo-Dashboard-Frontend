@@ -10,6 +10,7 @@ import type {
   CommissionType,
   AddonOption,
   PackagingOption,
+  PriceCurrency,
   ProductDTO,
   ProductOfferDTO,
   SubscriptionCycle,
@@ -22,6 +23,8 @@ export interface ListBusinessesParams {
   commissionType?: CommissionType;
   // "active" solo admite el valor true: ver la nota en usersApi.ts.
   active?: true;
+  // Solo negocios de esa ciudad (pisa la ciudad activa del topbar).
+  cityId?: string;
 }
 
 export interface CreateBusinessInput {
@@ -69,6 +72,8 @@ export interface CreateProductInput {
   category?: string;
   categoryId?: string;
   price?: number;
+  // Moneda del precio; omitida = la de su negocio (CUP por defecto).
+  priceCurrency?: PriceCurrency;
   externalId?: string;
   packaging?: PackagingOption[];
   bulkMinQuantity?: number | null;
@@ -81,6 +86,8 @@ export interface UpdateProductInput {
   category?: string;
   categoryId?: string | null;
   price?: number;
+  /** Moneda del precio (solo OWNER/ADMIN). Cambiarla NO convierte los números ya escritos. */
+  priceCurrency?: PriceCurrency;
   active?: boolean;
   /** null o [] quitan el empaque; omitido no lo toca. */
   packaging?: PackagingOption[] | null;
@@ -305,6 +312,17 @@ export const businessesApi = baseApi.injectEndpoints({
         { type: 'Product', id: `LIST-${businessId}` },
       ],
     }),
+    // Pasa TODOS los productos del negocio a USD o CUP (con o sin convertir los precios con la tasa vigente).
+    setBusinessProductsCurrency: builder.mutation<
+      ApiOk<{ updated: number; currency: PriceCurrency; convertedPrices: boolean }>,
+      { businessId: string; currency: PriceCurrency; convertPrices: boolean }
+    >({
+      query: ({ businessId, ...body }) => ({ url: `/businesses/${businessId}/products/currency`, method: 'POST', body }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'Product', id: `LIST-${businessId}` },
+        { type: 'Business', id: businessId },
+      ],
+    }),
     updateProduct: builder.mutation<
       ApiOk<ProductDTO>,
       { businessId: string; productId: string; body: UpdateProductInput }
@@ -471,6 +489,7 @@ export const {
   useGetBusinessQuery,
   useCreateBusinessMutation,
   useUpdateBusinessMutation,
+  useSetBusinessProductsCurrencyMutation,
   useDeactivateBusinessMutation,
   useSetAcceptingOrdersMutation,
   useUploadBusinessLogoMutation,
