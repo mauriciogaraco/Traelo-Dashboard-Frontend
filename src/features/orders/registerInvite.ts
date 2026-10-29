@@ -17,8 +17,7 @@ export function buildRegisterInviteMessage(params: { name: string }): string {
     '',
     'Regístrate aquí:',
     REGISTER_URL,
-  ].join('
-');
+  ].join('\n');
 }
 
 /**
