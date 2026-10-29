@@ -41,6 +41,7 @@ export function OrderDetailPage() {
   const canViewConfig = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [assigningDelivererId, setAssigningDelivererId] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [passOpen, setPassOpen] = useState(false);
@@ -81,7 +82,9 @@ export function OrderDetailPage() {
   const canEdit = canManage;
   // Asignar/reasignar solo aplica a PENDING/ASSIGNED — ver la misma restricción en
   // ordersService.assignOrder (backend).
-  const canAssign = canManage && (order.status === 'PENDING' || order.status === 'ASSIGNED');
+  // El staff puede (re)asignar en cualquier estado menos cancelado, incluso ya completado (corrección de
+  // a quién se acreditó la entrega; si ya está en un cuadre, el backend lo rechaza).
+  const canAssign = canManage && order.status !== 'CANCELLED';
   // Completar/cancelar valen desde cualquier estado activo (ver ACTIVE_ORDER_STATUSES): el
   // mensajero puede estar en cualquier sub-fase del trayecto, el staff lo completa igual.
   const canComplete = canManage && ACTIVE_ORDER_STATUSES.includes(order.status);
@@ -103,8 +106,13 @@ export function OrderDetailPage() {
 
   async function handleAssign() {
     if (!assigningDelivererId || !id) return;
-    await assignOrder({ id, delivererId: assigningDelivererId }).unwrap();
-    setAssigningDelivererId(null);
+    setAssignError(null);
+    try {
+      await assignOrder({ id, delivererId: assigningDelivererId }).unwrap();
+      setAssigningDelivererId(null);
+    } catch (error) {
+      setAssignError(getErrorMessage(error as Parameters<typeof getErrorMessage>[0]));
+    }
   }
 
   async function handleComplete() {
@@ -422,6 +430,13 @@ export function OrderDetailPage() {
               </Button>
             </div>
           )}
+          {canAssign && order.status === 'COMPLETED' && (
+            <p className="mt-2 text-xs text-slate-500">
+              Pedido ya completado: solo cambia quién lo entregó (y su reseña); se recalcula lo que gana cada
+              mensajero y no se avisa por push.
+            </p>
+          )}
+          {assignError && <p className="mt-2 text-sm text-red-600">{assignError}</p>}
         </div>
       </div>
 
