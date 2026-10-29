@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { stripPackagingSuffix, withPackagingSuffix } from '@/lib/itemName';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
@@ -105,7 +106,8 @@ export function EditOrderPage() {
         items: ob.items.map(
           (item): ItemDraft => ({
             key: makeId(),
-            productName: item.productName,
+            // Sin el " + [envase]" del nombre: se vuelve a poner al guardar, según el envase elegido.
+            productName: stripPackagingSuffix(item.productName),
             quantity: String(item.quantity),
             unitPrice: String(item.unitPrice),
             // Lo que el ítem ya trae (tipo, agrego, envase, caja) se conserva al guardar; el producto del
@@ -219,7 +221,7 @@ export function EditOrderPage() {
           .filter((it) => it.productName.trim() && it.unitPrice !== '')
           .map((it) => ({
             ...(it.productId ? { productId: it.productId } : {}),
-            productName: it.productName.trim(),
+            productName: withPackagingSuffix(it.productName.trim(), it.packagingName),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
             ...itemVariantPayload(it),

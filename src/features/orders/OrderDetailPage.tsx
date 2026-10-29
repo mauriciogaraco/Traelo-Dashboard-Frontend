@@ -12,6 +12,7 @@ import { useGetConfigQuery } from '@/features/config/configApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { withPackagingSuffix } from '@/lib/itemName';
 import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
@@ -463,7 +464,7 @@ export function OrderDetailPage() {
                       {business.businessName}
                     </td>
                   )}
-                  <td className="px-4 py-3">{item.productName}</td>
+                  <td className="px-4 py-3">{withPackagingSuffix(item.productName, item.packagingName)}</td>
                   <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3">
                     {item.unitPrice} CUP

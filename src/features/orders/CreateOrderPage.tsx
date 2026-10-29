@@ -9,6 +9,7 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { describeDeliveryFeeSuggestion, suggestDeliveryFee } from '@/lib/deliveryFeeSuggestion';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { withPackagingSuffix } from '@/lib/itemName';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
@@ -230,7 +231,7 @@ export function CreateOrderPage() {
           .filter((it) => it.productName.trim() && it.unitPrice !== '')
           .map((it) => ({
             ...(it.productId ? { productId: it.productId } : {}),
-            productName: it.productName.trim(),
+            productName: withPackagingSuffix(it.productName.trim(), it.packagingName),
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
             ...itemVariantPayload(it),
