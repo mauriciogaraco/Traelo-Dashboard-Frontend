@@ -64,6 +64,9 @@ const NotificationsPage = lazy(() =>
 const ReviewsPage = lazy(() =>
   import('@/features/reviews/ReviewsPage').then((m) => ({ default: m.ReviewsPage })),
 );
+const AmbassadorsPage = lazy(() =>
+  import('@/features/ambassadors/AmbassadorsPage').then((m) => ({ default: m.AmbassadorsPage })),
+);
 const PuntosPage = lazy(() =>
   import('@/features/puntos/PuntosPage').then((m) => ({ default: m.PuntosPage })),
 );
@@ -174,6 +177,7 @@ export const router = createBrowserRouter([
               { path: 'raffle', element: <RafflePage /> },
               { path: 'app-customers', element: <AppCustomersPage /> },
               { path: 'puntos', element: <PuntosPage /> },
+              { path: 'ambassadors', element: <AmbassadorsPage /> },
               { path: 'users', element: <UsersPage /> },
               { path: 'cities', element: <CitiesPage /> },
               { path: 'config', element: <ConfigPage /> },
