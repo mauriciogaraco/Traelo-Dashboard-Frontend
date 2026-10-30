@@ -13,6 +13,7 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { withPackagingSuffix } from '@/lib/itemName';
+import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
 import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
@@ -211,6 +212,8 @@ export function OrderDetailPage() {
       }
     }
   }
+
+  const pointsSummary = getPointsPaymentSummary(order);
 
   return (
     <div className="flex flex-col gap-5">
@@ -464,7 +467,17 @@ export function OrderDetailPage() {
                       {business.businessName}
                     </td>
                   )}
-                  <td className="px-4 py-3">{withPackagingSuffix(item.productName, item.packagingName)}</td>
+                  <td className="px-4 py-3">
+                    {withPackagingSuffix(item.productName, item.packagingName)}
+                    {isItemPaidWithPoints(item) && (
+                      <p className="mt-1 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                        {item.pointsUnits && item.pointsUnits > 0
+                          ? `${item.pointsUnits} de ${item.quantity} ud. pagada(s) con puntos`
+                          : 'Pagado con puntos'}
+                        {(item.pointsDiscount ?? 0) > 0 ? ` · -${item.pointsDiscount} CUP` : ''}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3">
                     {item.unitPrice} CUP
@@ -501,10 +514,33 @@ export function OrderDetailPage() {
             <dt className="text-slate-500">Servicio Tráelo</dt>
             <dd className="font-medium text-slate-900">{order.platformFee} CUP</dd>
           </div>
+          {hasPointsPayment(order) && (
+            <>
+              <div className="flex justify-between border-t border-slate-100 pt-2">
+                <dt className="text-slate-500">Total antes del canje</dt>
+                <dd className="font-medium text-slate-900">{pointsSummary.totalBeforePoints} CUP</dd>
+              </div>
+              <div className="flex justify-between text-amber-700">
+                <dt className="font-medium">Canje con puntos ({pointsSummary.pointsSpent} pts)</dt>
+                <dd className="font-medium">- {pointsSummary.coveredByPoints} CUP</dd>
+              </div>
+            </>
+          )}
           <div className="flex justify-between border-t border-slate-100 pt-2 text-base">
-            <dt className="font-semibold text-slate-900">Total</dt>
+            <dt className="font-semibold text-slate-900">
+              {hasPointsPayment(order) ? 'Total a cobrar al cliente' : 'Total'}
+            </dt>
             <dd className="font-semibold text-slate-900">{order.total} CUP</dd>
           </div>
+          {hasPointsPayment(order) && (
+            <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+              {pointsSummary.productsFullyPaid
+                ? 'Los productos se pagaron 100% con puntos: el cliente solo paga mensajería y Servicio Tráelo. '
+                : ''}
+              Los negocios cobran su precio completo ({pointsSummary.owedToBusinesses} CUP en productos); Tráelo cubre la
+              parte pagada con puntos.
+            </p>
+          )}
           {currentUser?.role === 'DELIVERER' && (
             <div className="flex justify-between pt-1 text-brand-700">
               <dt className="font-medium">Tu parte de mensajería</dt>
