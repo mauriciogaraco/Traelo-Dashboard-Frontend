@@ -1,5 +1,6 @@
 import type { BusinessDTO, OrderDTO, SystemConfigDTO } from '@/lib/types';
 import { withPackagingSuffix } from '@/lib/itemName';
+import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { REGISTER_URL } from './registerInvite';
 
 export interface ParsedOrderItem {
@@ -267,7 +268,8 @@ export function generateOrderVoucherText(
     lines.push('');
     lines.push(business.businessName);
     for (const item of business.items) {
-      lines.push(`${item.quantity}x ${withPackagingSuffix(item.productName, item.packagingName)} - ${item.subtotal}`);
+      const paidWithPoints = isItemPaidWithPoints(item) ? ' ⭐ pagado con puntos' : '';
+      lines.push(`${item.quantity}x ${withPackagingSuffix(item.productName, item.packagingName)} - ${item.subtotal}${paidWithPoints}`);
     }
   }
 
@@ -277,7 +279,15 @@ export function generateOrderVoucherText(
   if (order.platformFee > 0) {
     lines.push(`Servicio Tráelo: ${order.platformFee}`);
   }
-  lines.push(`Total: ${order.total}`);
+  if (hasPointsPayment(order)) {
+    const points = getPointsPaymentSummary(order);
+    lines.push(`Total antes del canje: ${points.totalBeforePoints}`);
+    lines.push(`⭐ Canje con puntos (${points.pointsSpent} pts): -${points.coveredByPoints}`);
+    lines.push(`Total a cobrar al cliente: ${order.total}`);
+    lines.push(`A pagar a los negocios (precio completo): ${points.owedToBusinesses}`);
+  } else {
+    lines.push(`Total: ${order.total}`);
+  }
   if (order.raffleNumber != null) {
     lines.push(`Número del Sorteo: #${order.raffleNumber}`);
   }
