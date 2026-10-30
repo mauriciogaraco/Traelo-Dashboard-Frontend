@@ -8,6 +8,7 @@ import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { stripPackagingSuffix, withPackagingSuffix } from '@/lib/itemName';
+import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { BusinessGroupsEditor } from './BusinessGroupsEditor';
 import { OrderFlagsFields, type OrderFlags } from './OrderFlagsFields';
 import { OrderFormActions } from './OrderFormActions';
@@ -302,6 +303,25 @@ export function EditOrderPage() {
 
       <h1 className="text-xl font-semibold text-slate-900">Editar pedido #{data.data.orderNumber}</h1>
 
+      {hasPointsPayment(data.data) && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <p className="font-medium">
+            Este pedido tiene productos pagados con puntos ({getPointsPaymentSummary(data.data).pointsSpent} pts ={' '}
+            {getPointsPaymentSummary(data.data).coveredByPoints} CUP).
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {data.data.businesses
+              .flatMap((b) => b.items)
+              .filter(isItemPaidWithPoints)
+              .map((item) => (
+                <li key={item.id}>
+                  {item.productName}: {item.pointsUnits} de {item.quantity} ud. con puntos (-{item.pointsDiscount} CUP)
+                </li>
+              ))}
+          </ul>
+          <p className="mt-1">El cliente paga {data.data.total} CUP en efectivo; los negocios cobran su precio completo.</p>
+        </div>
+      )}
       {isCompleted && (
         <p className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-700">
           Este pedido ya está completado. Podés corregir sus datos y también el mensajero que lo
