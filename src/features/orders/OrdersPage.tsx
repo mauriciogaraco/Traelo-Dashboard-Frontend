@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { Badge } from '@/components/ui/Badge';
+import { hasPointsPayment } from '@/lib/pointsPayment';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -463,6 +464,9 @@ export function OrdersPage() {
                       {ORDER_STATUS_LABEL[order.status]}
                     </Badge>
                     {order.pausedAt && <Badge tone="amber">Pausado</Badge>}
+                    {hasPointsPayment(order) && (
+                      <Badge tone="amber">Puntos: -{order.pointsDiscount ?? 0} CUP</Badge>
+                    )}
                     {scheduledDeliveryLabel(order.scheduledFor) && (
                       <Badge tone="brand">Para: {scheduledDeliveryLabel(order.scheduledFor)}</Badge>
                     )}
