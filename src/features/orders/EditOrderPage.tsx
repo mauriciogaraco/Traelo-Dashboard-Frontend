@@ -16,6 +16,7 @@ import { CustomerLinkField } from './CustomerLinkField';
 import {
   emptyGroup,
   itemLineTotal,
+  itemUsdPayload,
   itemVariantPayload,
   makeId,
   type GroupDraft,
@@ -119,6 +120,10 @@ export function EditOrderPage() {
             packagingName: item.packagingName ?? null,
             packagingFee: item.packagingName ? (item.packagingFee ?? 0) : null,
             unitsPerPack: item.unitsPerPack && item.unitsPerPack > 1 ? item.unitsPerPack : null,
+            // El precio en USD y su tasa se conservan mientras el precio en CUP no se toque.
+            unitPriceUsd: item.unitPriceUsd ?? null,
+            exchangeRate: item.exchangeRate ?? null,
+            usdAtCup: item.unitPriceUsd != null ? String(item.unitPrice) : null,
           }),
         ),
       })),
@@ -226,6 +231,7 @@ export function EditOrderPage() {
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
             ...itemVariantPayload(it),
+            ...itemUsdPayload(it),
           })),
       }))
       .filter((g) => g.items.length > 0);

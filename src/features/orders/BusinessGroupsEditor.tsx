@@ -118,6 +118,9 @@ export function BusinessGroupsEditor({
                                 packagingCapacity: null,
                                 packagingFee: null,
                                 unitsPerPack: null,
+                                unitPriceUsd: null,
+                                exchangeRate: null,
+                                usdAtCup: null,
                               }
                             : { productName: text, productId: null },
                         )
@@ -140,6 +143,10 @@ export function BusinessGroupsEditor({
                           packagingFee: null,
                           unitsPerPack: product.formato && product.formato >= 2 ? product.formato : null,
                           ...(cup !== null ? { unitPrice: String(cup) } : {}),
+                          // Producto en USD: la línea guarda su precio en USD y la tasa para mostrarlos en el pedido.
+                          ...(cup !== null && product.priceCurrency === 'USD' && product.price != null && rate !== null
+                            ? { unitPriceUsd: product.price, exchangeRate: rate, usdAtCup: String(cup) }
+                            : { unitPriceUsd: null, exchangeRate: null, usdAtCup: null }),
                         });
                       }}
                     />

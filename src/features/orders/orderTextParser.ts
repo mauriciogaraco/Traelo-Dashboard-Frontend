@@ -1,5 +1,6 @@
 import type { BusinessDTO, OrderDTO, SystemConfigDTO } from '@/lib/types';
 import { withPackagingSuffix } from '@/lib/itemName';
+import { formatUsd, getCurrencyBreakdown, itemSubtotalUsd } from '@/lib/currencyBreakdown';
 import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { REGISTER_URL } from './registerInvite';
 
@@ -268,13 +269,20 @@ export function generateOrderVoucherText(
     lines.push('');
     lines.push(business.businessName);
     for (const item of business.items) {
+      const usd = itemSubtotalUsd(item);
+      const inUsd = usd !== null ? ` (${formatUsd(usd)})` : '';
       const paidWithPoints = isItemPaidWithPoints(item) ? ' ⭐ pagado con puntos' : '';
-      lines.push(`${item.quantity}x ${withPackagingSuffix(item.productName, item.packagingName)} - ${item.subtotal}${paidWithPoints}`);
+      lines.push(`${item.quantity}x ${withPackagingSuffix(item.productName, item.packagingName)} - ${item.subtotal}${inUsd}${paidWithPoints}`);
     }
   }
 
   lines.push('');
   lines.push(`Subtotal: ${order.productsTotal}`);
+  const currencies = getCurrencyBreakdown(order);
+  if (currencies.hasUsd) {
+    lines.push(`  Productos en USD: ${formatUsd(currencies.usdTotal)} ≈ ${currencies.usdInCup}`);
+    lines.push(`  Productos en CUP: ${currencies.cupTotal}`);
+  }
   lines.push(`Mensajería: ${order.deliveryFee}`);
   if (order.platformFee > 0) {
     lines.push(`Servicio Tráelo: ${order.platformFee}`);

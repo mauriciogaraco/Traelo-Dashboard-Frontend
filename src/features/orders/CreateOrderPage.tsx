@@ -18,6 +18,7 @@ import {
   emptyGroup,
   emptyItem,
   itemLineTotal,
+  itemUsdPayload,
   itemVariantPayload,
   makeId,
   type GroupDraft,
@@ -235,6 +236,7 @@ export function CreateOrderPage() {
             quantity: Math.max(1, Math.trunc(Number(it.quantity)) || 1),
             unitPrice: Number(it.unitPrice) || 0,
             ...itemVariantPayload(it),
+            ...itemUsdPayload(it),
           })),
       }))
       .filter((g) => g.items.length > 0);

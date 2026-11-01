@@ -1,3 +1,4 @@
+import { formatUsd, getCurrencyBreakdown, isUsdItem } from '@/lib/currencyBreakdown';
 import { jsPDF } from 'jspdf';
 import autoTable, { type CellDef, type RowInput } from 'jspdf-autotable';
 import { formatDateTime } from './formatDate';
@@ -52,6 +53,7 @@ function itemLabel(item: OrderItemDTO): string {
   if (item.addonName) extras.push(`+ ${item.addonName}`);
   if (item.packagingName) extras.push(`empaque: ${item.packagingName}`);
   if ((item.unitsPerPack ?? 1) > 1) extras.push(`caja de ${item.unitsPerPack}`);
+  if (isUsdItem(item)) extras.push(`${formatUsd(item.unitPriceUsd ?? 0)} c/u${item.exchangeRate != null ? ` · tasa ${item.exchangeRate}` : ''}`);
   if ((item.pointsUnits ?? 0) > 0) extras.push(`${item.pointsUnits} ud. pagada(s) con puntos`);
   return extras.length > 0 ? `${item.productName}\n${extras.join(' · ')}` : item.productName;
 }
@@ -212,6 +214,13 @@ export async function buildOrderPdf(order: OrderDTO): Promise<jsPDF> {
 
   // ── Resumen y reparto del dinero ──────────────────────────────────────
   const money1: Pair[] = [['Productos (subtotal)', money(order.productsTotal)]];
+  const currencies = getCurrencyBreakdown(order);
+  if (currencies.hasUsd) {
+    money1.push(
+      ['   en USD', `${formatUsd(currencies.usdTotal)} = ${money(currencies.usdInCup)}`],
+      ['   en CUP', money(currencies.cupTotal)],
+    );
+  }
   if ((order.packagingTotal ?? 0) > 0) money1.push(['   de los cuales, empaque', money(order.packagingTotal)]);
   money1.push(['Mensajería', money(order.deliveryFee)], ['Servicio Tráelo', money(order.platformFee)]);
   if ((order.pointsRedeemed ?? 0) > 0) {
