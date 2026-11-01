@@ -13,6 +13,7 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { withPackagingSuffix } from '@/lib/itemName';
+import { formatUsd, getCurrencyBreakdown, itemSubtotalUsd, isUsdItem } from '@/lib/currencyBreakdown';
 import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { exportOrderPdf } from '@/lib/orderPdf';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
@@ -214,6 +215,7 @@ export function OrderDetailPage() {
   }
 
   const pointsSummary = getPointsPaymentSummary(order);
+  const currencies = getCurrencyBreakdown(order);
 
   return (
     <div className="flex flex-col gap-5">
@@ -480,14 +482,27 @@ export function OrderDetailPage() {
                   </td>
                   <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3">
-                    {item.unitPrice} CUP
-                    {item.unitPriceUsd != null && item.exchangeRate != null && (
-                      <p className="text-xs text-slate-500">
-                        ${item.unitPriceUsd} USD × {item.exchangeRate}
-                      </p>
+                    {isUsdItem(item) ? (
+                      <>
+                        {formatUsd(item.unitPriceUsd ?? 0)}
+                        <p className="text-xs text-slate-500">
+                          ≈ {item.unitPrice} CUP{item.exchangeRate != null ? ` (tasa ${item.exchangeRate})` : ''}
+                        </p>
+                      </>
+                    ) : (
+                      <>{item.unitPrice} CUP</>
                     )}
                   </td>
-                  <td className="px-4 py-3">{item.subtotal} CUP</td>
+                  <td className="px-4 py-3">
+                    {isUsdItem(item) ? (
+                      <>
+                        {formatUsd(itemSubtotalUsd(item) ?? 0)}
+                        <p className="text-xs text-slate-500">≈ {item.subtotal} CUP</p>
+                      </>
+                    ) : (
+                      <>{item.subtotal} CUP</>
+                    )}
+                  </td>
                 </tr>
               )),
             )}
@@ -502,6 +517,20 @@ export function OrderDetailPage() {
             <dt className="text-slate-500">Subtotal</dt>
             <dd className="font-medium text-slate-900">{order.productsTotal} CUP</dd>
           </div>
+          {currencies.hasUsd && (
+            <>
+              <div className="flex justify-between pl-4 text-xs">
+                <dt className="text-slate-500">Productos en USD</dt>
+                <dd className="text-slate-700">
+                  {formatUsd(currencies.usdTotal)} ≈ {currencies.usdInCup} CUP
+                </dd>
+              </div>
+              <div className="flex justify-between pl-4 text-xs">
+                <dt className="text-slate-500">Productos en CUP{(order.packagingTotal ?? 0) > 0 ? ' (con envases)' : ''}</dt>
+                <dd className="text-slate-700">{currencies.cupTotal} CUP</dd>
+              </div>
+            </>
+          )}
           <div className="flex justify-between">
             <dt className="text-slate-500">Mensajería</dt>
             <dd className="font-medium text-slate-900">{order.deliveryFee} CUP</dd>

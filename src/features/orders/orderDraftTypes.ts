@@ -22,6 +22,13 @@ export interface ItemDraft {
   packagingFee?: number | null;
   /** Unidades por caja (producto con formato): `quantity` cuenta cajas y `unitPrice` es el de la caja. */
   unitsPerPack?: number | null;
+
+  // ── Producto en USD ─────────────────────────────────────────────────────────────────────────
+  /** Precio en USD y tasa con que se convirtió a CUP (`unitPrice` ya está en CUP). null = línea en CUP. */
+  unitPriceUsd?: number | null;
+  exchangeRate?: number | null;
+  /** El `unitPrice` (CUP) con el que se calculó lo anterior: si el precio se edita a mano, ya no aplica. */
+  usdAtCup?: string | null;
 }
 
 export interface GroupDraft {
@@ -75,6 +82,18 @@ export function itemVariantPayload(item: ItemDraft) {
       : {}),
     ...(item.unitsPerPack && item.unitsPerPack > 1 ? { unitsPerPack: item.unitsPerPack } : {}),
   };
+}
+
+/** Precio en USD y tasa de la línea, solo si el precio en CUP sigue siendo el que salió de esa conversión. */
+export function itemUsdPayload(item: ItemDraft) {
+  const valid =
+    item.unitPriceUsd != null &&
+    item.unitPriceUsd > 0 &&
+    item.exchangeRate != null &&
+    item.exchangeRate > 0 &&
+    item.usdAtCup != null &&
+    String(item.unitPrice) === item.usdAtCup;
+  return valid ? { unitPriceUsd: item.unitPriceUsd, exchangeRate: item.exchangeRate } : {};
 }
 
 /** Convierte un monto escrito en la moneda del producto a CUP (mismo redondeo que el backend). */
