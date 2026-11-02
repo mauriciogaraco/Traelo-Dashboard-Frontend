@@ -1,3 +1,5 @@
+import { BUSINESS_TIMEZONE } from './businessTimezone';
+
 // Mensajería SUGERIDA para un pedido armado a mano. Es la misma regla que aplica el backend a los
 // pedidos de la app/web (delivery-fee-calculator.ts + night-surcharge.ts), para que el staff no tenga
 // que acordarse de los recargos: tarifa base = la más alta entre los negocios, +100 por cada negocio
@@ -27,7 +29,7 @@ export interface DeliveryFeeSuggestion {
 /** Hora (0-23) en La Habana, que es la que usa el backend para el recargo nocturno. */
 export function havanaHour(date: Date): number {
   const hour = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Havana',
+    timeZone: BUSINESS_TIMEZONE,
     hour: '2-digit',
     hourCycle: 'h23',
   }).format(date);

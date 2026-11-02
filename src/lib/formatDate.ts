@@ -1,6 +1,7 @@
+import { BUSINESS_TIMEZONE } from './businessTimezone';
+
 // El negocio opera solo en Cuba: las fechas siempre se muestran en hora de La Habana,
 // sin importar en qué zona horaria esté configurado el dispositivo de quien las mira.
-const BUSINESS_TIMEZONE = 'America/Havana';
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es', {
