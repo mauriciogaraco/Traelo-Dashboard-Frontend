@@ -18,6 +18,7 @@ import {
   useListBusinessHoursQuery,
   useUpsertBusinessHoursMutation,
 } from './businessesApi';
+import { BUSINESS_TIMEZONE } from '@/lib/businessTimezone';
 
 interface HoursTabProps {
   businessId: string;
@@ -26,7 +27,7 @@ interface HoursTabProps {
 
 function formatClosureDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es', {
-    timeZone: 'America/Havana',
+    timeZone: BUSINESS_TIMEZONE,
     year: 'numeric',
     month: 'short',
     day: 'numeric',

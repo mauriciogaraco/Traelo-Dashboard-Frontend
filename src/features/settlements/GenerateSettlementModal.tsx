@@ -7,6 +7,7 @@ import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { SettlementType } from '@/lib/types';
 import { useGenerateDailySettlementMutation, useGenerateWeeklySettlementMutation } from './settlementsApi';
+import { BUSINESS_TIMEZONE } from '@/lib/businessTimezone';
 
 interface GenerateSettlementModalProps {
   onClose: () => void;
@@ -17,7 +18,7 @@ interface GenerateSettlementModalProps {
 // vacío) para que siempre quede claro qué día se va a usar, en vez de depender de que quede en
 // blanco — un campo vacío o mal tecleado fue justo lo que causó un cuadre con la fecha equivocada.
 function getTodayHavanaDateString(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Havana' }).format(new Date());
+  return new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIMEZONE }).format(new Date());
 }
 
 export function GenerateSettlementModal({ onClose, onGenerated }: GenerateSettlementModalProps) {

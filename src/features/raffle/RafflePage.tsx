@@ -24,6 +24,7 @@ import {
   type RaffleDrawDTO,
 } from './raffleApi';
 import './raffle.css';
+import { BUSINESS_TIMEZONE } from '@/lib/businessTimezone';
 
 // El giro dura al menos 30 s aunque el backend responda enseguida: es el suspenso del sorteo.
 const SPIN_MS = 30_000;
@@ -63,7 +64,7 @@ function formatPhone(raw: string): string {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es', {
-    timeZone: 'America/Havana',
+    timeZone: BUSINESS_TIMEZONE,
     day: '2-digit',
     month: 'short',
     hour: '2-digit',

@@ -47,7 +47,7 @@ const PAGE_SIZE = 10;
 
 // Se ancla al mediodía UTC en vez de medianoche: la fecha del <input type="date"> es un día
 // calendario sin huso horario, y medianoche UTC de ese día cae la tarde/noche anterior en
-// La Habana (UTC-5) — resolveDateRange calcularía el día de La Habana equivocado. Mediodía UTC
+// La Habana (UTC-4) — resolveDateRange calcularía el día de La Habana equivocado. Mediodía UTC
 // cae siempre dentro del mismo día calendario en La Habana, sin importar el offset exacto.
 function toHavanaSafeInstant(date: string): string {
   return `${date}T12:00:00.000Z`;

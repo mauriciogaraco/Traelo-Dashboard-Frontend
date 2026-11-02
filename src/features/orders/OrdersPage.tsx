@@ -31,6 +31,7 @@ import {
   ordersPdfSubtitle,
   ordersPdfTotals,
 } from './ordersListPdf';
+import { BUSINESS_TIMEZONE } from '@/lib/businessTimezone';
 
 const PAGE_SIZE = 15;
 /** La lista se vuelve a pedir sola cada 5 minutos (además del botón de refrescar). */
@@ -50,7 +51,7 @@ const RANGE_TABS: { value: RangeTab; label: string }[] = [
 
 // Día calendario de hoy en La Habana (YYYY-MM-DD): el negocio opera allá, no en la zona del navegador.
 function todayInHavana(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Havana' }).format(new Date());
+  return new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIMEZONE }).format(new Date());
 }
 
 // El backend resuelve el día en hora de La Habana a partir de un instante. Se manda el mediodía UTC
@@ -61,7 +62,7 @@ function dayToInstant(day: string): string {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es', {
-    timeZone: 'America/Havana',
+    timeZone: BUSINESS_TIMEZONE,
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
