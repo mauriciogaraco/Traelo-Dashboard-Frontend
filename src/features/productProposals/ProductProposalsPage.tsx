@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Thumbnail } from '@/components/ui/Thumbnail';
@@ -7,7 +9,7 @@ import { formatDateTime } from '@/lib/formatDate';
 import type { ProductProposalDTO, ProposalStatus, ProposalType } from '@/lib/types';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { ProductProposalReviewModal } from './ProductProposalReviewModal';
-import { useListProductProposalsQuery } from './productProposalsApi';
+import { useDeleteProductProposalMutation, useListProductProposalsQuery } from './productProposalsApi';
 
 const PAGE_SIZE = 20;
 
@@ -58,6 +60,9 @@ export function ProductProposalsPage() {
   // en el título siempre refleje lo que realmente hay por revisar.
   const { data: pendingCountData } = useListProductProposalsQuery({ status: 'PENDING', pageSize: 1 });
   const pendingCount = pendingCountData?.meta.total ?? 0;
+
+  const [deleting, setDeleting] = useState<ProductProposalDTO | null>(null);
+  const [deleteProposal, { isLoading: isDeleting }] = useDeleteProductProposalMutation();
 
   const rows = data?.data ?? [];
   const openProposal = selectedProposal
@@ -160,19 +165,20 @@ export function ProductProposalsPage() {
               <th className="px-4 py-3 font-medium">Precio actual → propuesto</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Fecha</th>
+              <th className="px-4 py-3" aria-label="Acciones" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   No hay propuestas que coincidan con estos filtros.
                 </td>
               </tr>
@@ -210,6 +216,20 @@ export function ProductProposalsPage() {
                     <Badge tone={badge.tone}>{badge.label}</Badge>
                   </td>
                   <td className="px-4 py-3">{formatDateTime(proposal.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      aria-label={`Eliminar propuesta de ${name}`}
+                      title="Eliminar"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleting(proposal);
+                      }}
+                      className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
@@ -220,6 +240,23 @@ export function ProductProposalsPage() {
 
       {openProposal && (
         <ProductProposalReviewModal proposal={openProposal} onClose={() => setSelectedProposal(null)} />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title="Eliminar propuesta"
+          description={`Se elimina la propuesta de "${deleting.currentProduct?.name ?? deleting.proposedData.name ?? 'producto'}" de ${deleting.businessName}. ${
+            deleting.status === 'APPROVED'
+              ? 'Ya estaba aprobada: el producto se queda como está y solo se borra el registro. '
+              : ''
+          }No se puede deshacer.`}
+          confirmLabel="Eliminar"
+          isLoading={isDeleting}
+          onConfirm={async () => {
+            await deleteProposal(deleting.id).unwrap();
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        />
       )}
     </div>
   );

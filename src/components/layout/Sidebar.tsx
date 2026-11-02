@@ -4,6 +4,7 @@ import { ChevronDown, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import isotipo from '@/assets/isotipo.png';
+import { useListProductProposalsQuery } from '@/features/productProposals/productProposalsApi';
 import { isNavGroup, visibleNavEntries, type NavGroup, type NavItem } from './nav';
 
 function BrandMark() {
@@ -22,12 +23,27 @@ interface NavListProps {
   onNavigate?: () => void;
 }
 
+/** Globo con la cantidad de pendientes por revisar; no se dibuja si no hay ninguno. */
+function CountBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={label}
+      className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold leading-5 text-white"
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 interface NavLeafLinkProps {
   item: NavItem;
   onNavigate?: () => void;
+  /** Cantidad pendiente por revisar de esta pantalla (0 o ausente = sin globo). */
+  badgeCount?: number;
 }
 
-function NavLeafLink({ item, onNavigate }: NavLeafLinkProps) {
+function NavLeafLink({ item, onNavigate, badgeCount = 0 }: NavLeafLinkProps) {
   const Icon = item.icon;
   return (
     <NavLink
@@ -45,6 +61,7 @@ function NavLeafLink({ item, onNavigate }: NavLeafLinkProps) {
     >
       <Icon className="h-4 w-4" />
       {item.label}
+      <CountBadge count={badgeCount} label={`${badgeCount} pendientes`} />
     </NavLink>
   );
 }
@@ -59,6 +76,8 @@ interface NavGroupSectionProps {
   hasActiveChild: boolean;
   onToggle: () => void;
   onNavigate?: () => void;
+  /** Pendientes por revisar de cada pantalla del grupo, por ruta. */
+  badgeCounts: Record<string, number>;
 }
 
 function NavGroupSection({
@@ -67,8 +86,11 @@ function NavGroupSection({
   hasActiveChild,
   onToggle,
   onNavigate,
+  badgeCounts,
 }: NavGroupSectionProps) {
   const Icon = group.icon;
+  // Con el grupo cerrado los globos de sus pantallas no se ven: se suman en el título del grupo.
+  const groupPending = open ? 0 : group.children.reduce((sum, child) => sum + (badgeCounts[child.to] ?? 0), 0);
   const panelId = `nav-group-${group.label}`;
   return (
     <div>
@@ -86,6 +108,7 @@ function NavGroupSection({
       >
         <Icon className="h-4 w-4" />
         <span className="flex-1 text-left">{group.label}</span>
+        <CountBadge count={groupPending} label={`${groupPending} pendientes`} />
         <ChevronDown
           className={clsx('h-4 w-4 text-slate-400 transition-transform', open && 'rotate-180')}
         />
@@ -93,7 +116,7 @@ function NavGroupSection({
       {open && (
         <div id={panelId} className="ml-5 mt-1 space-y-1 border-l border-slate-200 pl-2">
           {group.children.map((child) => (
-            <NavLeafLink key={child.to} item={child} onNavigate={onNavigate} />
+            <NavLeafLink key={child.to} item={child} onNavigate={onNavigate} badgeCount={badgeCounts[child.to]} />
           ))}
         </div>
       )}
@@ -105,6 +128,20 @@ function NavList({ onNavigate }: NavListProps) {
   const role = useAppSelector((state) => state.auth.user?.role);
   const { pathname } = useLocation();
   const entries = useMemo(() => visibleNavEntries(role), [role]);
+
+  // Propuestas de productos pendientes de revisar (solo si el rol ve esa pantalla). Aprobar o rechazar
+  // invalida la lista y el número se actualiza solo; el sondeo cubre las que llegan mientras tanto.
+  const showsProposals = useMemo(
+    () => entries.some((e) => (isNavGroup(e) ? e.children : [e]).some((c) => c.to === '/product-proposals')),
+    [entries],
+  );
+  const { data: pendingProposals } = useListProductProposalsQuery(
+    { status: 'PENDING', pageSize: 1 },
+    { skip: !showsProposals, pollingInterval: 60_000 },
+  );
+  const badgeCounts: Record<string, number> = {
+    '/product-proposals': pendingProposals?.meta.total ?? 0,
+  };
 
   // Qué grupos el usuario abrió/cerró a mano; lo que no está acá se decide solo: abierto si la
   // página actual es uno de sus hijos.
@@ -132,7 +169,7 @@ function NavList({ onNavigate }: NavListProps) {
     <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
       {entries.map((entry) => {
         if (!isNavGroup(entry)) {
-          return <NavLeafLink key={entry.to} item={entry} onNavigate={onNavigate} />;
+          return <NavLeafLink key={entry.to} item={entry} onNavigate={onNavigate} badgeCount={badgeCounts[entry.to]} />;
         }
         const hasActiveChild = entry.children.some((c) => isPathActive(pathname, c.to));
         const open = manual[entry.label] ?? hasActiveChild;
@@ -144,6 +181,7 @@ function NavList({ onNavigate }: NavListProps) {
             hasActiveChild={hasActiveChild}
             onToggle={() => setManual((prev) => ({ ...prev, [entry.label]: !open }))}
             onNavigate={onNavigate}
+            badgeCounts={badgeCounts}
           />
         );
       })}

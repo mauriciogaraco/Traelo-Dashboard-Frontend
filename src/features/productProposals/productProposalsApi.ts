@@ -44,6 +44,14 @@ export const productProposalsApi = baseApi.injectEndpoints({
         { type: 'Product', id: 'ADMIN_LIST' },
       ],
     }),
+    // Elimina el registro de la propuesta (en cualquier estado); si ya estaba aprobada, el producto no se toca.
+    deleteProductProposal: builder.mutation<void, string>({
+      query: (proposalId) => ({ url: `/product-proposals/${proposalId}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, proposalId) => [
+        { type: 'ProductProposal', id: proposalId },
+        { type: 'ProductProposal', id: 'LIST' },
+      ],
+    }),
     rejectProductProposal: builder.mutation<
       ApiOk<ProductProposalDTO>,
       { proposalId: string; reason: string }
@@ -66,4 +74,5 @@ export const {
   useGetProductProposalQuery,
   useApproveProductProposalMutation,
   useRejectProductProposalMutation,
+  useDeleteProductProposalMutation,
 } = productProposalsApi;
