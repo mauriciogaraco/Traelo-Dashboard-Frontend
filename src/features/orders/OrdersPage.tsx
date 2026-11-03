@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { CheckCheck, Download, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
@@ -12,7 +12,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
-import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { ORDER_STATUS_LABEL, orderDisplayStatus } from '@/lib/labels';
 import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
 import { exportReportPdf } from '@/lib/pdfExport';
 import { ACTIVE_ORDER_STATUSES, OrderStatus, type OrderDTO } from '@/lib/types';
@@ -77,7 +77,7 @@ export function OrdersPage() {
   const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN';
 
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'UNACCEPTED' | 'ACCEPTED' | 'ALL'>('ALL');
   const [delivererFilter, setDelivererFilter] = useState<string | null>(null);
   const [businessFilter, setBusinessFilter] = useState<string | null>(null);
   // Por defecto "Hoy" para no ver pedidos viejos mientras se cargan los del día.
@@ -121,7 +121,12 @@ export function OrdersPage() {
 
   // Los filtros activos, sin paginación: los usa la lista y también el PDF de todos los pedidos filtrados.
   const filterParams: ListOrdersParams = {
-    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    status:
+      statusFilter === 'ALL' || statusFilter === 'UNACCEPTED' || statusFilter === 'ACCEPTED'
+        ? undefined
+        : statusFilter,
+    acceptance:
+      statusFilter === 'UNACCEPTED' || statusFilter === 'ACCEPTED' ? statusFilter : undefined,
     delivererId: canManage ? (delivererFilter ?? undefined) : undefined,
     businessId: canManage ? (businessFilter ?? undefined) : undefined,
     range: rangeTab === 'all' ? undefined : rangeTab,
@@ -158,7 +163,14 @@ export function OrdersPage() {
         title: 'Pedidos',
         subtitle: ordersPdfSubtitle({
           rangeLabel,
-          status: statusFilter === 'ALL' ? null : ORDER_STATUS_LABEL[statusFilter],
+          status:
+            statusFilter === 'ALL'
+              ? null
+              : statusFilter === 'UNACCEPTED'
+                ? 'Por aceptar'
+                : statusFilter === 'ACCEPTED'
+                  ? 'Por confirmar'
+                  : ORDER_STATUS_LABEL[statusFilter],
           businessName: businessOptions.find((b) => b.value === businessFilter)?.label,
           delivererName: delivererOptions.find((d) => d.value === delivererFilter)?.label,
           search,
@@ -355,15 +367,22 @@ export function OrdersPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'ALL')}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="ALL">Todos los estados</option>
-          {Object.values(OrderStatus).map((status) => (
-            <option key={status} value={status}>
-              {ORDER_STATUS_LABEL[status]}
-            </option>
-          ))}
+          {Object.values(OrderStatus).map((status) =>
+            status === 'ASSIGNED' ? (
+              <Fragment key={status}>
+                <option value="UNACCEPTED">Por aceptar</option>
+                <option value="ACCEPTED">Por confirmar</option>
+              </Fragment>
+            ) : (
+              <option key={status} value={status}>
+                {ORDER_STATUS_LABEL[status]}
+              </option>
+            ),
+          )}
         </select>
         {canManage && (
           <div className="w-56">
@@ -461,8 +480,8 @@ export function OrdersPage() {
                 <td className="px-4 py-3">{order.delivererName ?? '—'}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-1">
-                    <Badge tone={ORDER_STATUS_TONE[order.status]}>
-                      {ORDER_STATUS_LABEL[order.status]}
+                    <Badge tone={orderDisplayStatus(order).tone}>
+                      {orderDisplayStatus(order).label}
                     </Badge>
                     {order.pausedAt && <Badge tone="amber">Pausado</Badge>}
                     {hasPointsPayment(order) && (

@@ -16,7 +16,7 @@ import { withPackagingSuffix } from '@/lib/itemName';
 import { formatUsd, getCurrencyBreakdown, itemSubtotalUsd, isUsdItem } from '@/lib/currencyBreakdown';
 import { getPointsPaymentSummary, hasPointsPayment, isItemPaidWithPoints } from '@/lib/pointsPayment';
 import { exportOrderPdf } from '@/lib/orderPdf';
-import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@/lib/labels';
+import { orderDisplayStatus } from '@/lib/labels';
 import { scheduledDeliveryLabel } from '@/lib/scheduledDelivery';
 import { ACTIVE_ORDER_STATUSES, PAUSABLE_ORDER_STATUSES } from '@/lib/types';
 import { generateOrderVoucherText } from './orderTextParser';
@@ -231,7 +231,7 @@ export function OrderDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold text-slate-900">Pedido #{order.orderNumber}</h1>
-            <Badge tone={ORDER_STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+            <Badge tone={orderDisplayStatus(order).tone}>{orderDisplayStatus(order).label}</Badge>
             {isPaused && <Badge tone="amber">Pausado</Badge>}
             {scheduledDeliveryLabel(order.scheduledFor) && (
               <Badge tone="brand">Para: {scheduledDeliveryLabel(order.scheduledFor)}</Badge>
