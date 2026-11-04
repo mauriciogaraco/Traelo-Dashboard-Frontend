@@ -471,6 +471,8 @@ export interface OrderDTO {
   status: OrderStatus;
   orderDate: string;
   assignedAt: string | null;
+  // Cuándo el mensajero aceptó el pedido (null = aún no). ASSIGNED + null = "Por aceptar"; ASSIGNED + fecha = "Por confirmar".
+  acceptedAt?: string | null;
   // Pausa interna del staff (nunca visible para el cliente): null = no está pausado.
   pausedAt?: string | null;
   // Avisos del staff para el mensajero (pedidos a mano): cliente confirmó / ya se encargó al negocio /

@@ -60,6 +60,20 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, 'amber' | 'brand' | 'green' 
   CANCELLED: 'slate',
 };
 
+// ASSIGNED cubre dos momentos distintos para el mensajero: todavía no aceptó el pedido ("Por
+// aceptar") o ya lo aceptó pero no lo confirmó ("Por confirmar"). El resto de estados se muestran tal cual.
+export function orderDisplayStatus(order: { status: OrderStatus; acceptedAt?: string | null }): {
+  label: string;
+  tone: 'amber' | 'brand' | 'green' | 'slate';
+} {
+  if (order.status === 'ASSIGNED') {
+    return order.acceptedAt
+      ? { label: 'Por confirmar', tone: 'brand' }
+      : { label: 'Por aceptar', tone: 'amber' };
+  }
+  return { label: ORDER_STATUS_LABEL[order.status], tone: ORDER_STATUS_TONE[order.status] };
+}
+
 export const SETTLEMENT_TYPE_LABEL: Record<SettlementType, string> = {
   DAILY: 'Diario',
   WEEKLY: 'Semanal',

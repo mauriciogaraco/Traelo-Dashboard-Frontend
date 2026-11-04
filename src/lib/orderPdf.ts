@@ -2,7 +2,7 @@ import { formatUsd, getCurrencyBreakdown, isUsdItem } from '@/lib/currencyBreakd
 import { jsPDF } from 'jspdf';
 import autoTable, { type CellDef, type RowInput } from 'jspdf-autotable';
 import { formatDateTime } from './formatDate';
-import { ORDER_STATUS_LABEL } from './labels';
+import { orderDisplayStatus } from './labels';
 import type { OrderDTO, OrderItemChangeDTO, OrderItemDTO } from './types';
 import {
   BRAND_50,
@@ -89,7 +89,7 @@ export async function buildOrderPdf(order: OrderDTO): Promise<jsPDF> {
     doc.text(`Pedido #${order.orderNumber}`, textX, HEADER_HEIGHT / 2 + 14);
     doc.setFontSize(9);
     doc.setTextColor(BRAND_50);
-    doc.text(ORDER_STATUS_LABEL[order.status] ?? order.status, pageWidth - PAGE_MARGIN, HEADER_HEIGHT / 2 + 4, {
+    doc.text(orderDisplayStatus(order).label, pageWidth - PAGE_MARGIN, HEADER_HEIGHT / 2 + 4, {
       align: 'right',
     });
   }
@@ -140,7 +140,7 @@ export async function buildOrderPdf(order: OrderDTO): Promise<jsPDF> {
 
   // ── Pedido ────────────────────────────────────────────────────────────
   const orderPairs: Pair[] = [
-    ['Estado', ORDER_STATUS_LABEL[order.status] ?? order.status],
+    ['Estado', orderDisplayStatus(order).label],
     ['Origen', SOURCE_LABEL[order.source ?? ''] ?? order.source ?? '—'],
     ['Fecha del pedido', formatDateTime(order.orderDate)],
   ];

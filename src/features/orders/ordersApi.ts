@@ -7,6 +7,8 @@ export interface ListOrdersParams {
   page?: number;
   pageSize?: number;
   status?: OrderStatus;
+  // Subfiltro de ASSIGNED: sin aceptar / aceptado pero sin confirmar.
+  acceptance?: 'UNACCEPTED' | 'ACCEPTED';
   delivererId?: string;
   businessId?: string;
   search?: string;
