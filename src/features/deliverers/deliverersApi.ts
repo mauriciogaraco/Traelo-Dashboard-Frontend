@@ -30,6 +30,37 @@ export interface DelivererBonusesDTO {
   rows: DelivererBonusDTO[];
 }
 
+// Bono semanal (lunes a domingo, hora de La Habana): % del servicio de la semana por volumen,
+// reseñas y fiabilidad. Ver deliverer-bonus-rules en el backend.
+export interface DelivererWeeklyBonusDTO {
+  delivererId: string;
+  name: string;
+  active: boolean;
+  serviceTotal: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  // completadas / (completadas + canceladas), de 0 a 1.
+  completionRate: number;
+  reviewCount: number;
+  averageRating: number | null;
+  volumePct: number;
+  actionsPct: number;
+  reliabilityPct: number;
+  bonusPct: number;
+  bonusAmount: number;
+}
+
+export interface DelivererWeeklyBonusesDTO {
+  week: { from: string; to: string };
+  rows: DelivererWeeklyBonusDTO[];
+  totals: { serviceTotal: number; bonusAmount: number };
+}
+
+export interface DelivererWeeklyBonusesParams {
+  // Cualquier fecha dentro de la semana (ISO); sin ella, la semana en curso.
+  week?: string;
+}
+
 export interface DelivererBonusesParams {
   range?: Exclude<DateRangePreset, 'custom'>;
 }
@@ -85,6 +116,12 @@ export const deliverersApi = baseApi.injectEndpoints({
     }),
     getDelivererBonuses: builder.query<ApiOk<DelivererBonusesDTO>, DelivererBonusesParams | void>({
       query: (params) => ({ url: '/deliverers/bonuses', params: params ?? undefined }),
+    }),
+    getDelivererWeeklyBonuses: builder.query<
+      ApiOk<DelivererWeeklyBonusesDTO>,
+      DelivererWeeklyBonusesParams | void
+    >({
+      query: (params) => ({ url: '/deliverers/bonuses/weekly', params: params ?? undefined }),
     }),
     // Orden real de la cola (botón "Ver orden real" en Trabajando hoy) — se pide al toque, no se
     // deja en caché: la posición cambia apenas se asigna un pedido.
@@ -148,6 +185,7 @@ export const deliverersApi = baseApi.injectEndpoints({
 export const {
   useListDeliverersQuery,
   useGetDelivererBonusesQuery,
+  useGetDelivererWeeklyBonusesQuery,
   useLazyGetDispatchQueueQuery,
   useCreateDelivererMutation,
   useUpdateDelivererMutation,
