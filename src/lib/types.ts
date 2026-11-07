@@ -901,7 +901,10 @@ export type NotificationStatus = (typeof NotificationStatus)[keyof typeof Notifi
 
 // V1: una sola audiencia (ver notifications.dto.ts del backend — el objeto, no un string suelto,
 // deja lugar a BUSINESS_CUSTOMERS/INACTIVE_CUSTOMERS/AREA/POINTS/CUSTOM más adelante).
-export type NotificationAudience = { type: 'ALL_CUSTOMERS' };
+export type NotificationAudience =
+  | { type: 'ALL_CUSTOMERS' }
+  | { type: 'CITY'; cityId: string }
+  | { type: 'CUSTOMER'; customerId: string };
 
 // A qué navega la app al tocar el push.
 export type NotificationDestination =
@@ -915,6 +918,11 @@ export interface NotificationDTO {
   title: string;
   body: string;
   audienceType: NotificationAudience['type'];
+  // Ciudad o cliente al que se envió, con su nombre (null si la audiencia es otra o ya no existe).
+  audienceCityId?: string | null;
+  audienceCityName?: string | null;
+  audienceCustomerId?: string | null;
+  audienceCustomerName?: string | null;
   data: NotificationDestination;
   status: NotificationStatus;
   targetedCount: number;

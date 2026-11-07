@@ -26,6 +26,17 @@ const STATUS_TONE: Record<NotificationStatus, 'slate' | 'green' | 'red' | 'amber
   FAILED: 'red',
 };
 
+function audienceLabel(n: NotificationDTO): string {
+  switch (n.audienceType) {
+    case 'CITY':
+      return `Ciudad: ${n.audienceCityName ?? 'eliminada'}`;
+    case 'CUSTOMER':
+      return `Cliente: ${n.audienceCustomerName ?? 'eliminado'}`;
+    default:
+      return 'Todos los clientes';
+  }
+}
+
 function destinationLabel(data: NotificationDestination): string {
   switch (data.type) {
     case 'BUSINESS':
@@ -64,6 +75,7 @@ export function NotificationsPage() {
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-3 font-medium">Notificación</th>
+              <th className="px-4 py-3 font-medium">Para</th>
               <th className="px-4 py-3 font-medium">Destino</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Fecha</th>
@@ -75,14 +87,14 @@ export function NotificationsPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   Todavía no enviaste ninguna notificación.
                 </td>
               </tr>
@@ -93,6 +105,7 @@ export function NotificationsPage() {
                   <p className="font-medium text-slate-900">{notification.title}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{notification.body}</p>
                 </td>
+                <td className="px-4 py-3">{audienceLabel(notification)}</td>
                 <td className="px-4 py-3">{destinationLabel(notification.data)}</td>
                 <td className="px-4 py-3">
                   <Badge tone={STATUS_TONE[notification.status]}>{STATUS_LABEL[notification.status]}</Badge>

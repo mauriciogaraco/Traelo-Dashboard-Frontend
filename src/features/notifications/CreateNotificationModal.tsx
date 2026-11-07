@@ -14,7 +14,9 @@ import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { NotificationDestination } from '@/lib/types';
 import { useListBusinessesQuery, useListProductsQuery } from '@/features/businesses/businessesApi';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
-import { useCreateNotificationMutation } from './notificationsApi';
+import { useListCitiesQuery } from '@/features/cities/citiesApi';
+import { NotificationCustomerPicker, type PickedCustomer } from './NotificationCustomerPicker';
+import { useCreateNotificationMutation, type CreateNotificationInput } from './notificationsApi';
 
 const destinationTypeSchema = z.enum(['GENERAL', 'BUSINESS', 'PRODUCT', 'CATEGORY']);
 type DestinationType = z.infer<typeof destinationTypeSchema>;
@@ -26,16 +28,33 @@ const DESTINATION_OPTIONS: { value: DestinationType; label: string }[] = [
   { value: 'CATEGORY', label: 'Categoría' },
 ];
 
+const audienceTypeSchema = z.enum(['ALL_CUSTOMERS', 'CITY', 'CUSTOMER']);
+
+const AUDIENCE_OPTIONS: { value: z.infer<typeof audienceTypeSchema>; label: string }[] = [
+  { value: 'ALL_CUSTOMERS', label: 'Todos los clientes' },
+  { value: 'CITY', label: 'Una ciudad' },
+  { value: 'CUSTOMER', label: 'Un cliente' },
+];
+
 const schema = z
   .object({
     title: z.string().trim().min(2, 'Mínimo 2 caracteres').max(120, 'Máximo 120 caracteres'),
     body: z.string().trim().min(2, 'Mínimo 2 caracteres').max(500, 'Máximo 500 caracteres'),
+    audienceType: audienceTypeSchema,
+    cityId: z.string().nullable(),
+    customerId: z.string().nullable(),
     destinationType: destinationTypeSchema,
     businessId: z.string().nullable(),
     productId: z.string().nullable(),
     categoryId: z.string().nullable(),
   })
   .superRefine((data, ctx) => {
+    if (data.audienceType === 'CITY' && !data.cityId) {
+      ctx.addIssue({ code: 'custom', path: ['cityId'], message: 'Elegí una ciudad' });
+    }
+    if (data.audienceType === 'CUSTOMER' && !data.customerId) {
+      ctx.addIssue({ code: 'custom', path: ['customerId'], message: 'Elegí un cliente' });
+    }
     if (data.destinationType === 'BUSINESS' && !data.businessId) {
       ctx.addIssue({ code: 'custom', path: ['businessId'], message: 'Elegí un negocio' });
     }
@@ -62,6 +81,26 @@ function buildDestination(values: FormValues): NotificationDestination {
   }
 }
 
+/** "todos los clientes", "los clientes de X" o "Fulano", para el aviso de confirmación. */
+function audienceSummary(
+  values: FormValues | null,
+  cityOptions: { value: string; label: string }[],
+  customer: PickedCustomer | null,
+): string {
+  if (values?.audienceType === 'CITY') {
+    const city = cityOptions.find((c) => c.value === values.cityId)?.label;
+    return `los clientes de ${city ?? 'esa ciudad'}`;
+  }
+  if (values?.audienceType === 'CUSTOMER') return customer?.name ?? 'ese cliente';
+  return 'todos los clientes';
+}
+
+function buildAudience(values: FormValues): CreateNotificationInput['audience'] {
+  if (values.audienceType === 'CITY') return { type: 'CITY', cityId: values.cityId! };
+  if (values.audienceType === 'CUSTOMER') return { type: 'CUSTOMER', customerId: values.customerId! };
+  return { type: 'ALL_CUSTOMERS' };
+}
+
 interface CreateNotificationModalProps {
   onClose: () => void;
 }
@@ -71,6 +110,8 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
   const [confirming, setConfirming] = useState(false);
   // Solo para filtrar el selector de producto — no es un campo que se manda al backend.
   const [productBusinessId, setProductBusinessId] = useState<string | null>(null);
+  // Solo para mostrar a quién se envía (el formulario guarda el id).
+  const [pickedCustomer, setPickedCustomer] = useState<PickedCustomer | null>(null);
 
   const [createNotification, { isLoading, error }] = useCreateNotificationMutation();
 
@@ -85,6 +126,9 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
     defaultValues: {
       title: '',
       body: '',
+      audienceType: 'ALL_CUSTOMERS',
+      cityId: null,
+      customerId: null,
       destinationType: 'GENERAL',
       businessId: null,
       productId: null,
@@ -92,9 +136,16 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
     },
   });
 
+  const audienceType = watch('audienceType');
   const destinationType = watch('destinationType');
   const title = watch('title');
   const body = watch('body');
+
+  const { data: citiesData } = useListCitiesQuery({ pageSize: 100, active: true }, { skip: audienceType !== 'CITY' });
+  const cityOptions = useMemo(
+    () => (citiesData?.data ?? []).map((c) => ({ value: c.id, label: c.name })),
+    [citiesData],
+  );
 
   const { data: businessesData } = useListBusinessesQuery(
     { pageSize: 100, active: true },
@@ -135,7 +186,7 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
       await createNotification({
         title: pendingValues.title,
         body: pendingValues.body,
-        audience: { type: 'ALL_CUSTOMERS' },
+        audience: buildAudience(pendingValues),
         data: buildDestination(pendingValues),
       }).unwrap();
       showToast('Difusión enviada');
@@ -150,7 +201,7 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
     return (
       <ConfirmDialog
         title="Enviar difusión"
-        description="¿Enviar esta notificación a todos los clientes? Una vez enviada no se puede deshacer."
+        description={`¿Enviar esta notificación a ${audienceSummary(pendingValues, cityOptions, pickedCustomer)}? Una vez enviada no se puede deshacer.`}
         confirmLabel="Enviar"
         variant="primary"
         isLoading={isLoading}
@@ -180,11 +231,70 @@ export function CreateNotificationModal({ onClose }: CreateNotificationModalProp
         />
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-slate-700">Audiencia</span>
-          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
-            Todos los clientes (única audiencia disponible por ahora)
-          </p>
+          <span className="text-sm font-medium text-slate-700">Enviar a</span>
+          <Controller
+            control={control}
+            name="audienceType"
+            render={({ field }) => (
+              <div className="flex flex-wrap gap-2">
+                {AUDIENCE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => field.onChange(option.value)}
+                    className={
+                      field.value === option.value
+                        ? 'rounded-full bg-brand-600 px-3 py-1.5 text-sm font-medium text-white'
+                        : 'rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50'
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          />
+          {audienceType === 'ALL_CUSTOMERS' && (
+            <p className="text-xs text-slate-500">Llega a los clientes de todas las ciudades.</p>
+          )}
         </div>
+
+        {audienceType === 'CITY' && (
+          <Controller
+            control={control}
+            name="cityId"
+            render={({ field }) => (
+              <div className="flex flex-col gap-1">
+                <SearchableSelect
+                  label="Ciudad"
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Elegir ciudad…"
+                  options={cityOptions}
+                  error={errors.cityId?.message}
+                />
+                <p className="text-xs text-slate-500">Llega a los clientes que han hecho pedidos en esa ciudad.</p>
+              </div>
+            )}
+          />
+        )}
+
+        {audienceType === 'CUSTOMER' && (
+          <Controller
+            control={control}
+            name="customerId"
+            render={({ field }) => (
+              <NotificationCustomerPicker
+                value={pickedCustomer}
+                onChange={(customer) => {
+                  setPickedCustomer(customer);
+                  field.onChange(customer?.id ?? null);
+                }}
+                error={errors.customerId?.message}
+              />
+            )}
+          />
+        )}
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-slate-700">Destino</span>
