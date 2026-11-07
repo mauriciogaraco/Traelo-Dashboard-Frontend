@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
@@ -12,6 +12,7 @@ import { getErrorMessage } from '@/lib/getErrorMessage';
 import type { PriceCurrency, ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
 import { useCreateProductMutation } from './businessesApi';
+import { BulkPriceFields, bulkPriceShape, bulkPriceToApi, refineBulkPrice } from './BulkPriceFields';
 
 const schema = z.object({
   name: z.string().min(1, 'Requerido').max(150),
@@ -22,7 +23,8 @@ const schema = z.object({
     .string()
     .optional()
     .refine((v) => !v || Number(v) >= 0, 'Debe ser mayor o igual a 0'),
-});
+  ...bulkPriceShape,
+}).superRefine(refineBulkPrice);
 
 type FormValues = z.infer<typeof schema>;
 
@@ -43,15 +45,25 @@ export function CreateProductModal({ businessId, defaultCurrency = 'CUP', onClos
   const [currency, setCurrency] = useState<PriceCurrency>(defaultCurrency);
   const { data: categoriesData } = useListCategoriesQuery({ active: true, pageSize: 100 });
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: '',
+      description: '',
+      category: '',
+      categoryId: null,
+      price: '',
+      bulkEnabled: false,
+      bulkMinQuantity: '',
+      bulkPrice: '',
+    },
+  });
   const {
     register,
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', category: '', categoryId: null, price: '' },
-  });
+  } = form;
 
   async function onSubmit(values: FormValues) {
     const created = await createProduct({
@@ -61,6 +73,7 @@ export function CreateProductModal({ businessId, defaultCurrency = 'CUP', onClos
       category: values.category || undefined,
       categoryId: values.categoryId ?? undefined,
       price: values.price ? Number(values.price) : undefined,
+      ...(values.bulkEnabled ? bulkPriceToApi(values) : {}),
       priceCurrency: currency,
     }).unwrap();
     onCreated?.(created.data);
@@ -109,6 +122,9 @@ export function CreateProductModal({ businessId, defaultCurrency = 'CUP', onClos
             Al cliente se le muestra y cobra en CUP, convertido con la tasa de cambio (Configuración).
           </p>
         )}
+        <FormProvider {...form}>
+          <BulkPriceFields />
+        </FormProvider>
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>
