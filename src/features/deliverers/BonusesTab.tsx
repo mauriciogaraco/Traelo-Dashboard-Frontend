@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, Star, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -140,7 +140,9 @@ export function BonusesTab() {
   const [filter, setFilter] = useState<QualifiedFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const date = referenceDate(period, offset).toISOString();
+  // Estable entre renders: con la hora exacta cambiaría el argumento de la consulta en cada render y
+  // RTK Query la volvería a pedir sin parar (la tabla nunca terminaría de cargar).
+  const date = useMemo(() => referenceDate(period, offset).toISOString(), [period, offset]);
   const { data, isLoading, isError, isFetching } = useGetDelivererWeeklyBonusesQuery({ period, date });
   const allRows = data?.data.rows ?? [];
   const totals = data?.data.totals;
