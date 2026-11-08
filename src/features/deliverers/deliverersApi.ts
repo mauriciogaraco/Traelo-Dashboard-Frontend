@@ -30,6 +30,58 @@ export interface DelivererBonusesDTO {
   rows: DelivererBonusDTO[];
 }
 
+// Bono de mensajeros: % del servicio de la semana (lunes a domingo, hora de La Habana) por volumen,
+// reseñas y fiabilidad. Ver deliverer-bonus-rules en el backend. También se consulta por día
+// (lo que aportó ese día) o por mes (suma de las semanas que empiezan dentro del mes).
+export type BonusPeriod = 'day' | 'week' | 'month';
+
+export interface DelivererBonusWeekDTO {
+  from: string;
+  to: string;
+  serviceTotal: number;
+  bonusPct: number;
+  bonusAmount: number;
+}
+
+export interface DelivererWeeklyBonusDTO {
+  delivererId: string;
+  name: string;
+  active: boolean;
+  serviceTotal: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  // completadas / (completadas + canceladas), de 0 a 1.
+  completionRate: number;
+  reviewCount: number;
+  averageRating: number | null;
+  // Componentes del bono (de la semana). null en el mes: ahí cada semana tiene los suyos.
+  volumePct: number | null;
+  actionsPct: number | null;
+  reliabilityPct: number | null;
+  // Semana: el % de bono. Día: el % de su semana. Mes: el % efectivo (bono ÷ servicio).
+  bonusPct: number;
+  // Semana: el bono. Día: lo que aportó ese día. Mes: suma de los bonos de sus semanas.
+  bonusAmount: number;
+  // Clasificó al bono: gana algo en el período.
+  qualified: boolean;
+  // Solo en el mes.
+  weeks?: DelivererBonusWeekDTO[];
+}
+
+export interface DelivererWeeklyBonusesDTO {
+  period: BonusPeriod;
+  week: { from: string; to: string };
+  weeks: { from: string; to: string }[];
+  rows: DelivererWeeklyBonusDTO[];
+  totals: { serviceTotal: number; bonusAmount: number };
+}
+
+export interface DelivererWeeklyBonusesParams {
+  period?: BonusPeriod;
+  // Cualquier fecha dentro del período (ISO); sin ella, el período en curso.
+  date?: string;
+}
+
 export interface DelivererBonusesParams {
   range?: Exclude<DateRangePreset, 'custom'>;
 }
@@ -85,6 +137,12 @@ export const deliverersApi = baseApi.injectEndpoints({
     }),
     getDelivererBonuses: builder.query<ApiOk<DelivererBonusesDTO>, DelivererBonusesParams | void>({
       query: (params) => ({ url: '/deliverers/bonuses', params: params ?? undefined }),
+    }),
+    getDelivererWeeklyBonuses: builder.query<
+      ApiOk<DelivererWeeklyBonusesDTO>,
+      DelivererWeeklyBonusesParams | void
+    >({
+      query: (params) => ({ url: '/deliverers/bonuses/weekly', params: params ?? undefined }),
     }),
     // Orden real de la cola (botón "Ver orden real" en Trabajando hoy) — se pide al toque, no se
     // deja en caché: la posición cambia apenas se asigna un pedido.
@@ -148,6 +206,7 @@ export const deliverersApi = baseApi.injectEndpoints({
 export const {
   useListDeliverersQuery,
   useGetDelivererBonusesQuery,
+  useGetDelivererWeeklyBonusesQuery,
   useLazyGetDispatchQueueQuery,
   useCreateDelivererMutation,
   useUpdateDelivererMutation,

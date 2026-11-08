@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { PackagingEditor } from './PackagingEditor';
+import { BulkPriceFields, bulkPriceShape, bulkPriceToApi, refineBulkPrice } from './BulkPriceFields';
 import { AddonsEditor, OptionsEditor, UnitsPerPackField } from './VariantEditors';
 import type { PriceCurrency, ProductDTO } from '@/lib/types';
 import { useListCategoriesQuery } from '@/features/categories/categoriesApi';
@@ -65,7 +66,8 @@ const schema = z.object({
       (v) => !v || (Number.isInteger(Number(v)) && Number(v) >= 2 && Number(v) <= 10000),
       'Entero entre 2 y 10000',
     ),
-});
+  ...bulkPriceShape,
+}).superRefine(refineBulkPrice);
 
 type FormValues = z.infer<typeof schema>;
 
@@ -127,6 +129,9 @@ export function EditProductModal({
       options: (product.options ?? []).map((name) => ({ name })),
       addons: (product.addons ?? []).map((addon) => ({ name: addon.name, price: addon.price.toString() })),
       formato: product.formato?.toString() ?? '',
+      bulkEnabled: product.bulkPrice != null && product.bulkMinQuantity != null,
+      bulkMinQuantity: product.bulkMinQuantity?.toString() ?? '',
+      bulkPrice: product.bulkPrice?.toString() ?? '',
     },
   });
   const {
@@ -146,6 +151,8 @@ export function EditProductModal({
         category: values.category || undefined,
         categoryId: values.categoryId,
         price: values.price ? Number(values.price) : undefined,
+        // Si el backend aún no conoce el campo y el switch sigue apagado, no se manda nada.
+        ...(values.bulkEnabled || product.bulkPrice !== undefined ? bulkPriceToApi(values) : {}),
         ...(canFeature && product.priceCurrency !== undefined && currency !== product.priceCurrency
           ? { priceCurrency: currency }
           : {}),
@@ -237,6 +244,7 @@ export function EditProductModal({
             error={errors.price?.message}
             {...register('price')}
           />
+          <BulkPriceFields />
           {currency !== (product.priceCurrency ?? 'CUP') && (
             <p className="-mt-2 text-xs text-amber-700">
               Cambiaste la moneda: los números NO se convierten solos. Escribe de nuevo el precio (y el de los agregos y las ofertas) en {currency}.
