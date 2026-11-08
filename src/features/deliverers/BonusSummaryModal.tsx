@@ -81,7 +81,8 @@ export function BonusSummaryModal({ row, period, date, inProgress, onClose }: Bo
   const cancelPct = Math.round((1 - row.completionRate) * 100);
   const total = period === 'day' ? weekRow : row;
   const periodWord = period === 'month' ? 'el mes' : 'la semana';
-  const verb = inProgress ? 'Ganará' : 'Ganó';
+  // Lo que hay que pagarle: el bono del período; en el día, el de su semana.
+  const payable = period === 'day' ? weekRow?.bonusAmount : row.bonusAmount;
 
   const volumeHint = period === 'week' && row.volumePct !== null ? nextVolumeTier(row.serviceTotal, row.volumePct) : null;
   const actionsHint = period === 'week' && row.actionsPct !== null ? nextActionTier(row.reviewCount, row.actionsPct) : null;
@@ -98,39 +99,38 @@ export function BonusSummaryModal({ row, period, date, inProgress, onClose }: Bo
           {!row.active && <Badge tone="slate">Inactivo</Badge>}
         </div>
 
-        <div className="rounded-xl bg-brand-50 p-4">
-          {period === 'day' ? (
-            <>
-              <p className="text-sm text-brand-800">Aporta hoy al bono de la semana</p>
-              <p className="text-3xl font-bold tabular-nums text-brand-900">
-                {formatCup(row.bonusAmount)} <span className="text-lg font-semibold">CUP</span>
-              </p>
-              <p className="mt-1 text-xs text-brand-800">
-                Servicio del día × {row.bonusPct}% que lleva la semana
-              </p>
-              <div className="mt-3 border-t border-brand-100 pt-3">
-                <p className="text-sm text-brand-800">{verb} en la semana</p>
-                <p className="text-xl font-bold tabular-nums text-brand-900">
-                  {weekRow ? `${formatCup(weekRow.bonusAmount)} CUP` : '…'}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-brand-800">
-                {verb} en {periodWord}
-              </p>
-              <p className="text-3xl font-bold tabular-nums text-brand-900">
-                {formatCup(row.bonusAmount)} <span className="text-lg font-semibold">CUP</span>
-              </p>
-              <p className="mt-1 text-xs text-brand-800">
-                {period === 'month'
-                  ? `${row.bonusPct}% efectivo del servicio del mes`
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 p-4">
+            <p className="text-sm text-slate-500">
+              {period === 'day' ? 'Generó hoy' : `Generó en ${periodWord}`}
+            </p>
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
+              {formatCup(row.serviceTotal)} <span className="text-lg font-semibold">CUP</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              de mensajería · {row.completedDeliveries}{' '}
+              {row.completedDeliveries === 1 ? 'entrega' : 'entregas'}
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-50 p-4">
+            <p className="text-sm text-brand-800">
+              {period === 'day'
+                ? 'Bonificación de la semana a darle'
+                : `Bonificación a darle${inProgress ? ' (hasta ahora)' : ''}`}
+            </p>
+            <p className="text-3xl font-bold tabular-nums text-brand-900">
+              {payable === undefined ? '…' : formatCup(payable)}{' '}
+              <span className="text-lg font-semibold">CUP</span>
+            </p>
+            <p className="mt-1 text-xs text-brand-800">
+              {period === 'day'
+                ? `${row.bonusPct}% que lleva la semana · hoy aporta ${formatCup(row.bonusAmount)} CUP`
+                : period === 'month'
+                  ? `${row.bonusPct}% efectivo: suma de los bonos de sus semanas`
                   : `${row.bonusPct}% de ${formatCup(row.serviceTotal)} CUP de servicio`}
-                {inProgress && ' · si se mantiene así hasta el final del período'}
-              </p>
-            </>
-          )}
+              {inProgress && period !== 'day' && ' · si se mantiene así hasta el final'}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
