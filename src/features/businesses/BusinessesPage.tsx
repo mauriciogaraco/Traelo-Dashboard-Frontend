@@ -3,7 +3,6 @@ import { Plus, RotateCcw, Search, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Thumbnail } from '@/components/ui/Thumbnail';
 import { useAppSelector } from '@/app/hooks';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/ui/Pagination';
@@ -11,9 +10,11 @@ import { useListCitiesQuery } from '@/features/cities/citiesApi';
 import { COMMISSION_TYPE_LABEL } from '@/lib/labels';
 import { CommissionType, type BusinessDTO, type PaginationMeta } from '@/lib/types';
 import { CreateBusinessModal } from './CreateBusinessModal';
+import { BusinessAvailabilityBadge } from './BusinessAvailabilityBadge';
 import { EditBusinessModal } from './EditBusinessModal';
 import {
   useDeactivateBusinessMutation,
+  useListBusinessOpenStatusesQuery,
   useListBusinessesQuery,
   useUpdateBusinessMutation,
 } from './businessesApi';
@@ -72,6 +73,15 @@ export function BusinessesPage() {
       },
     };
   }, [data, isInactiveFilter, page]);
+
+  // Abierto/cerrado por horario: lo calcula el backend y cambia con el reloj, por eso se sondea.
+  const { data: statusData } = useListBusinessOpenStatusesQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const openNowById = useMemo(
+    () => new Map((statusData?.data ?? []).map((s) => [s.id, s.isOpenNow])),
+    [statusData],
+  );
 
   const [reactivateBusiness] = useUpdateBusinessMutation();
   const [deactivateBusiness, { isLoading: isDeactivating }] = useDeactivateBusinessMutation();
@@ -193,9 +203,10 @@ export function BusinessesPage() {
                   <td className="px-4 py-3">{business.cityName ?? '—'}</td>
                 )}
                 <td className="px-4 py-3">
-                  <Badge tone={business.active ? 'green' : 'slate'}>
-                    {business.active ? 'Activo' : 'Inactivo'}
-                  </Badge>
+                  <BusinessAvailabilityBadge
+                    business={business}
+                    isOpenNow={openNowById.get(business.id)}
+                  />
                 </td>
                 {canManage && (
                   <td className="px-4 py-3">
