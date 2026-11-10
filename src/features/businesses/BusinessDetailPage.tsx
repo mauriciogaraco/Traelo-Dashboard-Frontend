@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/ToastProvider';
 import clsx from 'clsx';
 import { COMMISSION_TYPE_LABEL, SUBSCRIPTION_STATUS_LABEL } from '@/lib/labels';
+import { BusinessAvailabilityBadge } from './BusinessAvailabilityBadge';
 import { EditBusinessModal } from './EditBusinessModal';
 import { HoursTab } from './HoursTab';
 import { OwnerTab } from './OwnerTab';
@@ -18,6 +19,8 @@ import { SubscriptionsTab } from './SubscriptionsTab';
 import {
   useDeactivateBusinessMutation,
   useGetBusinessQuery,
+  useGetBusinessAvailabilityLogQuery,
+  useListBusinessOpenStatusesQuery,
   useSetAcceptingOrdersMutation,
   useUpdateBusinessMutation,
   useUploadBusinessLogoMutation,
@@ -40,6 +43,12 @@ export function BusinessDetailPage() {
 
   const { showToast } = useToast();
   const { data, isLoading, error } = useGetBusinessQuery(id ?? '', { skip: !id });
+  const { data: statusData } = useListBusinessOpenStatusesQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const { data: logData } = useGetBusinessAvailabilityLogQuery(id ?? '', {
+    skip: !id || !canManage,
+  });
   const [reactivateBusiness] = useUpdateBusinessMutation();
   const [deactivateBusiness, { isLoading: isDeactivating }] = useDeactivateBusinessMutation();
   const [uploadLogo] = useUploadBusinessLogoMutation();
@@ -82,9 +91,10 @@ export function BusinessDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold text-slate-900">{business.name}</h1>
-            <Badge tone={business.active ? 'green' : 'slate'}>
-              {business.active ? 'Activo' : 'Inactivo'}
-            </Badge>
+            <BusinessAvailabilityBadge
+              business={business}
+              isOpenNow={statusData?.data.find((s) => s.id === business.id)?.isOpenNow}
+            />
           </div>
           <p className="mt-1 text-sm text-slate-500">
             {business.phone} · {business.address}
@@ -145,7 +155,9 @@ export function BusinessDetailPage() {
                 />
                 <dl className="flex flex-1 flex-col justify-center gap-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-500">Acepta pedidos</dt>
+                    <dt className="text-slate-500" title="Apagado = oculto en la web del cliente">
+                      Acepta pedidos
+                    </dt>
                     <dd>
                       <Switch
                         checked={business.acceptingOrders}
@@ -172,6 +184,45 @@ export function BusinessDetailPage() {
                 </dl>
               </div>
               {isTogglingAccepting && <p className="mt-2 text-xs text-slate-400">Actualizando…</p>}
+            </div>
+          )}
+
+          {canManage && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+                Historial de disponibilidad
+              </h2>
+              {(logData?.data.length ?? 0) === 0 ? (
+                <p className="text-sm text-slate-400">
+                  Sin cambios registrados (el registro empieza desde que se activó esta función).
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {logData?.data.map((entry) => (
+                    <li key={entry.id} className="flex flex-wrap justify-between gap-2 py-2">
+                      <span className="text-slate-700">
+                        {entry.field === 'acceptingOrders'
+                          ? entry.newValue
+                            ? 'Volvió a aceptar pedidos'
+                            : 'Pasó a "No acepta pedidos"'
+                          : entry.newValue
+                            ? 'Activado'
+                            : 'Desactivado'}
+                        {' · '}
+                        <span className="font-medium">
+                          {entry.actorName ?? 'Origen desconocido'}
+                          {entry.actorRole ? ` (${entry.actorRole})` : ''}
+                        </span>
+                      </span>
+                      <span className="text-slate-400">
+                        {new Date(entry.createdAt).toLocaleString('es', {
+                          timeZone: 'America/Havana',
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

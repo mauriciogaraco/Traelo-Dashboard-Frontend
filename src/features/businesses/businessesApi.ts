@@ -119,6 +119,23 @@ export interface ListSubscriptionsParams {
   pageSize?: number;
 }
 
+export interface BusinessOpenStatusDTO {
+  id: string;
+  acceptingOrders: boolean;
+  isOpenNow: boolean;
+}
+
+export interface BusinessAvailabilityLogDTO {
+  id: string;
+  field: 'acceptingOrders' | 'active';
+  oldValue: boolean;
+  newValue: boolean;
+  source: 'ACCEPTING_ORDERS' | 'BUSINESS_UPDATE' | 'BUSINESS_DEACTIVATE';
+  actorName: string | null;
+  actorRole: string | null;
+  createdAt: string;
+}
+
 export interface CreateSubscriptionInput {
   businessId: string;
   cycle: SubscriptionCycle;
@@ -202,6 +219,16 @@ export const businessesApi = baseApi.injectEndpoints({
         { type: 'Business', id },
         { type: 'Business', id: 'LIST' },
       ],
+    }),
+    // Estado "abierto ahora" calculado por el backend (horario + cierres + acceptingOrders).
+    // Se refresca solo por el reloj, así que se invalida junto con 'Business' y se sondea en las vistas.
+    listBusinessOpenStatuses: builder.query<ApiOk<BusinessOpenStatusDTO[]>, void>({
+      query: () => '/catalog/businesses/status',
+      providesTags: [{ type: 'Business', id: 'LIST' }],
+    }),
+    getBusinessAvailabilityLog: builder.query<ApiOk<BusinessAvailabilityLogDTO[]>, string>({
+      query: (id) => `/businesses/${id}/availability-log`,
+      providesTags: (_result, _error, id) => [{ type: 'Business', id }],
     }),
     setAcceptingOrders: builder.mutation<
       ApiOk<BusinessDTO>,
@@ -491,6 +518,8 @@ export const {
   useUpdateBusinessMutation,
   useSetBusinessProductsCurrencyMutation,
   useDeactivateBusinessMutation,
+  useListBusinessOpenStatusesQuery,
+  useGetBusinessAvailabilityLogQuery,
   useSetAcceptingOrdersMutation,
   useUploadBusinessLogoMutation,
   useListBusinessHoursQuery,
