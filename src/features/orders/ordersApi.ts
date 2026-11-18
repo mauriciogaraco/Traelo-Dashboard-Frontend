@@ -11,6 +11,8 @@ export interface ListOrdersParams {
   acceptance?: 'UNACCEPTED' | 'ACCEPTED';
   delivererId?: string;
   businessId?: string;
+  // Ciudad del pedido; si se omite, el dashboard manda la ciudad activa (ver baseApi).
+  cityId?: string;
   search?: string;
   // Atajo (hoy/semana/mes/semestre/año); omitilo junto con from/to para ver todos los pedidos.
   range?: DateRangePreset;
