@@ -99,6 +99,7 @@ export const baseApi = createApi({
     'Raffle',
     'User',
     'Business',
+    'PosBusiness',
     'BusinessHours',
     'BusinessClosure',
     'Product',

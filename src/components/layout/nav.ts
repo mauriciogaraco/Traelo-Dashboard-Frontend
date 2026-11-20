@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Medal,
   Package,
+  Receipt,
   ShoppingBasket,
   MapPin,
   Settings,
@@ -66,6 +67,8 @@ export const navEntries: NavEntry[] = [
   { to: '/familia', label: 'Familia', icon: Gift, roles: ['OWNER', 'ADMIN', 'EMPLOYEE'] },
   { to: '/customers', label: 'Clientes', icon: HeartHandshake, roles: ['BUSINESS_OWNER'] },
   { to: '/my-business', label: 'Mi negocio', icon: Store, roles: ['BUSINESS_OWNER'] },
+  // Negocios del punto de venta: independientes del catálogo (pueden o no coincidir con uno).
+  { to: '/pos', label: 'Sistema POS', icon: Receipt, roles: ['OWNER', 'ADMIN'] },
   {
     label: 'Catálogo',
     icon: Store,
