@@ -1,18 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Plus } from 'lucide-react';
+import { Plus, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Modal } from '@/components/ui/Modal';
+import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/ToastProvider';
 import { formatDateTime } from '@/lib/formatDate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import {
   useCreatePosAccountMutation,
+  useGetCashierPermissionsQuery,
   useListPosAccountsQuery,
   useUpdatePosAccountMutation,
   type PosAccountDTO,
@@ -41,6 +43,10 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
   const { showToast } = useToast();
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<PosAccountDTO | null>(null);
+  const [editingModules, setEditingModules] = useState<PosAccountDTO | null>(null);
+  const { data: roleModules } = useGetCashierPermissionsQuery(businessId);
+  const totalModules = roleModules?.data.modules.length ?? 0;
+  const inheritedCount = roleModules?.data.modules.filter((m) => m.enabled).length ?? 0;
 
   const accounts = data?.data ?? [];
   const change = async (account: PosAccountDTO, body: { role?: PosAccountDTO['role']; active?: boolean }, ok: string) => {
@@ -73,6 +79,7 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
             <tr>
               <th className="px-3 py-2 font-medium">Usuario</th>
               <th className="px-3 py-2 font-medium">Rol</th>
+              <th className="px-3 py-2 font-medium">Módulos</th>
               <th className="px-3 py-2 font-medium">Estado</th>
               <th className="px-3 py-2 font-medium">Último acceso</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
@@ -81,21 +88,21 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
                   Cargando…
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-red-600">
+                <td colSpan={6} className="px-3 py-6 text-center text-red-600">
                   No se pudieron cargar los usuarios.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && accounts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
                   Este negocio todavía no tiene usuarios. Crea al administrador para que pueda entrar.
                 </td>
               </tr>
@@ -109,6 +116,13 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
                 <td className="px-3 py-3">
                   <Badge tone={a.role === 'admin' ? 'brand' : 'slate'}>{ROLE_LABEL[a.role]}</Badge>
                 </td>
+                <td className="px-3 py-3 text-xs text-slate-600">
+                  {a.role === 'admin'
+                    ? 'Todos'
+                    : a.modules
+                      ? `${a.modules.length} de ${totalModules || '…'} (propios)`
+                      : `${inheritedCount} de ${totalModules || '…'} (los de la caja)`}
+                </td>
                 <td className="px-3 py-3">
                   {a.lockedUntil ? (
                     <Badge tone="amber">Bloqueado hasta {formatDateTime(a.lockedUntil)}</Badge>
@@ -119,6 +133,11 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
                 <td className="px-3 py-3">{formatDateTime(a.lastLoginAt)}</td>
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap justify-end gap-2">
+                    {a.role === 'cashier' && (
+                      <Button type="button" variant="secondary" onClick={() => setEditingModules(a)}>
+                        Permisos
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="secondary"
@@ -156,6 +175,9 @@ export function PosAccountsCard({ businessId }: { businessId: string }) {
       </p>
 
       {creating && <CreateAccountModal businessId={businessId} onClose={() => setCreating(false)} />}
+      {editingModules && (
+        <AccountModulesModal businessId={businessId} account={editingModules} onClose={() => setEditingModules(null)} />
+      )}
       {resetting && (
         <ResetPasswordModal businessId={businessId} account={resetting} onClose={() => setResetting(null)} />
       )}
@@ -258,6 +280,87 @@ function ResetPasswordModal({
           </Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+// Módulos de UNA persona (cajero). Sin lista propia hereda los de la caja del negocio; con ella, esa lista manda. El
+// administrador siempre tiene todos. Los cambios llegan al teléfono cuando la persona vuelve a iniciar sesión con su cuenta.
+function AccountModulesModal({
+  businessId,
+  account,
+  onClose,
+}: {
+  businessId: string;
+  account: PosAccountDTO;
+  onClose: () => void;
+}) {
+  const { data, isLoading, isError } = useGetCashierPermissionsQuery(businessId);
+  const [update, { isLoading: isSaving }] = useUpdatePosAccountMutation();
+  const { showToast } = useToast();
+  const modules = data?.data.modules ?? [];
+  const inherited = modules.filter((m) => m.enabled).map((m) => m.key);
+  const [inherit, setInherit] = useState(account.modules === null);
+  const [draft, setDraft] = useState<string[] | null>(account.modules);
+  const shown = inherit ? inherited : (draft ?? inherited);
+
+  const toggle = (key: string, on: boolean) => {
+    const base = draft ?? inherited;
+    setDraft(on ? [...new Set([...base, key])] : base.filter((k) => k !== key));
+  };
+  const changeInherit = (on: boolean) => {
+    setInherit(on);
+    if (!on && draft === null) setDraft(inherited);
+  };
+
+  const save = async () => {
+    try {
+      await update({ businessId, accountId: account.id, modules: inherit ? null : (draft ?? inherited) }).unwrap();
+      showToast(`Permisos de ${account.name} guardados. Surten efecto cuando vuelva a iniciar sesión con su cuenta.`);
+      onClose();
+    } catch (e) {
+      showToast(getErrorMessage(e as Parameters<typeof getErrorMessage>[0]), 'error');
+    }
+  };
+
+  return (
+    <Modal title={`Permisos de ${account.name}`} onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">
+          <ShieldCheck className="h-4 w-4" />
+          {account.email}
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-3 py-2">
+          <span className="text-sm text-slate-700">
+            Usar los módulos de la caja del negocio
+            <span className="block text-xs text-slate-500">
+              Si se cambian allí, esta persona los sigue. Apágalo para darle una lista solo suya.
+            </span>
+          </span>
+          <Switch checked={inherit} onChange={changeInherit} />
+        </div>
+        {isLoading && <p className="text-sm text-slate-400">Cargando módulos…</p>}
+        {isError && <p className="text-sm text-red-600">No se pudo cargar la lista de módulos.</p>}
+        <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
+          {modules.map((m) => (
+            <li key={m.key} className="flex items-center justify-between gap-4 py-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900">{m.label}</p>
+                <p className="text-xs text-slate-500">{m.description}</p>
+              </div>
+              <Switch checked={shown.includes(m.key)} disabled={inherit} onChange={(on) => toggle(m.key, on)} />
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="button" isLoading={isSaving} disabled={isLoading || isError} onClick={save}>
+            Guardar permisos
+          </Button>
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -4,15 +4,17 @@ interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: string;
+  disabled?: boolean;
 }
 
-export function Switch({ checked, onChange, label }: SwitchProps) {
+export function Switch({ checked, onChange, label, disabled = false }: SwitchProps) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2">
+    <label className={clsx('inline-flex items-center gap-2', disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')}>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
         className={clsx(
           'relative h-6 w-11 shrink-0 rounded-full transition-colors',
