@@ -59,6 +59,19 @@ export interface CashierPermissionsDTO {
   }[];
 }
 
+// Persona que usa el POS de un negocio: entra con correo y contraseña; el rol (administrador o cajero) sale de su cuenta.
+export interface PosAccountDTO {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'cashier';
+  active: boolean;
+  lastLoginAt: string | null;
+  /** Hasta cuándo está bloqueada por intentos fallidos, si lo está ahora. */
+  lockedUntil: string | null;
+  createdAt: string;
+}
+
 export interface ListPosBusinessesParams {
   page?: number;
   pageSize?: number;
@@ -120,6 +133,28 @@ export const posApi = baseApi.injectEndpoints({
         { type: 'PosBusiness', id: `${businessId}:permissions` },
       ],
     }),
+    listPosAccounts: builder.query<ApiOk<PosAccountDTO[]>, string>({
+      query: (id) => `/pos/admin/businesses/${id}/accounts`,
+      providesTags: (_result, _error, id) => [{ type: 'PosBusiness', id: `${id}:accounts` }],
+    }),
+    createPosAccount: builder.mutation<
+      ApiOk<PosAccountDTO>,
+      { businessId: string; name: string; email: string; role: 'admin' | 'cashier'; password: string }
+    >({
+      query: ({ businessId, ...body }) => ({ url: `/pos/admin/businesses/${businessId}/accounts`, method: 'POST', body }),
+      invalidatesTags: (_result, _error, { businessId }) => [{ type: 'PosBusiness', id: `${businessId}:accounts` }],
+    }),
+    updatePosAccount: builder.mutation<
+      ApiOk<PosAccountDTO>,
+      { businessId: string; accountId: string; name?: string; role?: 'admin' | 'cashier'; active?: boolean; password?: string }
+    >({
+      query: ({ businessId, accountId, ...body }) => ({
+        url: `/pos/admin/businesses/${businessId}/accounts/${accountId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [{ type: 'PosBusiness', id: `${businessId}:accounts` }],
+    }),
     createPosBusiness: builder.mutation<ApiOk<PosBusinessDTO>, CreatePosBusinessInput>({
       query: (body) => ({ url: '/pos/admin/businesses', method: 'POST', body }),
       invalidatesTags: [{ type: 'PosBusiness', id: 'LIST' }],
@@ -132,6 +167,9 @@ export const {
   useGetPosBusinessDevicesQuery,
   useRevokePosDeviceMutation,
   useGetCashierPermissionsQuery,
+  useListPosAccountsQuery,
+  useCreatePosAccountMutation,
+  useUpdatePosAccountMutation,
   useSetCashierPermissionsMutation,
   useCreatePosBusinessMutation,
 } = posApi;
