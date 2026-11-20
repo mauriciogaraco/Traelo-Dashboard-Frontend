@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Badge } from '@/components/ui/Badge';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/ToastProvider';
 import { formatDate } from '@/lib/formatDate';
 import { HoursTab } from '@/features/businesses/HoursTab';
 import { ProductsTab } from '@/features/businesses/ProductsTab';
+import { BusinessAvailabilityBadge } from '@/features/businesses/BusinessAvailabilityBadge';
 import {
+  useListBusinessOpenStatusesQuery,
   useSetAcceptingOrdersMutation,
   useUploadBusinessLogoMutation,
 } from '@/features/businesses/businessesApi';
@@ -25,6 +26,9 @@ export function MyBusinessPage() {
   const [tab, setTab] = useState<Tab>('info');
   const { showToast } = useToast();
   const { data, isLoading, error } = useGetMyBusinessQuery();
+  const { data: statusData } = useListBusinessOpenStatusesQuery(undefined, {
+    pollingInterval: 60_000,
+  });
   const [uploadLogo] = useUploadBusinessLogoMutation();
   const [setAcceptingOrders, { isLoading: isToggling }] = useSetAcceptingOrdersMutation();
 
@@ -46,9 +50,10 @@ export function MyBusinessPage() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-semibold text-slate-900">{business.name}</h1>
-        <Badge tone={business.acceptingOrders ? 'green' : 'amber'}>
-          {business.acceptingOrders ? 'Recibiendo pedidos' : 'Pausado'}
-        </Badge>
+        <BusinessAvailabilityBadge
+          business={business}
+          isOpenNow={statusData?.data.find((s) => s.id === business.id)?.isOpenNow}
+        />
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
@@ -94,7 +99,9 @@ export function MyBusinessPage() {
                   }
                 />
                 <p className="text-xs text-slate-400">
-                  Pausalo cuando no puedas atender (se agotó todo, imprevisto, etc.).
+                  Pausalo cuando no puedas atender (se agotó todo, imprevisto, etc.). Pausado =
+                  tu negocio deja de aparecer en la web del cliente. Fuera de horario solo se
+                  muestra como cerrado.
                 </p>
                 {isToggling && <p className="text-xs text-slate-400">Actualizando…</p>}
               </div>

@@ -47,6 +47,12 @@ const DeliverersPage = lazy(() =>
 const BusinessesPage = lazy(() =>
   import('@/features/businesses/BusinessesPage').then((m) => ({ default: m.BusinessesPage })),
 );
+const PosBusinessDetailPage = lazy(() =>
+  import('@/features/pos/PosBusinessDetailPage').then((m) => ({ default: m.PosBusinessDetailPage })),
+);
+const PosBusinessesPage = lazy(() =>
+  import('@/features/pos/PosBusinessesPage').then((m) => ({ default: m.PosBusinessesPage })),
+);
 const BusinessDetailPage = lazy(() =>
   import('@/features/businesses/BusinessDetailPage').then((m) => ({ default: m.BusinessDetailPage })),
 );
@@ -175,6 +181,8 @@ export const router = createBrowserRouter([
           {
             element: <RoleGate allow={['OWNER', 'ADMIN']} />,
             children: [
+              { path: 'pos', element: <PosBusinessesPage /> },
+              { path: 'pos/:id', element: <PosBusinessDetailPage /> },
               { path: 'categories', element: <CategoriesPage /> },
               { path: 'raffle', element: <RafflePage /> },
               { path: 'app-customers', element: <AppCustomersPage /> },
