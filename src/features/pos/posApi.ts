@@ -72,6 +72,21 @@ export const posApi = baseApi.injectEndpoints({
       query: (id) => `/pos/admin/businesses/${id}/devices`,
       providesTags: (_result, _error, id) => [{ type: 'PosBusiness', id }],
     }),
+    // Libera el asiento de un dispositivo. `transfer` es lo mismo, anotado como transferencia en el historial.
+    revokePosDevice: builder.mutation<
+      ApiOk<PosBusinessDevicesDTO>,
+      { businessId: string; deviceId: string; reason: 'revoked' | 'transfer' }
+    >({
+      query: ({ businessId, deviceId, reason }) => ({
+        url: `/pos/admin/businesses/${businessId}/devices/${encodeURIComponent(deviceId)}/revoke`,
+        method: 'POST',
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'PosBusiness', id: businessId },
+        { type: 'PosBusiness', id: 'LIST' },
+      ],
+    }),
     createPosBusiness: builder.mutation<ApiOk<PosBusinessDTO>, CreatePosBusinessInput>({
       query: (body) => ({ url: '/pos/admin/businesses', method: 'POST', body }),
       invalidatesTags: [{ type: 'PosBusiness', id: 'LIST' }],
@@ -79,4 +94,9 @@ export const posApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useListPosBusinessesQuery, useGetPosBusinessDevicesQuery, useCreatePosBusinessMutation } = posApi;
+export const {
+  useListPosBusinessesQuery,
+  useGetPosBusinessDevicesQuery,
+  useRevokePosDeviceMutation,
+  useCreatePosBusinessMutation,
+} = posApi;

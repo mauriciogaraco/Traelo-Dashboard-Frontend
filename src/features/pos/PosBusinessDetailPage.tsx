@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/ToastProvider';
 import { formatDate, formatDateTime } from '@/lib/formatDate';
-import { useGetPosBusinessDevicesQuery, type PosDeviceDTO } from './posApi';
+import { useGetPosBusinessDevicesQuery, useRevokePosDeviceMutation, type PosDeviceDTO } from './posApi';
 
 const ROLE_LABEL: Record<PosDeviceDTO['role'], string> = {
   admin: 'Administrador',
@@ -23,6 +27,24 @@ const LICENSE_LABEL: Record<
 export function PosBusinessDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = useGetPosBusinessDevicesQuery(id ?? '', { skip: !id });
+  const [revoke, { isLoading: isRevoking }] = useRevokePosDeviceMutation();
+  const { showToast } = useToast();
+  const [pending, setPending] = useState<{ device: PosDeviceDTO; reason: 'revoked' | 'transfer' } | null>(null);
+
+  const confirmRevoke = async () => {
+    if (!pending || !id) return;
+    try {
+      await revoke({ businessId: id, deviceId: pending.device.deviceId, reason: pending.reason }).unwrap();
+      showToast(
+        pending.reason === 'transfer'
+          ? `Asiento liberado: ${pending.device.name} ya no puede usar la licencia.`
+          : `${pending.device.name} fue revocado.`,
+      );
+      setPending(null);
+    } catch {
+      showToast('No se pudo revocar el dispositivo', 'error');
+    }
+  };
 
   if (isLoading) return <p className="text-slate-400">Cargando…</p>;
   if (isError || !data) {
@@ -87,12 +109,13 @@ export function PosBusinessDetailPage() {
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Última conexión</th>
               <th className="px-4 py-3 font-medium">Licencia</th>
+              <th className="px-4 py-3 font-medium text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {devices.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   Este negocio todavía no tiene dispositivos dados de alta.
                 </td>
               </tr>
@@ -129,6 +152,24 @@ export function PosBusinessDetailPage() {
                       <Badge tone="slate">Sin activar</Badge>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    {d.status === 'active' ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setPending({ device: d, reason: 'transfer' })}
+                        >
+                          Transferir
+                        </Button>
+                        <Button type="button" variant="danger" onClick={() => setPending({ device: d, reason: 'revoked' })}>
+                          Revocar
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="block text-right text-xs text-slate-400">—</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -136,8 +177,23 @@ export function PosBusinessDetailPage() {
         </table>
       </div>
       <p className="text-xs text-slate-400">
-        El personal con PIN (propietario, gerentes y cajeros) se gestiona en cada teléfono y no se sincroniza con el servidor.
+        Transferir y Revocar liberan el asiento del dispositivo (deja de vender y su licencia no se renueva); Transferir queda anotado como cambio de teléfono. El teléfono nuevo se activa
+        por sí mismo con la cuenta del dueño. El personal con PIN (propietario, gerentes y cajeros) se gestiona en cada teléfono y no se sincroniza con el servidor.
       </p>
+      {pending && (
+        <ConfirmDialog
+          title={pending.reason === 'transfer' ? 'Transferir a otro teléfono' : 'Revocar dispositivo'}
+          description={
+            pending.reason === 'transfer'
+              ? `«${pending.device.name}» dejará de poder vender y su asiento de ${ROLE_LABEL[pending.device.role].toLowerCase()} quedará libre para activar un teléfono nuevo. Lo que ya vendió se conserva. Esto no se puede deshacer.`
+              : `«${pending.device.name}» dejará de poder vender y su asiento de ${ROLE_LABEL[pending.device.role].toLowerCase()} quedará libre. Úsalo si el teléfono se perdió o ya no debe usarse. Lo que ya vendió se conserva. Esto no se puede deshacer.`
+          }
+          confirmLabel={pending.reason === 'transfer' ? 'Liberar asiento' : 'Revocar'}
+          isLoading={isRevoking}
+          onConfirm={confirmRevoke}
+          onCancel={() => setPending(null)}
+        />
+      )}
     </div>
   );
 }
