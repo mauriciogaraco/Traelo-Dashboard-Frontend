@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/ToastProvider';
 import { formatDate, formatDateTime } from '@/lib/formatDate';
+import { CashierPermissionsCard } from './CashierPermissionsCard';
 import { useGetPosBusinessDevicesQuery, useRevokePosDeviceMutation, type PosDeviceDTO } from './posApi';
 
 const ROLE_LABEL: Record<PosDeviceDTO['role'], string> = {
@@ -180,6 +181,8 @@ export function PosBusinessDetailPage() {
         Transferir y Revocar liberan el asiento del dispositivo (deja de vender y su licencia no se renueva); Transferir queda anotado como cambio de teléfono. El teléfono nuevo se activa
         por sí mismo con la cuenta del dueño. El personal con PIN (propietario, gerentes y cajeros) se gestiona en cada teléfono y no se sincroniza con el servidor.
       </p>
+      <CashierPermissionsCard businessId={business.id} />
+
       {pending && (
         <ConfirmDialog
           title={pending.reason === 'transfer' ? 'Transferir a otro teléfono' : 'Revocar dispositivo'}

@@ -43,6 +43,22 @@ export interface PosBusinessDevicesDTO {
   devices: PosDeviceDTO[];
 }
 
+// Módulos de la app POS con su interruptor para el dispositivo de CAJA (el administrador siempre tiene todos).
+export interface CashierPermissionsDTO {
+  /** `null` mientras nadie ha configurado nada: la caja usa los módulos por defecto. */
+  version: number | null;
+  isDefault: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  modules: {
+    key: string;
+    label: string;
+    description: string;
+    cashierDefault: boolean;
+    enabled: boolean;
+  }[];
+}
+
 export interface ListPosBusinessesParams {
   page?: number;
   pageSize?: number;
@@ -87,6 +103,23 @@ export const posApi = baseApi.injectEndpoints({
         { type: 'PosBusiness', id: 'LIST' },
       ],
     }),
+    getCashierPermissions: builder.query<ApiOk<CashierPermissionsDTO>, string>({
+      query: (id) => `/pos/admin/businesses/${id}/cashier-permissions`,
+      providesTags: (_result, _error, id) => [{ type: 'PosBusiness', id: `${id}:permissions` }],
+    }),
+    setCashierPermissions: builder.mutation<
+      ApiOk<CashierPermissionsDTO>,
+      { businessId: string; modules: string[] }
+    >({
+      query: ({ businessId, modules }) => ({
+        url: `/pos/admin/businesses/${businessId}/cashier-permissions`,
+        method: 'PUT',
+        body: { modules },
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'PosBusiness', id: `${businessId}:permissions` },
+      ],
+    }),
     createPosBusiness: builder.mutation<ApiOk<PosBusinessDTO>, CreatePosBusinessInput>({
       query: (body) => ({ url: '/pos/admin/businesses', method: 'POST', body }),
       invalidatesTags: [{ type: 'PosBusiness', id: 'LIST' }],
@@ -98,5 +131,7 @@ export const {
   useListPosBusinessesQuery,
   useGetPosBusinessDevicesQuery,
   useRevokePosDeviceMutation,
+  useGetCashierPermissionsQuery,
+  useSetCashierPermissionsMutation,
   useCreatePosBusinessMutation,
 } = posApi;
