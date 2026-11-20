@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
@@ -130,7 +131,11 @@ export function PosBusinessesPage() {
               const sub = b.subscription ? SUBSCRIPTION_LABEL[b.subscription.status] : null;
               return (
                 <tr key={b.id} className="text-slate-700">
-                  <td className="px-4 py-3 font-medium text-slate-900">{b.name}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">
+                    <Link to={`/pos/${b.id}`} className="text-brand-700 hover:underline">
+                      {b.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">{b.cityName ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div>{b.phone ?? '—'}</div>
@@ -159,7 +164,11 @@ export function PosBusinessesPage() {
                       <Badge tone="slate">Sin suscripción</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">{b.activeDevices}</td>
+                  <td className="px-4 py-3">
+                    <Link to={`/pos/${b.id}`} className="hover:underline" title="Ver administrador y caja">
+                      {b.activeDevices}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge tone={b.status === 'active' ? 'green' : 'slate'}>
                       {b.status === 'active' ? 'Activo' : 'Suspendido'}
