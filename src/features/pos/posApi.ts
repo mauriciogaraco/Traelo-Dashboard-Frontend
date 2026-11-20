@@ -70,6 +70,8 @@ export interface PosAccountDTO {
   /** Hasta cuándo está bloqueada por intentos fallidos, si lo está ahora. */
   lockedUntil: string | null;
   createdAt: string;
+  /** Módulos propios de la persona; `null` = hereda los de su rol (la caja del negocio). El administrador tiene todos. */
+  modules: string[] | null;
 }
 
 export interface ListPosBusinessesParams {
@@ -89,6 +91,10 @@ export interface CreatePosBusinessInput {
   businessId?: string;
   planCode?: string;
   durationDays?: number;
+  // Administrador del POS: el dueño del negocio del catálogo (mismo correo y contraseña) o una persona nueva.
+  admin?:
+    | { from: 'catalog_owner' }
+    | { from: 'new'; name: string; email: string; password: string };
 }
 
 export const posApi = baseApi.injectEndpoints({
@@ -139,14 +145,23 @@ export const posApi = baseApi.injectEndpoints({
     }),
     createPosAccount: builder.mutation<
       ApiOk<PosAccountDTO>,
-      { businessId: string; name: string; email: string; role: 'admin' | 'cashier'; password: string }
+      { businessId: string; name: string; email: string; role: 'admin' | 'cashier'; password: string; modules?: string[] }
     >({
       query: ({ businessId, ...body }) => ({ url: `/pos/admin/businesses/${businessId}/accounts`, method: 'POST', body }),
       invalidatesTags: (_result, _error, { businessId }) => [{ type: 'PosBusiness', id: `${businessId}:accounts` }],
     }),
     updatePosAccount: builder.mutation<
       ApiOk<PosAccountDTO>,
-      { businessId: string; accountId: string; name?: string; role?: 'admin' | 'cashier'; active?: boolean; password?: string }
+      {
+        businessId: string;
+        accountId: string;
+        name?: string;
+        role?: 'admin' | 'cashier';
+        active?: boolean;
+        password?: string;
+        /** Lista propia de módulos; `null` vuelve a heredar los del rol. */
+        modules?: string[] | null;
+      }
     >({
       query: ({ businessId, accountId, ...body }) => ({
         url: `/pos/admin/businesses/${businessId}/accounts/${accountId}`,

@@ -62,7 +62,7 @@ function PermissionsForm({
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Permisos del cajero</h2>
+          <h2 className="text-base font-semibold text-slate-900">Módulos de la caja (por defecto)</h2>
           <p className="text-xs text-slate-500">
             {draft.length} de {current.modules.length} módulos activados para la caja
             {current.updatedAt
@@ -70,6 +70,9 @@ function PermissionsForm({
               : ' · valores por defecto (nadie los ha cambiado)'}
           </p>
         </div>
+        <p className="w-full text-xs text-slate-500">
+          Los usan los cajeros que no tengan una lista propia (botón «Permisos» de cada usuario).
+        </p>
         <div className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">
           <ShieldCheck className="h-4 w-4" />
           Administrador: acceso a todo (no configurable)
