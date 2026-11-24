@@ -40,6 +40,8 @@ export interface PosDeviceDTO {
 export interface PosBusinessDevicesDTO {
   business: PosBusinessDTO;
   seats: { role: 'admin' | 'cashier'; allowed: number | null; used: number }[];
+  /** `true` si el cupo lo fijó el personal de Tráelo para este negocio (si no, es el del plan). */
+  seatsCustom: boolean;
   devices: PosDeviceDTO[];
 }
 
@@ -122,6 +124,18 @@ export const posApi = baseApi.injectEndpoints({
         { type: 'PosBusiness', id: 'LIST' },
       ],
     }),
+    // Fija cuántos administradores y cuántas cajas puede tener activos el negocio (no desactiva los que ya hay).
+    setPosSeats: builder.mutation<
+      ApiOk<PosBusinessDevicesDTO>,
+      { businessId: string; admin: number; cashier: number }
+    >({
+      query: ({ businessId, admin, cashier }) => ({
+        url: `/pos/admin/businesses/${businessId}/seats`,
+        method: 'PUT',
+        body: { admin, cashier },
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [{ type: 'PosBusiness', id: businessId }],
+    }),
     getCashierPermissions: builder.query<ApiOk<CashierPermissionsDTO>, string>({
       query: (id) => `/pos/admin/businesses/${id}/cashier-permissions`,
       providesTags: (_result, _error, id) => [{ type: 'PosBusiness', id: `${id}:permissions` }],
@@ -181,6 +195,7 @@ export const {
   useListPosBusinessesQuery,
   useGetPosBusinessDevicesQuery,
   useRevokePosDeviceMutation,
+  useSetPosSeatsMutation,
   useGetCashierPermissionsQuery,
   useListPosAccountsQuery,
   useCreatePosAccountMutation,
