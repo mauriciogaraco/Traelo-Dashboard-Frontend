@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/ToastProvider';
 import { formatDate, formatDateTime } from '@/lib/formatDate';
 import { CashierPermissionsCard } from './CashierPermissionsCard';
 import { PosAccountsCard } from './PosAccountsCard';
+import { PosSeatsCard } from './PosSeatsCard';
 import { useGetPosBusinessDevicesQuery, useRevokePosDeviceMutation, type PosDeviceDTO } from './posApi';
 
 const ROLE_LABEL: Record<PosDeviceDTO['role'], string> = {
@@ -40,11 +41,11 @@ export function PosBusinessDetailPage() {
       showToast(
         pending.reason === 'transfer'
           ? `Asiento liberado: ${pending.device.name} ya no puede usar la licencia.`
-          : `${pending.device.name} fue revocado.`,
+          : `${pending.device.name} fue desactivado.`,
       );
       setPending(null);
     } catch {
-      showToast('No se pudo revocar el dispositivo', 'error');
+      showToast('No se pudo desactivar el dispositivo', 'error');
     }
   };
 
@@ -61,7 +62,7 @@ export function PosBusinessDetailPage() {
     );
   }
 
-  const { business, seats, devices } = data.data;
+  const { business, seats, seatsCustom, devices } = data.data;
   const now = Date.now();
 
   return (
@@ -96,11 +97,19 @@ export function PosBusinessDetailPage() {
               <span className="text-base font-normal text-slate-400"> / {s.allowed ?? '—'}</span>
             </p>
             <p className="text-xs text-slate-500">
-              {s.allowed === null ? 'Sin suscripción: no hay asientos' : s.used >= s.allowed ? 'Asiento ocupado' : 'Asiento libre'}
+              {s.allowed === null ? 'Sin suscripción: no hay asientos' : s.used >= s.allowed ? 'Cupo completo' : `${s.allowed - s.used} libre${s.allowed - s.used === 1 ? '' : 's'}`}
             </p>
           </div>
         ))}
       </div>
+
+      <PosSeatsCard
+        key={`${seats.map((s) => `${s.role}${s.allowed}`).join('-')}-${seatsCustom}`}
+        businessId={business.id}
+        seats={seats}
+        custom={seatsCustom}
+        hasSubscription={business.subscription !== null}
+      />
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
@@ -138,7 +147,7 @@ export function PosBusinessDetailPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={d.status === 'active' ? 'green' : 'red'}>
-                      {d.status === 'active' ? 'Activo' : 'Revocado'}
+                      {d.status === 'active' ? 'Activo' : 'Desactivado'}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">{formatDateTime(d.lastSeenAt)}</td>
@@ -165,7 +174,7 @@ export function PosBusinessDetailPage() {
                           Transferir
                         </Button>
                         <Button type="button" variant="danger" onClick={() => setPending({ device: d, reason: 'revoked' })}>
-                          Revocar
+                          Desactivar
                         </Button>
                       </div>
                     ) : (
@@ -179,7 +188,7 @@ export function PosBusinessDetailPage() {
         </table>
       </div>
       <p className="text-xs text-slate-400">
-        Transferir y Revocar liberan el asiento del dispositivo (deja de vender y su licencia no se renueva); Transferir queda anotado como cambio de teléfono. El teléfono nuevo se activa
+        Transferir y Desactivar liberan el asiento del dispositivo (deja de vender y su licencia no se renueva); Transferir queda anotado como cambio de teléfono. El teléfono nuevo se activa
         por sí mismo con la cuenta del dueño. Las personas que usan el POS (administrador y cajeros) se gestionan abajo, en «Usuarios del negocio»; el PIN diario de cada una lo crea en su teléfono.
       </p>
       <PosAccountsCard businessId={business.id} />
@@ -188,13 +197,13 @@ export function PosBusinessDetailPage() {
 
       {pending && (
         <ConfirmDialog
-          title={pending.reason === 'transfer' ? 'Transferir a otro teléfono' : 'Revocar dispositivo'}
+          title={pending.reason === 'transfer' ? 'Transferir a otro teléfono' : 'Desactivar dispositivo'}
           description={
             pending.reason === 'transfer'
               ? `«${pending.device.name}» dejará de poder vender y su asiento de ${ROLE_LABEL[pending.device.role].toLowerCase()} quedará libre para activar un teléfono nuevo. Lo que ya vendió se conserva. Esto no se puede deshacer.`
               : `«${pending.device.name}» dejará de poder vender y su asiento de ${ROLE_LABEL[pending.device.role].toLowerCase()} quedará libre. Úsalo si el teléfono se perdió o ya no debe usarse. Lo que ya vendió se conserva. Esto no se puede deshacer.`
           }
-          confirmLabel={pending.reason === 'transfer' ? 'Liberar asiento' : 'Revocar'}
+          confirmLabel={pending.reason === 'transfer' ? 'Liberar asiento' : 'Desactivar'}
           isLoading={isRevoking}
           onConfirm={confirmRevoke}
           onCancel={() => setPending(null)}
