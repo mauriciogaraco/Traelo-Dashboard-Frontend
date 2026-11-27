@@ -156,6 +156,9 @@ export interface CityConfigDTO {
   chargePlatformFee: boolean;
   // CUP por kilómetro de la mensajería de "otra ubicación" (desde el centro del pueblo). Ausente en un backend anterior.
   outOfTownFeePerKm?: number;
+  // Cargo por mal clima de la ciudad. Ausentes en un backend anterior.
+  weatherSurchargeEnabled?: boolean;
+  weatherSurchargeAmount?: number;
   updatedAt: string;
 }
 
@@ -508,7 +511,9 @@ export interface OrderDTO {
   lastEditSummary?: OrderItemChangeDTO[] | null;
   productsTotal: number; // subtotal de productos — 100% del negocio
   platformFee: number; // "Servicio Tráelo" — cargo visible, redondeado
-  total: number; // productsTotal + deliveryFee + platformFee
+  // Cargo por mal clima cobrado en este pedido (entero para el mensajero). Ausente en un backend anterior.
+  weatherSurcharge?: number;
+  total: number; // productsTotal + deliveryFee + weatherSurcharge + platformFee
   traeloEarning: number; // ganancia total de Tráelo = platformFee + traeloDeliveryShare
   traeloDeliveryShare: number;
   delivererEarning: number;
@@ -548,6 +553,7 @@ export interface SettlementOrderDTO {
   delivererEarning: number;
   traeloDeliveryShare: number;
   platformFee: number;
+  weatherSurcharge?: number;
   total: number;
 }
 

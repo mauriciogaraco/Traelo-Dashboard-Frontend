@@ -123,6 +123,9 @@ export function ReviewOrderModal({ review, onClose }: { review: ReviewListItemDT
               <dl className="space-y-1.5">
                 <Row label="Productos">{cup(order.productsTotal)}</Row>
                 <Row label="Mensajería">{cup(order.deliveryFee)}</Row>
+                {(order.weatherSurcharge ?? 0) > 0 && (
+                  <Row label="Cargo por mal clima">{cup(order.weatherSurcharge ?? 0)}</Row>
+                )}
                 <Row label="Servicio Tráelo">{cup(order.platformFee)}</Row>
                 {(order.pointsRedeemed ?? 0) > 0 && (
                   <Row label={`Puntos canjeados (${order.pointsRedeemed})`}>- {cup(order.pointsDiscount ?? 0)}</Row>

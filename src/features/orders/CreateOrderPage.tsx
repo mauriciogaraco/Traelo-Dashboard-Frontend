@@ -6,6 +6,7 @@ import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
+import { useGetCityConfigQuery } from '@/features/cities/citiesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { describeDeliveryFeeSuggestion, suggestDeliveryFee } from '@/lib/deliveryFeeSuggestion';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -27,6 +28,7 @@ import {
 import { useAssignOrderMutation, useCreateOrderMutation } from './ordersApi';
 import { parseOrderText } from './orderTextParser';
 import { useCustomerLookup } from './useCustomerLookup';
+import { WeatherSurchargeField } from './WeatherSurchargeField';
 
 export function CreateOrderPage() {
   const navigate = useNavigate();
@@ -49,6 +51,9 @@ export function CreateOrderPage() {
   }, []);
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
+  // null = el staff no lo tocó: manda lo que tenga activo la ciudad del pedido.
+  const [weatherChoice, setWeatherChoice] = useState<boolean | null>(null);
+  const [weatherAmount, setWeatherAmount] = useState<string | null>(null);
   const [raffleNumber, setRaffleNumber] = useState('');
   const [flags, setFlags] = useState<OrderFlags>({
     customerConfirmed: false,
@@ -79,6 +84,11 @@ export function CreateOrderPage() {
     () => (orderCityId ? allBusinesses.filter((b) => b.cityId === orderCityId) : allBusinesses),
     [allBusinesses, orderCityId],
   );
+  const { data: cityConfigData } = useGetCityConfigQuery(orderCityId ?? '', { skip: !orderCityId });
+  const cityConfig = orderCityId ? cityConfigData?.data : undefined;
+  const weatherOn = weatherChoice ?? cityConfig?.weatherSurchargeEnabled ?? false;
+  const weatherValue = weatherAmount ?? String(cityConfig?.weatherSurchargeAmount || '');
+  const weatherNumber = weatherOn ? Number(weatherValue) || 0 : 0;
   const { data: deliverersData } = useListDeliverersQuery({
     active: true,
     pageSize: 100,
@@ -108,6 +118,10 @@ export function CreateOrderPage() {
       setPlatformFeeOverride(String(draft.platformFeeOverride));
       // Si el vale trae "Servicio Tráelo: 0", asumimos que este pedido puntual no lo cobra.
       if (draft.platformFeeOverride === 0) setChargePlatformFee(false);
+    }
+    if (draft.weatherSurcharge !== null) {
+      setWeatherChoice(draft.weatherSurcharge > 0);
+      setWeatherAmount(String(draft.weatherSurcharge));
     }
     if (draft.raffleNumber !== null) setRaffleNumber(String(draft.raffleNumber));
     if (draft.businessGroups.length > 0) {
@@ -215,6 +229,15 @@ export function CreateOrderPage() {
       }
       platformFeeOverrideValue = parsed;
     }
+    // Solo se manda una excepción si el staff tocó el cargo; si no, decide el backend con la ciudad.
+    let weatherSurchargeOverride: number | undefined;
+    if (weatherChoice !== null || weatherAmount !== null) {
+      if (weatherOn && !(Number(weatherValue) > 0)) {
+        setFormError('El cargo por mal clima debe ser mayor que 0 (o apágalo).');
+        return;
+      }
+      weatherSurchargeOverride = weatherNumber;
+    }
     let raffleNumberValue: number | undefined;
     if (raffleNumber !== '') {
       const parsed = Number(raffleNumber);
@@ -271,6 +294,7 @@ export function CreateOrderPage() {
         addressReference: addressReference.trim() || undefined,
         deliveryFee: feeNumber,
         platformFeeOverride: platformFeeOverrideValue,
+        weatherSurchargeOverride,
         raffleNumber: raffleNumberValue,
         ...(flags.customerConfirmed ? { customerConfirmed: true } : {}),
         ...(flags.orderedWithBusiness ? { orderedWithBusiness: true } : {}),
@@ -459,6 +483,12 @@ export function CreateOrderPage() {
                 <dt className="text-slate-500">Mensajería</dt>
                 <dd className="font-medium text-slate-900">{feeNumber} CUP</dd>
               </div>
+              {weatherNumber > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Cargo por mal clima</dt>
+                  <dd className="font-medium text-slate-900">{weatherNumber} CUP</dd>
+                </div>
+              )}
             </dl>
             <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3">
               <Switch
@@ -481,6 +511,12 @@ export function CreateOrderPage() {
                   Este pedido no cobra Servicio Tráelo — se guarda en 0 CUP.
                 </p>
               )}
+              <WeatherSurchargeField
+                checked={weatherOn}
+                amount={weatherValue}
+                onCheckedChange={setWeatherChoice}
+                onAmountChange={setWeatherAmount}
+              />
               <FormField
                 label="Número del sorteo (opcional)"
                 type="number"

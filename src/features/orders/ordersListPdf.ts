@@ -48,6 +48,11 @@ export function customerBlock(order: OrderDTO): string {
   ].join('\n');
 }
 
+// El cargo por mal clima va en una segunda línea de la columna de mensajería, sin ensanchar la tabla.
+function withWeather(fee: string, weather: number): string {
+  return weather > 0 ? `${fee}\n+${cup(weather)} clima` : fee;
+}
+
 // Negocio y productos va en una sola columna para no ensanchar la tabla: lleva el ancho que sobra.
 export const ORDERS_PDF_COLUMNS: PdfColumn<OrderDTO>[] = [
   { header: '#', align: 'center', width: 36, render: (o) => String(o.orderNumber) },
@@ -57,7 +62,12 @@ export const ORDERS_PDF_COLUMNS: PdfColumn<OrderDTO>[] = [
   { header: 'Mensajero', width: 62, render: (o) => o.delivererName ?? '—' },
   { header: 'Estado', align: 'center', width: 66, render: (o) => ORDER_STATUS_LABEL[o.status] ?? o.status },
   { header: 'Subtotal', align: 'right', width: 64, render: (o) => cup(o.productsTotal) },
-  { header: 'Mensajería', align: 'right', width: 64, render: (o) => cup(o.deliveryFee) },
+  {
+    header: 'Mensajería',
+    align: 'right',
+    width: 64,
+    render: (o) => withWeather(cup(o.deliveryFee), o.weatherSurcharge ?? 0),
+  },
   { header: 'Servicio', align: 'right', width: 56, render: (o) => cup(o.platformFee) },
   { header: 'Total', align: 'right', width: 68, render: (o) => cup(o.total) },
 ];
@@ -82,7 +92,10 @@ export function ordersPdfTotals(rows: OrderDTO[]): (string | number)[] {
     '',
     '',
     cup(sum((o) => o.productsTotal)),
-    cup(sum((o) => o.deliveryFee)),
+    withWeather(
+      cup(sum((o) => o.deliveryFee)),
+      sum((o) => o.weatherSurcharge ?? 0),
+    ),
     cup(sum((o) => o.platformFee)),
     cup(sum((o) => o.total)),
   ];

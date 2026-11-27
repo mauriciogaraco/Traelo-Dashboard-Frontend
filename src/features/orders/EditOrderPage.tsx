@@ -5,6 +5,7 @@ import { FormField } from '@/components/ui/FormField';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Switch } from '@/components/ui/Switch';
 import { useListBusinessesQuery } from '@/features/businesses/businessesApi';
+import { useGetCityConfigQuery } from '@/features/cities/citiesApi';
 import { useListDeliverersQuery } from '@/features/deliverers/deliverersApi';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { stripPackagingSuffix, withPackagingSuffix } from '@/lib/itemName';
@@ -28,6 +29,7 @@ import {
   useUpdateOrderMutation,
 } from './ordersApi';
 import { useCustomerLookup } from './useCustomerLookup';
+import { WeatherSurchargeField } from './WeatherSurchargeField';
 
 export function EditOrderPage() {
   const { id } = useParams<{ id: string }>();
@@ -60,6 +62,8 @@ export function EditOrderPage() {
   const [deliveryFee, setDeliveryFee] = useState('');
   const [chargePlatformFee, setChargePlatformFee] = useState(true);
   const [platformFeeOverride, setPlatformFeeOverride] = useState('');
+  const [weatherOn, setWeatherOn] = useState(false);
+  const [weatherAmount, setWeatherAmount] = useState('');
   const [raffleNumber, setRaffleNumber] = useState('');
   const [flags, setFlags] = useState<OrderFlags>({
     customerConfirmed: false,
@@ -91,6 +95,8 @@ export function EditOrderPage() {
     setDeliveryFee(String(order.deliveryFee));
     setChargePlatformFee(order.platformFee > 0);
     setPlatformFeeOverride(String(order.platformFee));
+    setWeatherOn((order.weatherSurcharge ?? 0) > 0);
+    setWeatherAmount(order.weatherSurcharge ? String(order.weatherSurcharge) : '');
     // == null (no !==) a propósito: el backend en producción todavía puede no mandar este
     // campo en absoluto mientras el PR que lo agrega no esté desplegado, y ahí llega
     // `undefined`, no `null` — un check estricto lo confundía con "tiene un valor".
@@ -182,7 +188,15 @@ export function EditOrderPage() {
     (acc, g) => acc + g.items.reduce((sum, it) => sum + itemLineTotal(it), 0),
     0,
   );
+  const orderCity = data?.data.cityId;
+  const { data: cityConfigData } = useGetCityConfigQuery(orderCity ?? '', { skip: !orderCity });
+  function toggleWeather(on: boolean) {
+    setWeatherOn(on);
+    const cityAmount = cityConfigData?.data.weatherSurchargeAmount;
+    if (on && !weatherAmount && cityAmount) setWeatherAmount(String(cityAmount));
+  }
   const feeNumber = Number(deliveryFee) || 0;
+  const weatherNumber = weatherOn ? Number(weatherAmount) || 0 : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -208,6 +222,13 @@ export function EditOrderPage() {
       }
       platformFeeOverrideValue = parsed;
     }
+    if (weatherOn && !(Number(weatherAmount) > 0)) {
+      setFormError('El cargo por mal clima debe ser mayor que 0 (o apágalo).');
+      return;
+    }
+    // Solo se manda si cambió: el pedido conserva lo que se cobró al crearlo.
+    const weatherSurchargeOverride =
+      weatherNumber === (data.data.weatherSurcharge ?? 0) ? undefined : weatherNumber;
     let raffleNumberValue: number | null | undefined;
     if (raffleNumber === '') {
       raffleNumberValue = data.data.raffleNumber == null ? undefined : null;
@@ -268,6 +289,7 @@ export function EditOrderPage() {
           addressReference: addressReference.trim() || undefined,
           deliveryFee: feeNumber,
           platformFeeOverride: platformFeeOverrideValue,
+          weatherSurchargeOverride,
           raffleNumber: raffleNumberValue,
           customerConfirmed: flags.customerConfirmed,
           orderedWithBusiness: flags.orderedWithBusiness,
@@ -419,6 +441,12 @@ export function EditOrderPage() {
               <dt className="text-slate-500">Mensajería</dt>
               <dd className="font-medium text-slate-900">{feeNumber} CUP</dd>
             </div>
+            {weatherNumber > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Cargo por mal clima</dt>
+                <dd className="font-medium text-slate-900">{weatherNumber} CUP</dd>
+              </div>
+            )}
           </dl>
           <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3">
             <Switch
@@ -441,6 +469,12 @@ export function EditOrderPage() {
                 Este pedido no cobra Servicio Tráelo — se guarda en 0 CUP.
               </p>
             )}
+            <WeatherSurchargeField
+              checked={weatherOn}
+              amount={weatherAmount}
+              onCheckedChange={toggleWeather}
+              onAmountChange={setWeatherAmount}
+            />
             <FormField
               label="Número del sorteo (opcional)"
               type="number"

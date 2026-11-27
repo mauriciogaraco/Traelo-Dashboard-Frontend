@@ -222,7 +222,10 @@ export async function buildOrderPdf(order: OrderDTO): Promise<jsPDF> {
     );
   }
   if ((order.packagingTotal ?? 0) > 0) money1.push(['   de los cuales, empaque', money(order.packagingTotal)]);
-  money1.push(['Mensajería', money(order.deliveryFee)], ['Servicio Tráelo', money(order.platformFee)]);
+  money1.push(['Mensajería', money(order.deliveryFee)]);
+  const weather = order.weatherSurcharge ?? 0;
+  if (weather > 0) money1.push(['Cargo por mal clima', money(weather)]);
+  money1.push(['Servicio Tráelo', money(order.platformFee)]);
   if ((order.pointsRedeemed ?? 0) > 0) {
     money1.push(
       ['Total antes del canje', money(order.totalBeforeRedemption ?? order.total)],
@@ -233,7 +236,7 @@ export async function buildOrderPdf(order: OrderDTO): Promise<jsPDF> {
   pairsTable('Resumen', money1);
 
   const split: Pair[] = [
-    ['Mensajería — parte del mensajero', money(order.delivererEarning)],
+    [weather > 0 ? 'Parte del mensajero (con mal clima)' : 'Mensajería — parte del mensajero', money(order.delivererEarning)],
     ['Mensajería — parte de Tráelo', money(order.traeloDeliveryShare)],
     ['Ganancia total de Tráelo', money(order.traeloEarning)],
   ];

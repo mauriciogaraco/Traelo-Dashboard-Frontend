@@ -49,6 +49,8 @@ export interface CreateOrderInput {
   // Anula el Servicio Tráelo calculado automáticamente (p.ej. 0 si no se cobró en este pedido).
   // Si se omite, el backend lo calcula solo a partir de la comisión de cada negocio.
   platformFeeOverride?: number;
+  // Cargo por mal clima de este pedido (0 = no cobrarlo). Si se omite, el que tenga activo la ciudad.
+  weatherSurchargeOverride?: number;
   // "🎟️ Número del Sorteo" del vale, cuando el pedido participa de una promoción vigente.
   raffleNumber?: number;
   // Avisos para el mensajero (ver OrderDTO.customerConfirmed / orderedWithBusiness / inviteToApp).
@@ -74,6 +76,7 @@ export interface MergePreview {
   productsTotal: number;
   deliveryFee: number;
   platformFee: number;
+  weatherSurcharge?: number;
   total: number;
   separateDeliveryFees: number;
   separateTotals: number;
@@ -104,6 +107,7 @@ export interface UpdateOrderInput {
   customerPhone?: string;
   deliveryFee?: number;
   platformFeeOverride?: number;
+  weatherSurchargeOverride?: number;
   raffleNumber?: number | null;
   customerConfirmed?: boolean;
   orderedWithBusiness?: boolean;

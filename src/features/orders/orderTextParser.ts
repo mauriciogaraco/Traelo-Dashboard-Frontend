@@ -28,6 +28,8 @@ export interface ParsedOrderDraft {
   // como sugerencia editable para el campo de anulación del Servicio Tráelo — nunca se envía
   // solo, el staff siempre puede corregirlo antes de guardar.
   platformFeeOverride: number | null;
+  // "Cargo por mal clima: N" del vale pegado.
+  weatherSurcharge: number | null;
   // "🎟️ Número del Sorteo: #N" del vale pegado — opcional, no todos los pedidos participan.
   raffleNumber: number | null;
   businessGroups: ParsedOrderBusinessGroup[];
@@ -50,6 +52,7 @@ const NOTE_LABEL_PATTERNS: { prefix: string; regex: RegExp }[] = [
 
 const DELIVERY_FEE_REGEX = /^(?:mensajer[ií]a|env[ií]o|delivery|flete)\s*:?\s*\$?\s*([\d.,]+)/i;
 const PLATFORM_FEE_REGEX = /^servicio\s+tr[aá]elo\s*:?\s*\$?\s*([\d.,]+)/i;
+const WEATHER_SURCHARGE_REGEX = /^cargo\s+por\s+mal\s+(?:clima|tiempo)\s*:?\s*\$?\s*([\d.,]+)/i;
 const RAFFLE_NUMBER_REGEX = /^n[uú]mero\s+del\s+sorteo\s*:?\s*#?\s*(\d+)/i;
 
 // Líneas informativas que nunca deben interpretarse como producto ni mostrarse como "sin
@@ -129,6 +132,7 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     addressReference: null,
     deliveryFee: null,
     platformFeeOverride: null,
+    weatherSurcharge: null,
     raffleNumber: null,
     businessGroups: [],
     unmatchedLines: [],
@@ -171,6 +175,12 @@ export function parseOrderText(text: string, businesses: BusinessDTO[]): ParsedO
     const platformFeeMatch = line.match(PLATFORM_FEE_REGEX);
     if (platformFeeMatch?.[1]) {
       draft.platformFeeOverride = parseMoney(platformFeeMatch[1]);
+      continue;
+    }
+
+    const weatherMatch = line.match(WEATHER_SURCHARGE_REGEX);
+    if (weatherMatch?.[1]) {
+      draft.weatherSurcharge = parseMoney(weatherMatch[1]);
       continue;
     }
 
@@ -284,6 +294,9 @@ export function generateOrderVoucherText(
     lines.push(`  Productos en CUP: ${currencies.cupTotal}`);
   }
   lines.push(`Mensajería: ${order.deliveryFee}`);
+  if ((order.weatherSurcharge ?? 0) > 0) {
+    lines.push(`Cargo por mal clima: ${order.weatherSurcharge}`);
+  }
   if (order.platformFee > 0) {
     lines.push(`Servicio Tráelo: ${order.platformFee}`);
   }

@@ -195,7 +195,12 @@ export function SettlementDetailPage() {
                 </td>
                 <td className="px-4 py-3">{order.businessNames.join(', ')}</td>
                 <td className="px-4 py-3">{formatDateTime(order.completedAt)}</td>
-                <td className="px-4 py-3">{order.deliveryFee} CUP</td>
+                <td className="px-4 py-3">
+                  {order.deliveryFee} CUP
+                  {(order.weatherSurcharge ?? 0) > 0 && (
+                    <span className="block text-xs text-sky-700">+{order.weatherSurcharge} mal clima</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">{order.platformFee} CUP</td>
                 <td className="px-4 py-3">{order.total} CUP</td>
               </tr>
