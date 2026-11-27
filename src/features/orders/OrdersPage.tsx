@@ -492,7 +492,12 @@ export function OrdersPage() {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3">{order.deliveryFee} CUP</td>
+                <td className="px-4 py-3">
+                  {order.deliveryFee} CUP
+                  {(order.weatherSurcharge ?? 0) > 0 && (
+                    <span className="block text-xs text-sky-700">+{order.weatherSurcharge} mal clima</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 font-medium text-slate-900">{order.total} CUP</td>
                 <td className="px-4 py-3 text-slate-500">{formatDateTime(order.orderDate)}</td>
                 {canManage && (

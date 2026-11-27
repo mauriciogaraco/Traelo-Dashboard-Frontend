@@ -123,10 +123,15 @@ const configSchema = z
     operatingHoursWeekendEnd: timeField,
     operationalMessage: z.string().max(500),
     outOfTownFeePerKm: z.string().refine((v) => v === '' || Number(v) > 0, 'Debe ser mayor que 0'),
+    weatherSurchargeEnabled: z.boolean(),
+    weatherSurchargeAmount: z.string().refine((v) => v === '' || Number(v) >= 0, 'No puede ser negativo'),
     latitude: z.string(),
     longitude: z.string(),
   })
   .superRefine((v, ctx) => {
+    if (v.weatherSurchargeEnabled && !(Number(v.weatherSurchargeAmount) > 0)) {
+      ctx.addIssue({ code: 'custom', path: ['weatherSurchargeAmount'], message: 'Define un valor mayor que 0' });
+    }
     if (!v.operatingHoursEnabled) return;
     if (!v.operatingHoursStart) {
       ctx.addIssue({ code: 'custom', path: ['operatingHoursStart'], message: 'Requerido' });
@@ -179,6 +184,8 @@ function CityConfigModal({ city, onClose }: { city: CityDTO; onClose: () => void
       operatingHoursWeekendEnd: '',
       operationalMessage: '',
       outOfTownFeePerKm: '125',
+      weatherSurchargeEnabled: false,
+      weatherSurchargeAmount: '',
       latitude: city.latitude != null ? String(city.latitude) : '',
       longitude: city.longitude != null ? String(city.longitude) : '',
     },
@@ -196,6 +203,8 @@ function CityConfigModal({ city, onClose }: { city: CityDTO; onClose: () => void
       operatingHoursWeekendEnd: isoToTime(c.operatingHoursWeekendEnd),
       operationalMessage: c.operationalMessage ?? '',
       outOfTownFeePerKm: String(c.outOfTownFeePerKm ?? 125),
+      weatherSurchargeEnabled: c.weatherSurchargeEnabled ?? false,
+      weatherSurchargeAmount: c.weatherSurchargeAmount ? String(c.weatherSurchargeAmount) : '',
       latitude: city.latitude != null ? String(city.latitude) : '',
       longitude: city.longitude != null ? String(city.longitude) : '',
     });
@@ -221,6 +230,10 @@ function CityConfigModal({ city, onClose }: { city: CityDTO; onClose: () => void
       body: {
         acceptingOrders: values.acceptingOrders,
         chargePlatformFee: values.chargePlatformFee,
+        weatherSurchargeEnabled: values.weatherSurchargeEnabled,
+        ...(values.weatherSurchargeAmount !== ''
+          ? { weatherSurchargeAmount: Number(values.weatherSurchargeAmount) }
+          : {}),
         operatingHoursEnabled: values.operatingHoursEnabled,
         operatingHoursStart: values.operatingHoursStart || null,
         operatingHoursEnd: values.operatingHoursEnd || null,
@@ -235,6 +248,7 @@ function CityConfigModal({ city, onClose }: { city: CityDTO; onClose: () => void
   const hoursEnabled = watch('operatingHoursEnabled');
   const accepting = watch('acceptingOrders');
   const chargeFee = watch('chargePlatformFee');
+  const weather = watch('weatherSurchargeEnabled');
 
   return (
     <Modal title={`Configuración · ${city.name}`} onClose={onClose}>
@@ -257,6 +271,26 @@ function CityConfigModal({ city, onClose }: { city: CityDTO; onClose: () => void
               Apagado: los pedidos nuevos de esta ciudad se cotizan y crean sin el cargo de servicio.
             </p>
           </div>
+          <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3">
+            <legend className="px-1 text-sm font-medium text-slate-700">Cargo por mal clima</legend>
+            <Switch
+              checked={weather}
+              onChange={(v) => setValue('weatherSurchargeEnabled', v, { shouldDirty: true })}
+              label="Cobrar cargo por mal clima"
+            />
+            <FormField
+              label="Valor del cargo (CUP)"
+              type="number"
+              min={0}
+              step="1"
+              error={errors.weatherSurchargeAmount?.message}
+              {...register('weatherSurchargeAmount')}
+            />
+            <p className="text-xs text-slate-500">
+              Activo: cada pedido nuevo de esta ciudad suma este valor al total, aparte de la mensajería, y es
+              entero para el mensajero. No cambia pedidos ya creados.
+            </p>
+          </fieldset>
           <Switch
             checked={hoursEnabled}
             onChange={(v) => setValue('operatingHoursEnabled', v, { shouldDirty: true })}

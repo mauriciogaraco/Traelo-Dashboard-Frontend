@@ -53,7 +53,8 @@ function OrderColumn({ title, order, tone }: { title: string; order: OrderDTO; t
         ))}
       </ul>
       <p className="mt-2 text-xs text-slate-500">
-        Productos {cup(order.productsTotal)} · Mensajería {cup(order.deliveryFee)} · Servicio {cup(order.platformFee)}
+        Productos {cup(order.productsTotal)} · Mensajería {cup(order.deliveryFee)}
+        {(order.weatherSurcharge ?? 0) > 0 && ` · Mal clima ${cup(order.weatherSurcharge ?? 0)}`} · Servicio {cup(order.platformFee)}
       </p>
       <p className="text-sm font-semibold text-slate-900">Total {cup(order.total)}</p>
     </div>
@@ -78,7 +79,8 @@ function SuggestionCard({ suggestion, busy, onDecide }: { suggestion: MergeSugge
           <p className="font-semibold text-slate-900">Si se fusionan (un solo vale)</p>
           <p className="text-slate-700">
             Productos {cup(preview.productsTotal)} · Mensajería {cup(preview.deliveryFee)}{' '}
-            <span className="text-slate-500">(separadas: {cup(preview.separateDeliveryFees)})</span> · Servicio {cup(preview.platformFee)}
+            <span className="text-slate-500">(separadas: {cup(preview.separateDeliveryFees)})</span>
+            {(preview.weatherSurcharge ?? 0) > 0 && ` · Mal clima ${cup(preview.weatherSurcharge ?? 0)}`} · Servicio {cup(preview.platformFee)}
           </p>
           <p className="font-semibold text-slate-900">
             Total {cup(preview.total)} <span className="font-normal text-slate-500">(por separado: {cup(preview.separateTotals)})</span>

@@ -17,6 +17,8 @@ export interface CityConfigInput {
   operationalMessage?: string | null;
   chargePlatformFee?: boolean;
   outOfTownFeePerKm?: number;
+  weatherSurchargeEnabled?: boolean;
+  weatherSurchargeAmount?: number;
 }
 
 export const citiesApi = baseApi.injectEndpoints({

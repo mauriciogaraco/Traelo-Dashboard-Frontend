@@ -535,6 +535,12 @@ export function OrderDetailPage() {
             <dt className="text-slate-500">Mensajería</dt>
             <dd className="font-medium text-slate-900">{order.deliveryFee} CUP</dd>
           </div>
+          {(order.weatherSurcharge ?? 0) > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Cargo por mal clima</dt>
+              <dd className="font-medium text-slate-900">{order.weatherSurcharge} CUP</dd>
+            </div>
+          )}
           <div className="flex justify-between">
             <dt className="text-slate-500">Mensajería — parte de Tráelo</dt>
             <dd className="font-medium text-slate-900">{order.traeloDeliveryShare} CUP</dd>
@@ -572,7 +578,7 @@ export function OrderDetailPage() {
           )}
           {currentUser?.role === 'DELIVERER' && (
             <div className="flex justify-between pt-1 text-brand-700">
-              <dt className="font-medium">Tu parte de mensajería</dt>
+              <dt className="font-medium">Tu parte (mensajería{(order.weatherSurcharge ?? 0) > 0 ? ' y mal clima' : ''})</dt>
               <dd className="font-medium">{order.delivererEarning} CUP</dd>
             </div>
           )}
